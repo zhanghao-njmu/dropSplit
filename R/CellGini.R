@@ -15,11 +15,11 @@ CellGini <- function(x, normalize = TRUE) {
   if (!class(x) %in% c("dgCMatrix", "dgTMatrix")) {
     stop("'x' must be sparse Matrix of class dgCMatrix or dgTMatrix")
   }
-  p_matrix <- t(t(x) / colSums(x))
-  gini <- 1 - colSums(p_matrix^2)
+  p_matrix <- Matrix::t(Matrix::t(x) / Matrix::colSums(x))
+  gini <- 1 - Matrix::colSums(p_matrix^2)
   if (isTRUE(normalize)) {
-    nCount <- colSums(x)
-    nGene <- colSums(x > 0)
+    nCount <- Matrix::colSums(x)
+    nGene <- Matrix::colSums(x > 0)
     i <- nCount %/% nGene
     r <- nCount %% nGene
     pi <- i / nCount

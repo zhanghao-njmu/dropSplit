@@ -14,10 +14,10 @@ CellEntropy <- function(x) {
   if (!class(x) %in% c("dgCMatrix", "dgTMatrix")) {
     stop("'x' must be sparse Matrix of class dgCMatrix or dgTMatrix")
   }
-  logp_matrix <- p_matrix <- t(t(x) / colSums(x))
+  logp_matrix <- p_matrix <- Matrix::t(Matrix::t(x) / Matrix::colSums(x))
   logp_matrix@x <- log2(logp_matrix@x)
   e <- p_matrix * logp_matrix
-  entropy <- -colSums(e, na.rm = TRUE)
+  entropy <- -Matrix::colSums(e, na.rm = TRUE)
   return(entropy)
 }
 
@@ -32,14 +32,14 @@ CellEntropy <- function(x) {
 #' x <- DropletUtils:::simCounts()
 #' maxCE <- maxCellEntropy(x)
 #' head(maxCE)
-#' @importFrom Matrix colSums
+#' @importFrom Matrix t colSums
 #' @export
 maxCellEntropy <- function(x) {
   if (!class(x) %in% c("dgCMatrix", "dgTMatrix")) {
     stop("'x' must be sparse Matrix of class dgCMatrix or dgTMatrix")
   }
-  nCount <- colSums(x)
-  nGene <- colSums(x > 0)
+  nCount <- Matrix::colSums(x)
+  nGene <- Matrix::colSums(x > 0)
   i <- nCount %/% nGene
   r <- nCount %% nGene
   pi <- i / nCount
