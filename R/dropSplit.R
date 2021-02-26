@@ -26,7 +26,6 @@
 #' @importFrom TTR runMean
 #' @importFrom DropletUtils downsampleMatrix
 #' @importFrom xgboost xgboost
-#' @importFrom Matrix colSums
 dropSplit <- function(counts, score_cutoff = 0.8, modelOpt = FALSE,
                       xgb_params = NULL, xgb_nround = 20, xgb_thread = 8,
                       bounds = list(),
@@ -44,10 +43,10 @@ dropSplit <- function(counts, score_cutoff = 0.8, modelOpt = FALSE,
 
   set.seed(0)
   meta_info <- data.frame(row.names = colnames(counts))
-  meta_info$nCount <- colSums(counts)
-  meta_info$nCount_rank <- rank(-(colSums(counts)))
-  meta_info$nFeature <- colSums(counts > 0)
-  meta_info$nFeature_rank <- rank(-(colSums(counts > 0)))
+  meta_info$nCount <- Matrix::colSums(counts)
+  meta_info$nCount_rank <- rank(-(Matrix::colSums(counts)))
+  meta_info$nFeature <- Matrix::colSums(counts > 0)
+  meta_info$nFeature_rank <- rank(-(Matrix::colSums(counts > 0)))
 
   meta_info <- meta_info[meta_info$nCount > 0, ]
   meta_info <- meta_info[order(meta_info$nCount_rank, decreasing = FALSE), ]
@@ -69,14 +68,14 @@ dropSplit <- function(counts, score_cutoff = 0.8, modelOpt = FALSE,
   uncertain_count <- meta_info$nCount[uncertain_rank]
 
   certain_cells <- counts[, meta_info$nCount >= certain_count]
-  certain_nCount <- colSums(certain_cells)
+  certain_nCount <- Matrix::colSums(certain_cells)
   uncertain_cells <- counts[, meta_info$nCount < certain_count & meta_info$nCount >= uncertain_count]
-  uncertain_nCount <- colSums(uncertain_cells)
+  uncertain_nCount <- Matrix::colSums(uncertain_cells)
 
   i <- sample(x = 1:ncol(certain_cells), size = ncol(uncertain_cells), replace = TRUE)
   sim_cells <- certain_cells[, i]
   colnames(sim_cells) <- paste0("sim_cells-", 1:ncol(sim_cells))
-  sim_nCount <- colSums2(sim_cells)
+  sim_nCount <- Matrix::colSums2(sim_cells)
   sim_nCount_assign <- sample(unique(uncertain_nCount), ncol(uncertain_cells), replace = TRUE)
   sim_cells <- downsampleMatrix(x = sim_cells, prop = sim_nCount_assign / sim_nCount, bycol = TRUE)
 
@@ -88,12 +87,12 @@ dropSplit <- function(counts, score_cutoff = 0.8, modelOpt = FALSE,
   comb_EntropyRate <- comb_CellEntropy / maxEntropy(comb_cells)
   comb_EntropyRate[is.na(comb_EntropyRate)] <- 1
   comb_gini <- CellGini(comb_cells, normalize = T)
-  comb_nCount <- colSums(comb_cells)
-  comb_nFeature <- colSums(comb_cells > 0)
+  comb_nCount <- Matrix::colSums(comb_cells)
+  comb_nFeature <- Matrix::colSums(comb_cells > 0)
   MTgene <- grep(x = rownames(comb_cells), pattern = "(^MT-)|(^Mt-)|(^mt-)", perl = T, value = TRUE)
   RPgene <- grep(x = rownames(comb_cells), pattern = "(^RP[SL]\\d+(\\w|)$)|(^Rp[sl]\\d+(\\w|)$)|(^rp[sl]\\d+(\\w|)$)", perl = T, value = TRUE)
-  comb_MTprop <- colSums(comb_cells[MTgene, ]) / colSums(comb_cells)
-  comb_RPprop <- colSums(comb_cells[RPgene, ]) / colSums(comb_cells)
+  comb_MTprop <- Matrix::colSums(comb_cells[MTgene, ]) / Matrix::colSums(comb_cells)
+  comb_RPprop <- Matrix::colSums(comb_cells[RPgene, ]) / Matrix::colSums(comb_cells)
   dat_other <- cbind(
     CellEntropy = comb_CellEntropy,
     EntropyRate = comb_EntropyRate,
