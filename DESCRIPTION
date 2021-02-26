@@ -9,7 +9,7 @@ Description: dropSplit is designed to identify true cells from droplet-based scR
     dropSplit provides some special QC metrics such as CellEntropy or CellGini which can help identification.
     In general, user can use the predefined parameters in the XGBoost and get the important features that help in cell identification.
     It also implements a automatic XGBoost hyperparameters-tuning function to optimize the model.
-License: GPL-3
+License: AGPL-3
 Encoding: UTF-8
 LazyData: true
 RoxygenNote: 7.1.1
