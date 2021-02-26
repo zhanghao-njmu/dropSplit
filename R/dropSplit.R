@@ -26,6 +26,7 @@
 #' @importFrom TTR runMean
 #' @importFrom DropletUtils downsampleMatrix
 #' @importFrom xgboost xgboost
+#' @importFrom Matrix colSums
 dropSplit <- function(counts, score_cutoff = 0.8, modelOpt = FALSE,
                       xgb_params = NULL, xgb_nround = 20, xgb_thread = 8,
                       bounds = list(),

@@ -8,7 +8,7 @@
 #' x <- DropletUtils:::simCounts()
 #' CE <- CellEntropy(x)
 #' head(CE)
-#'
+#' @importFrom Matrix colSums
 CellEntropy <- function(x) {
   if (!class(x) %in% c("dgCMatrix", "dgTMatrix")) {
     stop("'x' must be sparse Matrix of class dgCMatrix or dgTMatrix")
@@ -31,7 +31,7 @@ CellEntropy <- function(x) {
 #' x <- DropletUtils:::simCounts()
 #' maxCE <- maxCellEntropy(x)
 #' head(maxCE)
-#'
+#' @importFrom Matrix colSums
 maxCellEntropy <- function(x) {
   if (!class(x) %in% c("dgCMatrix", "dgTMatrix")) {
     stop("'x' must be sparse Matrix of class dgCMatrix or dgTMatrix")

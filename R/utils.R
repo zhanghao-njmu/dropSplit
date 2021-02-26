@@ -50,7 +50,7 @@ find_peaks <- function(x, left_shoulder = 5000, right_shoulder = 20000) {
 #'
 #' @examples
 #' x <- DropletUtils:::simCounts()
-#' inflection <- find_inflection(colSums(x))
+#' inflection <- find_inflection(Matrix::colSums(x))
 #' inflection
 find_inflection <- function(x, df = 20) {
   r <- x

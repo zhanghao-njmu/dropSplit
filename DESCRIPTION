@@ -19,4 +19,5 @@ Imports:
     ParBayesianOptimization,
     doParallel,
     BiocGenerics,
-    TTR
+    TTR,
+    Matrix
