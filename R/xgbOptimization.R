@@ -37,6 +37,7 @@
 #' @importFrom doParallel registerDoParallel
 #' @importFrom BiocGenerics clusterExport clusterEvalQ
 #' @importFrom xgboost xgb.cv
+#' @export
 xgbOptimization <- function(dat, dat_label, bounds = list(),
                             xgb_nfold = 5, xgb_nround = 20, xgb_early_stopping_rounds = 5, xgb_metric = "auc", xgb_thread = 8,
                             opt_initPoints = length(bounds) + 1, opt_itersn = 10, opt_thread = 1, ...) {

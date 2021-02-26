@@ -9,6 +9,7 @@
 #' x <- DropletUtils:::simCounts()
 #' CG <- CellGini(x, normalize = TRUE)
 #' head(CG)
+#' @export
 CellGini <- function(x, normalize = TRUE) {
   if (!class(x) %in% c("dgCMatrix", "dgTMatrix")) {
     stop("'x' must be sparse Matrix of class dgCMatrix or dgTMatrix")
