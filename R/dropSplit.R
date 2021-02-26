@@ -151,9 +151,9 @@ dropSplit <- function(counts, score_cutoff = 0.8, modelOpt = FALSE,
     params = xgb_params
   )
   pred <- predict(xgb, dat[rownames(meta_info), ])
-  meta_info[, "preSplitClass"] <- "discarded"
-  meta_info[colnames(certain_cells), "preSplitClass"] <- "Cell"
-  meta_info[colnames(uncertain_cells), "preSplitClass"] <- "Empty"
+  meta_info[, "preDefinedClass"] <- "discarded"
+  meta_info[colnames(certain_cells), "preDefinedClass"] <- "Cell"
+  meta_info[colnames(uncertain_cells), "preDefinedClass"] <- "Empty"
   meta_info[, "dropSplitClass"] <- "discarded"
   meta_info[, "dropSplitScore"] <- -1
   meta_info[rownames(meta_info), "dropSplitScore"] <- pred
