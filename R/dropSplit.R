@@ -55,7 +55,7 @@ dropSplit <- function(counts, score_cutoff = 0.8, modelOpt = FALSE,
 
   if (min(meta_info$nCount) <= 0) {
     warning("'counts' has cells that nCount <=0. These cells will be remove in the following steps.\n",
-            immediate. = TRUE,noBreaks. = TRUE)
+            immediate. = TRUE)
     meta_info <- meta_info[meta_info$nCount > 0, ]
   }
   raw_cell_order <- rownames(meta_info)
