@@ -45,7 +45,7 @@ dropSplit <- function(counts, score_cutoff = 0.8, modelOpt = FALSE,
     stop("'counts' matrix must have both row(feature) names and column(cell) names")
   }
 
-  message(">>> Start to define the credible cell-containing droplet...\n")
+  message(">>> Start to define the credible cell-containing droplet...")
   set.seed(0)
   meta_info <- data.frame(row.names = colnames(counts))
   meta_info$nCount <- Matrix::colSums(counts)
@@ -54,7 +54,7 @@ dropSplit <- function(counts, score_cutoff = 0.8, modelOpt = FALSE,
   meta_info$nFeature_rank <- rank(-(Matrix::colSums(counts > 0)))
 
   if (min(meta_info$nCount) <= 0) {
-    warning("'counts' has cells that nCount <=0. These cells will be remove in the following steps.\n",
+    warning("'counts' has cells that nCount <=0. These cells will be remove in the following steps.",
             immediate. = TRUE)
     meta_info <- meta_info[meta_info$nCount > 0, ]
   }
@@ -88,7 +88,7 @@ dropSplit <- function(counts, score_cutoff = 0.8, modelOpt = FALSE,
     "\n... Number of Discarded: ", ncol(counts) - ncol(certain_cells) - ncol(uncertain_cells), "  Minimum nCounts: ", min(meta_info$nCount), "\n"
   )
 
-  message(">>> Simulate the low depth cell-containing droplet from the pre-defined Cell...\n")
+  message(">>> Simulate the low depth cell-containing droplet from the pre-defined Cell...")
   i <- sample(x = 1:ncol(certain_cells), size = ncol(uncertain_cells), replace = TRUE)
   sim_cells <- certain_cells[, i]
   colnames(sim_cells) <- paste0("sim_cells-", 1:ncol(sim_cells))
@@ -100,7 +100,7 @@ dropSplit <- function(counts, score_cutoff = 0.8, modelOpt = FALSE,
   dat <- Matrix::t(comb_cells)
   dat_label <- c(rep(1, ncol(certain_cells) + ncol(sim_cells)), rep(0, ncol(uncertain_cells)))
 
-  message(">>> Calculate QC metrics for the droplets to be trained...\n")
+  message(">>> Calculate QC metrics for the droplets to be trained...")
   comb_CellEntropy <- CellEntropy(comb_cells)
   comb_EntropyRate <- comb_CellEntropy / maxCellEntropy(comb_cells)
   comb_EntropyRate[is.na(comb_EntropyRate)] <- 1
@@ -158,7 +158,7 @@ dropSplit <- function(counts, score_cutoff = 0.8, modelOpt = FALSE,
       nthread = xgb_thread
     )
   }
-  message(">>> eXtreme Gradient Boosting(XGBoost) training for the pre-defined the droplets...\n")
+  message(">>> eXtreme Gradient Boosting(XGBoost) training for the pre-defined the droplets...")
   xgb <- xgboost(
     data = xgb.DMatrix(data = dat, label = dat_label),
     nrounds = xgb_nrounds,
