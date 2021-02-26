@@ -17,6 +17,6 @@ Find the index of inflection in a numeric vector.
 }
 \examples{
 x <- DropletUtils:::simCounts()
-inflection <- find_inflection(colSums(x))
+inflection <- find_inflection(Matrix::colSums(x))
 inflection
 }

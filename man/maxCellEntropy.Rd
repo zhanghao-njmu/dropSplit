@@ -19,5 +19,4 @@ Calculate the max entropy for the cells when given the same counts.
 x <- DropletUtils:::simCounts()
 maxCE <- maxCellEntropy(x)
 head(maxCE)
-
 }

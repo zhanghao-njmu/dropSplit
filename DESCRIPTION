@@ -18,6 +18,7 @@ Imports:
     xgboost,
     ParBayesianOptimization,
     doParallel,
+    parallel,
     BiocGenerics,
     TTR,
     Matrix

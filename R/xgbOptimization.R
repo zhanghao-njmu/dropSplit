@@ -33,7 +33,8 @@
 #' result <- xgbOptimization(dat = dat, dat_label = dat_label, bounds = bounds, opt_thread = 2)
 #' result
 #' @importFrom ParBayesianOptimization bayesOpt getBestPars
-#' @importFrom doParallel makeCluster registerDoParallel
+#' @importFrom parallel makeCluster
+#' @importFrom doParallel registerDoParallel
 #' @importFrom BiocGenerics clusterExport clusterEvalQ
 #' @importFrom xgboost xgb.cv
 xgbOptimization <- function(dat, dat_label, bounds = list(),

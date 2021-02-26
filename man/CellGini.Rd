@@ -21,5 +21,4 @@ Calculate the Gini index for the cells according to the feature counts.
 x <- DropletUtils:::simCounts()
 CG <- CellGini(x, normalize = TRUE)
 head(CG)
-
 }

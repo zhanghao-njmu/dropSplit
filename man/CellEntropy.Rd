@@ -19,5 +19,4 @@ Calculate entropy for each cell according to the feature counts.
 x <- DropletUtils:::simCounts()
 CE <- CellEntropy(x)
 head(CE)
-
 }
