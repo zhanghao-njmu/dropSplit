@@ -1,8 +1,8 @@
 #' Automatically identify cell-containing and empty droplets for droplet-based scRNAseq data using dropSplit.
 #'
 #' @description dropSplit is designed to identify true cells from droplet-based scRNAseq data.
-#' It consists of three parts: quality control for all droplets, model construction, cell identification.
-#' dropSplit provides some special QC metrics such as CellEntropy or CellGini which can help identification.
+#' It consists of three parts: quality control, model construction and droplet classification, summarizing features.
+#' dropSplit also provides some special QC metrics such as CellEntropy or CellGini which can help identification.
 #' In general, user can use the predefined parameters in the XGBoost and get the important features that help in cell identification.
 #' It also implements a automatic XGBoost hyperparameters-tuning function to optimize the model.
 #' @param counts A \code{matrix} object or a \code{dgCMatrix} object which columns represent features and rows represent samples.
