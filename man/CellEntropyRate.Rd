@@ -19,5 +19,4 @@ Calculate the entropy rate for the cells according to the feature counts.
 x <- DropletUtils:::simCounts()
 CER <- CellEntropyRate(x)
 head(CER)
-
 }

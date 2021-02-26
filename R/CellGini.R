@@ -9,6 +9,7 @@
 #' x <- DropletUtils:::simCounts()
 #' CG <- CellGini(x, normalize = TRUE)
 #' head(CG)
+#' @importFrom Matrix t colSums
 #' @export
 CellGini <- function(x, normalize = TRUE) {
   if (!class(x) %in% c("dgCMatrix", "dgTMatrix")) {

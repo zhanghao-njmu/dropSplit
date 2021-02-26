@@ -9,7 +9,7 @@ dropSplit(
   score_cutoff = 0.8,
   modelOpt = FALSE,
   xgb_params = NULL,
-  xgb_nround = 20,
+  xgb_nrounds = 20,
   xgb_thread = 8,
   bounds = list(),
   xgb_nfold = 5,
@@ -30,7 +30,7 @@ dropSplit(
 
 \item{xgb_params}{The \code{list} of XGBoost parameters.}
 
-\item{xgb_nround}{Max number of boosting iterations.}
+\item{xgb_nrounds}{Max number of boosting iterations.}
 
 \item{xgb_thread}{Number of thread used in \code{\link[xgboost]{xgb.cv}}.}
 

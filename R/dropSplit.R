@@ -25,10 +25,13 @@
 #' head(result$meta_info)
 #' @importFrom TTR runMean
 #' @importFrom DropletUtils downsampleMatrix
-#' @importFrom xgboost xgboost
+#' @importFrom xgboost xgboost xgb.DMatrix
+#' @importFrom Matrix t colSums
+#' @importFrom methods as
+#' @importFrom stats na.omit predict
 #' @export
 dropSplit <- function(counts, score_cutoff = 0.8, modelOpt = FALSE,
-                      xgb_params = NULL, xgb_nround = 20, xgb_thread = 8,
+                      xgb_params = NULL, xgb_nrounds = 20, xgb_thread = 8,
                       bounds = list(),
                       xgb_nfold = 5, xgb_early_stopping_rounds = 5, xgb_metric = "auc",
                       opt_initPoints = length(bounds) + 1, opt_itersn = 10, opt_thread = 1, ...) {
@@ -44,10 +47,10 @@ dropSplit <- function(counts, score_cutoff = 0.8, modelOpt = FALSE,
 
   set.seed(0)
   meta_info <- data.frame(row.names = colnames(counts))
-  meta_info$nCount <- Matrix::colSums(counts)
-  meta_info$nCount_rank <- rank(-(Matrix::colSums(counts)))
-  meta_info$nFeature <- Matrix::colSums(counts > 0)
-  meta_info$nFeature_rank <- rank(-(Matrix::colSums(counts > 0)))
+  meta_info$nCount <- colSums(counts)
+  meta_info$nCount_rank <- rank(-(colSums(counts)))
+  meta_info$nFeature <- colSums(counts > 0)
+  meta_info$nFeature_rank <- rank(-(colSums(counts > 0)))
 
   meta_info <- meta_info[meta_info$nCount > 0, ]
   meta_info <- meta_info[order(meta_info$nCount_rank, decreasing = FALSE), ]
@@ -69,14 +72,14 @@ dropSplit <- function(counts, score_cutoff = 0.8, modelOpt = FALSE,
   uncertain_count <- meta_info$nCount[uncertain_rank]
 
   certain_cells <- counts[, meta_info$nCount >= certain_count]
-  certain_nCount <- Matrix::colSums(certain_cells)
+  certain_nCount <- colSums(certain_cells)
   uncertain_cells <- counts[, meta_info$nCount < certain_count & meta_info$nCount >= uncertain_count]
-  uncertain_nCount <- Matrix::colSums(uncertain_cells)
+  uncertain_nCount <- colSums(uncertain_cells)
 
   i <- sample(x = 1:ncol(certain_cells), size = ncol(uncertain_cells), replace = TRUE)
   sim_cells <- certain_cells[, i]
   colnames(sim_cells) <- paste0("sim_cells-", 1:ncol(sim_cells))
-  sim_nCount <- Matrix::colSums2(sim_cells)
+  sim_nCount <- colSums(sim_cells)
   sim_nCount_assign <- sample(unique(uncertain_nCount), ncol(uncertain_cells), replace = TRUE)
   sim_cells <- downsampleMatrix(x = sim_cells, prop = sim_nCount_assign / sim_nCount, bycol = TRUE)
 
@@ -85,15 +88,15 @@ dropSplit <- function(counts, score_cutoff = 0.8, modelOpt = FALSE,
   dat_label <- c(rep(1, ncol(certain_cells) + ncol(sim_cells)), rep(0, ncol(uncertain_cells)))
 
   comb_CellEntropy <- CellEntropy(comb_cells)
-  comb_EntropyRate <- comb_CellEntropy / maxEntropy(comb_cells)
+  comb_EntropyRate <- comb_CellEntropy / maxCellEntropy(comb_cells)
   comb_EntropyRate[is.na(comb_EntropyRate)] <- 1
   comb_gini <- CellGini(comb_cells, normalize = T)
-  comb_nCount <- Matrix::colSums(comb_cells)
-  comb_nFeature <- Matrix::colSums(comb_cells > 0)
+  comb_nCount <- colSums(comb_cells)
+  comb_nFeature <- colSums(comb_cells > 0)
   MTgene <- grep(x = rownames(comb_cells), pattern = "(^MT-)|(^Mt-)|(^mt-)", perl = T, value = TRUE)
   RPgene <- grep(x = rownames(comb_cells), pattern = "(^RP[SL]\\d+(\\w|)$)|(^Rp[sl]\\d+(\\w|)$)|(^rp[sl]\\d+(\\w|)$)", perl = T, value = TRUE)
-  comb_MTprop <- Matrix::colSums(comb_cells[MTgene, ]) / Matrix::colSums(comb_cells)
-  comb_RPprop <- Matrix::colSums(comb_cells[RPgene, ]) / Matrix::colSums(comb_cells)
+  comb_MTprop <- colSums(comb_cells[MTgene, ]) / colSums(comb_cells)
+  comb_RPprop <- colSums(comb_cells[RPgene, ]) / colSums(comb_cells)
   dat_other <- cbind(
     CellEntropy = comb_CellEntropy,
     EntropyRate = comb_EntropyRate,
@@ -115,7 +118,7 @@ dropSplit <- function(counts, score_cutoff = 0.8, modelOpt = FALSE,
   if (isTRUE(modelOpt)) {
     opt <- xgbOptimization(dat, dat_label,
       bounds = list(),
-      xgb_nfold = xgb_nfold, xgb_nround = xgb_nround, xgb_early_stopping_rounds = xgb_early_stopping_rounds, xgb_metric = xgb_metric, xgb_thread = xgb_thread,
+      xgb_nfold = xgb_nfold, xgb_nrounds = xgb_nrounds, xgb_early_stopping_rounds = xgb_early_stopping_rounds, xgb_metric = xgb_metric, xgb_thread = xgb_thread,
       opt_initPoints = opt_initPoints, opt_itersn = opt_itersn, opt_thread = opt_thread, ...
     )
     xgb_params <- c(opt$BestPars,
@@ -143,7 +146,7 @@ dropSplit <- function(counts, score_cutoff = 0.8, modelOpt = FALSE,
   }
   xgb <- xgboost(
     data = xgb.DMatrix(data = dat, label = dat_label),
-    nrounds = xgb_nround,
+    nrounds = xgb_nrounds,
     early_stopping_rounds = 5,
     params = xgb_params
   )

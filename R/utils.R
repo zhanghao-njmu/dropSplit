@@ -13,6 +13,7 @@
 #' x <- c(0, 1, 3, 6, 9, 12, 11, 7, 9, 5, 1, 9, 0, 1, 2)
 #' pks <- find_peaks(x, left_shoulder = 3, right_shoulder = 3)
 #' pks
+#' @importFrom stats na.omit
 #' @export
 find_peaks <- function(x, left_shoulder = 5000, right_shoulder = 20000) {
   raw_order <- 1:length(x)
@@ -46,6 +47,7 @@ find_peaks <- function(x, left_shoulder = 5000, right_shoulder = 20000) {
 #' Find the index of inflection in a numeric vector.
 #'
 #' @param x A numeric vector.
+#' @param df The desired equivalent number of degrees of freedom (trace of the smoother matrix).
 #'
 #' @return A list of the index of the inflection and the corresponding value.
 #'
@@ -53,6 +55,7 @@ find_peaks <- function(x, left_shoulder = 5000, right_shoulder = 20000) {
 #' x <- DropletUtils:::simCounts()
 #' inflection <- find_inflection(Matrix::colSums(x))
 #' inflection
+#' @importFrom stats smooth.spline predict sd
 #' @export
 find_inflection <- function(x, df = 20) {
   r <- x

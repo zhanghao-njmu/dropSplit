@@ -1,6 +1,6 @@
 Package: dropSplit
 Type: Package
-Title: Automatically identify cell-containing and empty droplets for droplet-based scRNAseq data using dropSplit.
+Title: Automatically identify cell-containing and empty droplets for droplet-based scRNAseq data using dropSplit
 Version: 0.1.0
 Author: Hao Zhang
 Maintainer: Hao Zhang <542370159@qq.com>
@@ -14,11 +14,14 @@ Encoding: UTF-8
 LazyData: true
 RoxygenNote: 7.1.1
 Imports:
+    methods,
+    stats,
     DropletUtils,
     xgboost,
     ParBayesianOptimization,
     doParallel,
     parallel,
+    foreach,
     BiocGenerics,
     TTR,
     Matrix

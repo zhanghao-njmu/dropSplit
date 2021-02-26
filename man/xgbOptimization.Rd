@@ -9,7 +9,7 @@ xgbOptimization(
   dat_label,
   bounds = list(),
   xgb_nfold = 5,
-  xgb_nround = 20,
+  xgb_nrounds = 20,
   xgb_early_stopping_rounds = 5,
   xgb_metric = "auc",
   xgb_thread = 8,
@@ -28,7 +28,7 @@ xgbOptimization(
 
 \item{xgb_nfold}{The original dataset is randomly partitioned into nfold equal size subsamples.}
 
-\item{xgb_nround}{Max number of boosting iterations.}
+\item{xgb_nrounds}{Max number of boosting iterations.}
 
 \item{xgb_early_stopping_rounds}{If NULL, the early stopping function is not triggered. If set to an integer k, training with a validation set will stop if the performance doesn't improve for k rounds. Setting this parameter engages the \code{cb.early.stop} callback.}
 

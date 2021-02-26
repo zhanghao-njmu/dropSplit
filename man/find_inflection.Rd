@@ -8,6 +8,8 @@ find_inflection(x, df = 20)
 }
 \arguments{
 \item{x}{A numeric vector.}
+
+\item{df}{The desired equivalent number of degrees of freedom (trace of the smoother matrix).}
 }
 \value{
 A list of the index of the inflection and the corresponding value.

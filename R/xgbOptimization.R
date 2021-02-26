@@ -5,7 +5,7 @@
 #' @param dat_label A vector of response classification values.
 #' @param bounds A named list of lower and upper bounds for \code{params} in \code{\link[xgboost]{xgb.cv}}. The names of the list should be arguments passed to xgb.cv Use "L" suffix to indicate integers. A fixed parameter should be a two-length vector with the same value, i.e. bound=list(lambda = c(5, 5))
 #' @param xgb_nfold The original dataset is randomly partitioned into nfold equal size subsamples.
-#' @param xgb_nround Max number of boosting iterations.
+#' @param xgb_nrounds Max number of boosting iterations.
 #' @param xgb_early_stopping_rounds If NULL, the early stopping function is not triggered. If set to an integer k, training with a validation set will stop if the performance doesn't improve for k rounds. Setting this parameter engages the \code{cb.early.stop} callback.
 #' @param xgb_metric A evaluation metric to be used in cross validation and will to be maximized. Possible options are:
 #' \itemize{
@@ -33,13 +33,14 @@
 #' result <- xgbOptimization(dat = dat, dat_label = dat_label, bounds = bounds, opt_thread = 2)
 #' result
 #' @importFrom ParBayesianOptimization bayesOpt getBestPars
-#' @importFrom parallel makeCluster
+#' @importFrom parallel makeCluster stopCluster
 #' @importFrom doParallel registerDoParallel
+#' @importFrom foreach registerDoSEQ
 #' @importFrom BiocGenerics clusterExport clusterEvalQ
 #' @importFrom xgboost xgb.cv
 #' @export
 xgbOptimization <- function(dat, dat_label, bounds = list(),
-                            xgb_nfold = 5, xgb_nround = 20, xgb_early_stopping_rounds = 5, xgb_metric = "auc", xgb_thread = 8,
+                            xgb_nfold = 5, xgb_nrounds = 20, xgb_early_stopping_rounds = 5, xgb_metric = "auc", xgb_thread = 8,
                             opt_initPoints = length(bounds) + 1, opt_itersn = 10, opt_thread = 1, ...) {
   set.seed(0)
   if (length(bounds) == 0) {
@@ -56,8 +57,8 @@ xgbOptimization <- function(dat, dat_label, bounds = list(),
   }
   xgbScoreFun <- defineScoreFun(
     dat = dat, dat_label = dat_label,
-    nfold = xgb_nfold, nround = xgb_nround, early_stopping_rounds = xgb_early_stopping_rounds,
-    metric = xgb_metric, xgb_thread = xgb_thread
+    xgb_nfold = xgb_nfold, xgb_nrounds = xgb_nrounds, xgb_early_stopping_rounds = xgb_early_stopping_rounds,
+    xgb_metric = xgb_metric, xgb_thread = xgb_thread
   )
 
   if (opt_thread > 1) {
@@ -99,13 +100,15 @@ xgbOptimization <- function(dat, dat_label, bounds = list(),
   return(result)
 }
 
+#' @importFrom xgboost xgb.DMatrix
 defineScoreFun <- function(dat, dat_label,
                            ...,
-                           nfold = 5, nround = 20, early_stopping_rounds = 5, metric = "auc",
+                           xgb_nfold = 5, xgb_nrounds = 20, xgb_early_stopping_rounds = 5, xgb_metric = "auc",
                            xgb_thread = 8) {
   xgbScore <- function(.dat = get("dat"), .dat_label = get("dat_label"),
                        ...,
-                       .xgb_nfold = get("xgb_nfold"), .xgb_nround = get("xgb_nround"), .xgb_early_stopping_rounds = get("xgb_early_stopping_rounds"), .xgb_metric = get("xgb_metric"),
+                       .xgb_nfold = get("xgb_nfold"), .xgb_nrounds = get("xgb_nrounds"),
+                       .xgb_early_stopping_rounds = get("xgb_early_stopping_rounds"), .xgb_metric = get("xgb_metric"),
                        .xgb_thread = get("xgb_thread")) {
     xgbDMatrix <- xgb.DMatrix(data = .dat, label = .dat_label)
     Pars <- list(
@@ -117,10 +120,10 @@ defineScoreFun <- function(dat, dat_label,
     xgbcv <- xgb.cv(
       params = Pars,
       data = xgbDMatrix,
-      nround = .xgb_nround,
+      nrounds = .xgb_nrounds,
       nfold = .xgb_nfold,
       early_stopping_rounds = .xgb_early_stopping_rounds,
-      metrics = list(.xgb_metric),
+      metrics = .xgb_metric,
       prediction = TRUE,
       showsd = TRUE,
       maximize = TRUE,
@@ -128,7 +131,7 @@ defineScoreFun <- function(dat, dat_label,
     )
     return(
       list(
-        Score = max(xgbcv$evaluation_log[[paste0("test_", metric, "_mean")]]),
+        Score = max(xgbcv$evaluation_log[[paste0("test_", .xgb_metric, "_mean")]]),
         nrounds = xgbcv$best_iteration
       )
     )
