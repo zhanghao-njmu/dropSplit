@@ -68,7 +68,7 @@ find_inflection <- function(x, df = 20) {
   fitted_x <- 10^fitted$x
   fitted_y <- 10^fitted$y
   curvature <- curvatureCalcluate(fitted_x, fitted_y)$curvature
-  if (min(curvature) < 0 & abs(min(curvature)) > mean(curvature) + 2 * sd(curvature)) {
+  if (min(curvature) < 0 & min(curvature) < median(curvature) - 1.5 * (quantile(curvature, 0.75) - quantile(curvature, 0.25))) {
     inflection_y <- fitted_y[which(curvature == max(curvature[which.min(curvature):length(curvature)]))]
   } else {
     inflection_y <- fitted_y[which.max(curvature)]

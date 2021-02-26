@@ -13,7 +13,7 @@ dropSplit(
   xgb_thread = 8,
   bounds = list(),
   xgb_nfold = 5,
-  xgb_early_stopping_rounds = 5,
+  xgb_early_stopping_rounds = 3,
   xgb_metric = "auc",
   opt_initPoints = length(bounds) + 1,
   opt_itersn = 10,

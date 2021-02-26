@@ -40,7 +40,7 @@
 #' @importFrom xgboost xgb.cv
 #' @export
 xgbOptimization <- function(dat, dat_label, bounds = list(),
-                            xgb_nfold = 5, xgb_nrounds = 20, xgb_early_stopping_rounds = 5, xgb_metric = "auc", xgb_thread = 8,
+                            xgb_nfold = 5, xgb_nrounds = 20, xgb_early_stopping_rounds = 3, xgb_metric = "auc", xgb_thread = 8,
                             opt_initPoints = length(bounds) + 1, opt_itersn = 10, opt_thread = 1, ...) {
   set.seed(0)
   if (length(bounds) == 0) {
@@ -60,7 +60,7 @@ xgbOptimization <- function(dat, dat_label, bounds = list(),
     xgb_nfold = xgb_nfold, xgb_nrounds = xgb_nrounds, xgb_early_stopping_rounds = xgb_early_stopping_rounds,
     xgb_metric = xgb_metric, xgb_thread = xgb_thread
   )
-
+  message("Start to find the best hyperparameters using bayesian optimization ...\n")
   if (opt_thread > 1) {
     cl <- makeCluster(opt_thread)
     registerDoParallel(cl)

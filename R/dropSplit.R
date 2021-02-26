@@ -33,7 +33,7 @@
 dropSplit <- function(counts, score_cutoff = 0.8, modelOpt = FALSE,
                       xgb_params = NULL, xgb_nrounds = 20, xgb_thread = 8,
                       bounds = list(),
-                      xgb_nfold = 5, xgb_early_stopping_rounds = 5, xgb_metric = "auc",
+                      xgb_nfold = 5, xgb_early_stopping_rounds = 3, xgb_metric = "auc",
                       opt_initPoints = length(bounds) + 1, opt_itersn = 10, opt_thread = 1, ...) {
   if (!class(counts) %in% c("matrix", "dgCMatrix", "dgTMatrix")) {
     stop("'counts' must be a dense matrix or a sparse matrix object.")
@@ -45,6 +45,7 @@ dropSplit <- function(counts, score_cutoff = 0.8, modelOpt = FALSE,
     stop("'counts' matrix must have both row(feature) names and column(cell) names")
   }
 
+  message(">>> Start to define the credible cell-containing droplet...\n")
   set.seed(0)
   meta_info <- data.frame(row.names = colnames(counts))
   meta_info$nCount <- Matrix::colSums(counts)
@@ -52,7 +53,12 @@ dropSplit <- function(counts, score_cutoff = 0.8, modelOpt = FALSE,
   meta_info$nFeature <- Matrix::colSums(counts > 0)
   meta_info$nFeature_rank <- rank(-(Matrix::colSums(counts > 0)))
 
-  meta_info <- meta_info[meta_info$nCount > 0, ]
+  if (min(meta_info$nCount) <= 0) {
+    warning("'counts' has cells that nCount <=0. These cells will be remove in the following steps.\n",
+            immediate. = TRUE,noBreaks. = TRUE)
+    meta_info <- meta_info[meta_info$nCount > 0, ]
+  }
+  raw_cell_order <- rownames(meta_info)
   meta_info <- meta_info[order(meta_info$nCount_rank, decreasing = FALSE), ]
   counts <- counts[, rownames(meta_info)]
 
@@ -75,7 +81,14 @@ dropSplit <- function(counts, score_cutoff = 0.8, modelOpt = FALSE,
   certain_nCount <- Matrix::colSums(certain_cells)
   uncertain_cells <- counts[, meta_info$nCount < certain_count & meta_info$nCount >= uncertain_count]
   uncertain_nCount <- Matrix::colSums(uncertain_cells)
+  message(
+    ">>> Summary of pre-defined droplet",
+    "\n... Number of Cell: ", ncol(certain_cells), "  Minimum nCounts: ", certain_count,
+    "\n... Number of Empty: ", ncol(uncertain_cells), "  Minimum nCounts: ", uncertain_count,
+    "\n... Number of Discarded: ", ncol(counts) - ncol(certain_cells) - ncol(uncertain_cells), "  Minimum nCounts: ", min(meta_info$nCount), "\n"
+  )
 
+  message(">>> Simulate the low depth cell-containing droplet from the pre-defined Cell...\n")
   i <- sample(x = 1:ncol(certain_cells), size = ncol(uncertain_cells), replace = TRUE)
   sim_cells <- certain_cells[, i]
   colnames(sim_cells) <- paste0("sim_cells-", 1:ncol(sim_cells))
@@ -87,6 +100,7 @@ dropSplit <- function(counts, score_cutoff = 0.8, modelOpt = FALSE,
   dat <- Matrix::t(comb_cells)
   dat_label <- c(rep(1, ncol(certain_cells) + ncol(sim_cells)), rep(0, ncol(uncertain_cells)))
 
+  message(">>> Calculate QC metrics for the droplets to be trained...\n")
   comb_CellEntropy <- CellEntropy(comb_cells)
   comb_EntropyRate <- comb_CellEntropy / maxCellEntropy(comb_cells)
   comb_EntropyRate[is.na(comb_EntropyRate)] <- 1
@@ -144,20 +158,28 @@ dropSplit <- function(counts, score_cutoff = 0.8, modelOpt = FALSE,
       nthread = xgb_thread
     )
   }
+  message(">>> eXtreme Gradient Boosting(XGBoost) training for the pre-defined the droplets...\n")
   xgb <- xgboost(
     data = xgb.DMatrix(data = dat, label = dat_label),
     nrounds = xgb_nrounds,
-    early_stopping_rounds = 5,
+    early_stopping_rounds = xgb_early_stopping_rounds,
     params = xgb_params
   )
   pred <- predict(xgb, dat[rownames(meta_info), ])
-  meta_info[, "preDefinedClass"] <- "discarded"
+  meta_info[, "preDefinedClass"] <- "Discarded"
   meta_info[colnames(certain_cells), "preDefinedClass"] <- "Cell"
   meta_info[colnames(uncertain_cells), "preDefinedClass"] <- "Empty"
-  meta_info[, "dropSplitClass"] <- "discarded"
+  meta_info[, "dropSplitClass"] <- "Discarded"
   meta_info[, "dropSplitScore"] <- -1
   meta_info[rownames(meta_info), "dropSplitScore"] <- pred
   meta_info[rownames(meta_info), "dropSplitClass"] <- ifelse(pred > score_cutoff, "Cell", "Empty")
+  meta_info <- meta_info[raw_cell_order, ]
+  message(
+    ">>> Summary of dropSplit-defined droplet",
+    "\n... Number of Cell: ", sum(meta_info$dropSplitClass == "Cell"), "  Minimum nCounts: ", min(meta_info[meta_info$dropSplitClass == "Cell", "nCount"]),
+    "\n... Number of Empty: ", sum(meta_info$dropSplitClass == "Empty"), "  Minimum nCounts: ", min(meta_info[meta_info$dropSplitClass == "Empty", "nCount"]),
+    "\n... Number of Discarded: ", sum(meta_info$dropSplitClass == "Discarded"), "  Minimum nCounts: ", ifelse(sum(meta_info$dropSplitClass == "Discarded") > 1, min(meta_info[meta_info$dropSplitClass == "Discarded", "nCount"]), min(meta_info[, "nCount"])), "\n"
+  )
   result <- list(meta_info = meta_info, model = xgb)
   return(result)
 }
