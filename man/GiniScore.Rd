@@ -11,7 +11,7 @@ GiniScore(x, GiniThreshold, group = NULL)
 
 \item{GiniThreshold}{A value used to estimate the feature-count redundancy from the Gini index. \code{x} larger than GiniThreshold will result in a GiniScore>0.5, else GiniScore<0.5.}
 
-\item{group}{The group of x\code{x}.}
+\item{group}{The group of \code{x}.}
 }
 \value{
 A vector of the GiniScore.

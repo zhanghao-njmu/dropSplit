@@ -7,7 +7,7 @@
 dropSplit(
   counts,
   GiniThreshold = NULL,
-  score_cutoff = 0.8,
+  score_cutoff = 0.9,
   modelOpt = FALSE,
   xgb_params = NULL,
   xgb_nrounds = 20,
@@ -58,10 +58,15 @@ dropSplit(
 \item{...}{Other arguments passed to \code{\link{xgbOptimization}}.}
 }
 \value{
-A list of two object:
+A list of seven objects:
 \describe{
 \item{meta_info}{A data.frame object of evaluation metrics to be used in dropSplit and the final droplet classification.}
+\item{train}{The dataset trained in the XGBoost model. It consists of two pre-defined droplets: Cell(real-world + simulated) and Empty.}
+\item{train_label}{Labels for the \code{train}. 0 represents 'Empty', 1 represents 'Cell'.}
+\item{to_predict}{The dataset that to be predicted. It consists of all three pre-defined droplets: Cell, Uncertain and Empty.}
 \item{model}{The XGBoost model used in dropSplit for classification.}
+\item{importance_matrix}{A \code{data.table} of feature importances in the classification model.}
+\item{tree}{The trees from the classification model.}
 }
 }
 \description{

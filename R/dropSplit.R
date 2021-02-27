@@ -13,10 +13,15 @@
 #' @inheritParams xgbOptimization
 #' @param ... Other arguments passed to \code{\link{xgbOptimization}}.
 #'
-#' @return A list of two object:
+#' @return A list of seven objects:
 #' \describe{
 #' \item{meta_info}{A data.frame object of evaluation metrics to be used in dropSplit and the final droplet classification.}
+#' \item{train}{The dataset trained in the XGBoost model. It consists of two pre-defined droplets: Cell(real-world + simulated) and Empty.}
+#' \item{train_label}{Labels for the \code{train}. 0 represents 'Empty', 1 represents 'Cell'.}
+#' \item{to_predict}{The dataset that to be predicted. It consists of all three pre-defined droplets: Cell, Uncertain and Empty.}
 #' \item{model}{The XGBoost model used in dropSplit for classification.}
+#' \item{importance_matrix}{A \code{data.table} of feature importances in the classification model.}
+#' \item{tree}{The trees from the classification model.}
 #' }
 #'
 #' @examples
@@ -31,7 +36,7 @@
 #' @importFrom methods as
 #' @importFrom stats na.omit predict
 #' @export
-dropSplit <- function(counts, GiniThreshold = NULL, score_cutoff = 0.8, modelOpt = FALSE,
+dropSplit <- function(counts, GiniThreshold = NULL, score_cutoff = 0.9, modelOpt = FALSE,
                       xgb_params = NULL, xgb_nrounds = 20, xgb_thread = 8,
                       bounds = list(),
                       xgb_nfold = 5, xgb_early_stopping_rounds = 3, xgb_metric = "auc",
@@ -155,7 +160,7 @@ dropSplit <- function(counts, GiniThreshold = NULL, score_cutoff = 0.8, modelOpt
   dat <- cbind(Matrix::t(norm_counts), dat_other[, !colnames(dat_other) %in% c("CellGini", "GiniScore")])
   train <- dat[c(colnames(Cell_counts), colnames(Sim_counts), colnames(Empty_counts)), ]
   train_label <- c(rep(1, ncol(Cell_counts) + ncol(Sim_counts)), rep(0, ncol(Empty_counts)))
-  to_predict <- dat[colnames(Uncertain_counts), ]
+  to_predict <- dat[c(colnames(Cell_counts), colnames(Uncertain_counts), colnames(Empty_counts)), ]
 
   if (isTRUE(modelOpt)) {
     opt <- xgbOptimization(
@@ -194,23 +199,27 @@ dropSplit <- function(counts, GiniThreshold = NULL, score_cutoff = 0.8, modelOpt
     early_stopping_rounds = xgb_early_stopping_rounds,
     params = xgb_params
   )
-  if (nrow(to_predict) == 0) {
-    message("No Uncertain droplets.")
-    pred <- numeric(0)
-  } else {
-    pred <- predict(xgb, to_predict)
-  }
-  pred <- c(rep(1, ncol(Cell_counts)), pred)
-  score <- pmin((pred + meta_info[c(colnames(Cell_counts), colnames(Uncertain_counts)), "GiniScore"]) / 2, pred)
+  # if (nrow(to_predict) == 0) {
+  #   message("No Uncertain droplets.")
+  #   XGBoostScore <- numeric(0)
+  # } else {
+  #   XGBoostScore <- predict(xgb, to_predict)
+  # }
+  # XGBoostScore <- c(rep(1, ncol(Cell_counts)), XGBoostScore)
+
+  XGBoostScore <- predict(xgb, to_predict)
+  multiscore <- (XGBoostScore + ifelse(XGBoostScore > 0.5, 1, -1) * meta_info[c(colnames(Cell_counts), colnames(Uncertain_counts), colnames(Empty_counts)), "GiniScore"] + ifelse(XGBoostScore > 0.5, 0, 1)) / 2
+  score <- ifelse(XGBoostScore > 0.5, pmin(multiscore, XGBoostScore), pmax(multiscore, XGBoostScore))
 
   meta_info[, "preDefinedClass"] <- "Discarded"
   meta_info[colnames(Cell_counts), "preDefinedClass"] <- "Cell"
   meta_info[colnames(Uncertain_counts), "preDefinedClass"] <- "Uncertain"
   meta_info[colnames(Empty_counts), "preDefinedClass"] <- "Empty"
+  meta_info[c(colnames(Cell_counts), colnames(Uncertain_counts), colnames(Empty_counts)), "XGBoostScore"] <- XGBoostScore
   meta_info[, "dropSplitClass"] <- meta_info[, "preDefinedClass"]
   meta_info[, "dropSplitScore"] <- 0
-  meta_info[c(colnames(Cell_counts), colnames(Uncertain_counts)), "dropSplitScore"] <- score
-  meta_info[c(colnames(Cell_counts), colnames(Uncertain_counts)), "dropSplitClass"] <- ifelse(
+  meta_info[c(colnames(Cell_counts), colnames(Uncertain_counts), colnames(Empty_counts)), "dropSplitScore"] <- score
+  meta_info[c(colnames(Cell_counts), colnames(Uncertain_counts), colnames(Empty_counts)), "dropSplitClass"] <- ifelse(
     score > score_cutoff, "Cell", ifelse(score < 1 - score_cutoff, "Empty", "Uncertain")
   )
 
@@ -222,10 +231,12 @@ dropSplit <- function(counts, GiniThreshold = NULL, score_cutoff = 0.8, modelOpt
     "\n... Number of Empty: ", sum(meta_info$dropSplitClass == "Empty"), "  Minimum nCounts: ", min(meta_info[meta_info$dropSplitClass == "Empty", "nCount"]),
     "\n... Number of Discarded: ", sum(meta_info$dropSplitClass == "Discarded"), "  Minimum nCounts: ", ifelse(sum(meta_info$dropSplitClass == "Discarded") > 1, min(meta_info[meta_info$dropSplitClass == "Discarded", "nCount"]), min(meta_info[, "nCount"])),
     "\n>>> Pre-defined as 'Cell' switch to 'Empty' or 'Uncertain': ", sum(meta_info$preDefinedClass == "Cell" & meta_info$dropSplitClass != "Cell"),
-    "\n... Mean CellGini:", round(mean(meta_info[meta_info$preDefinedClass == "Cell" & meta_info$dropSplitClass != "Cell", "CellGini"]), 3),
+    "\n... Mean GiniScore:", round(mean(meta_info[meta_info$preDefinedClass == "Cell" & meta_info$dropSplitClass != "Cell", "GiniScore"]), 3),
+    "\n... Mean XGBoostScore:", round(mean(meta_info[meta_info$preDefinedClass == "Cell" & meta_info$dropSplitClass != "Cell", "XGBoostScore"]), 3),
     "\n... Mean dropSplitScore:", round(mean(meta_info[meta_info$preDefinedClass == "Cell" & meta_info$dropSplitClass != "Cell", "dropSplitScore"]), 3),
     "\n>>> Pre-defined as 'Uncertain' switch to 'Cell': ", sum(meta_info$preDefinedClass == "Uncertain" & meta_info$dropSplitClass == "Cell"),
-    "\n... Mean CellGini:", round(mean(meta_info[meta_info$preDefinedClass == "Uncertain" & meta_info$dropSplitClass == "Cell", "CellGini"]), 3),
+    "\n... Mean GiniScore:", round(mean(meta_info[meta_info$preDefinedClass == "Cell" & meta_info$dropSplitClass == "Cell", "GiniScore"]), 3),
+    "\n... Mean XGBoostScore:", round(mean(meta_info[meta_info$preDefinedClass == "Cell" & meta_info$dropSplitClass == "Cell", "XGBoostScore"]), 3),
     "\n... Mean dropSplitScore:", round(mean(meta_info[meta_info$preDefinedClass == "Cell" & meta_info$dropSplitClass == "Cell", "dropSplitScore"]), 3)
   )
   importance_matrix <- xgb.importance(model = xgb)
@@ -233,6 +244,7 @@ dropSplit <- function(counts, GiniThreshold = NULL, score_cutoff = 0.8, modelOpt
   result <- list(
     meta_info = meta_info,
     train = train, train_label = train_label,
+    to_predict = to_predict,
     model = xgb,
     importance_matrix = importance_matrix,
     tree = tree
