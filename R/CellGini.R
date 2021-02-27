@@ -29,3 +29,26 @@ CellGini <- function(x, normalize = TRUE) {
   }
   return(gini)
 }
+
+#' Calculate GiniScore under a threshold.
+#'
+#' @param x A vector of Gini index.
+#' @param GiniThreshold A value used to estimate the feature-count redundancy from the Gini index. \code{x} larger than GiniThreshold will result in a GiniScore>0.5, else GiniScore<0.5.
+#'
+#' @return A vector of the GiniScore.
+#'
+#' @examples
+#' x <- c(0.6,0.7,0.8,0.85,0.9,0.91,0.92,0.93,0.95,0.98,0.99)
+#' GiniScore(x,0.95)
+#'
+#' @export
+GiniScore <- function(x, GiniThreshold) {
+  if (any(x < 0 | x > 1)) {
+    stop("'x' must be in between 0 and 1.")
+  }
+  r <- x - GiniThreshold
+  r <- ifelse(r >= 0, r / (max(x) - GiniThreshold), r / (GiniThreshold - min(x)))
+  r[is.na(r)] <- 0
+  r <- (r + 1) / 2
+  return(r)
+}

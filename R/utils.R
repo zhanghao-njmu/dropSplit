@@ -15,7 +15,7 @@
 #' pks
 #' @importFrom stats na.omit
 #' @export
-find_peaks <- function(x, left_shoulder = 5000, right_shoulder = 20000) {
+find_peaks <- function(x, left_shoulder = 10000, right_shoulder = 10000) {
   raw_order <- 1:length(x)
   na_order <- which(is.na(x))
   if (length(na_order) == 0) {
@@ -55,7 +55,7 @@ find_peaks <- function(x, left_shoulder = 5000, right_shoulder = 20000) {
 #' x <- DropletUtils:::simCounts()
 #' inflection <- find_inflection(Matrix::colSums(x))
 #' inflection
-#' @importFrom stats smooth.spline predict sd
+#' @importFrom stats smooth.spline predict sd median quantile
 #' @export
 find_inflection <- function(x, df = 20) {
   r <- x

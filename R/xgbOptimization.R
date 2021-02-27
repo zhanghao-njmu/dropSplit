@@ -60,7 +60,7 @@ xgbOptimization <- function(dat, dat_label, bounds = list(),
     xgb_nfold = xgb_nfold, xgb_nrounds = xgb_nrounds, xgb_early_stopping_rounds = xgb_early_stopping_rounds,
     xgb_metric = xgb_metric, xgb_thread = xgb_thread
   )
-  message("Start to find the best hyperparameters using bayesian optimization ...\n")
+  message(">>> Start to find the best hyperparameters using bayesian optimization ...\n")
   if (opt_thread > 1) {
     cl <- makeCluster(opt_thread)
     registerDoParallel(cl)
@@ -100,7 +100,7 @@ xgbOptimization <- function(dat, dat_label, bounds = list(),
   return(result)
 }
 
-#' @importFrom xgboost xgb.DMatrix
+#' @importFrom xgboost xgb.DMatrix xgb.cv
 defineScoreFun <- function(dat, dat_label,
                            ...,
                            xgb_nfold = 5, xgb_nrounds = 20, xgb_early_stopping_rounds = 5, xgb_metric = "auc",

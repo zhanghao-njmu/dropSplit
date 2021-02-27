@@ -6,7 +6,8 @@
 \usage{
 dropSplit(
   counts,
-  score_cutoff = 0.8,
+  GiniThreshold = NULL,
+  score_cutoff = 0.9,
   modelOpt = FALSE,
   xgb_params = NULL,
   xgb_nrounds = 20,
@@ -23,6 +24,8 @@ dropSplit(
 }
 \arguments{
 \item{counts}{A \code{matrix} object or a \code{dgCMatrix} object which columns represent features and rows represent samples.}
+
+\item{GiniThreshold}{A value used in \code{\link{GiniScore}} function. The higher, the more conservative dropSplit will be. Default is automatic.}
 
 \item{score_cutoff}{A cutoff value for dropSplit to determine if a droplet is cell-containing or empty.}
 
@@ -64,9 +67,9 @@ A list of two object:
 \description{
 dropSplit is designed to identify true cells from droplet-based scRNAseq data.
 It consists of three parts: quality control, model construction and droplet classification, summarizing features.
-dropSplit also provides some special QC metrics such as CellEntropy or CellGini which can help identification.
+dropSplit provides some special QC metrics such as CellEntropy or CellGini which can help identification.
 In general, user can use the predefined parameters in the XGBoost and get the important features that help in cell identification.
-It also implements a automatic XGBoost hyperparameters-tuning function to optimize the model.
+It also provides a automatic XGBoost hyperparameters-tuning function to optimize the model.
 }
 \examples{
 counts <- DropletUtils:::simCounts()

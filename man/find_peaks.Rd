@@ -4,7 +4,7 @@
 \alias{find_peaks}
 \title{Find the index of peaks in a sequence of numeric values.}
 \usage{
-find_peaks(x, left_shoulder = 5000, right_shoulder = 20000)
+find_peaks(x, left_shoulder = 10000, right_shoulder = 10000)
 }
 \arguments{
 \item{x}{A numeric vector.}
