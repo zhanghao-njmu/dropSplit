@@ -99,7 +99,7 @@ dropSplit <- function(counts, GiniThreshold = NULL, score_cutoff = 0.9, modelOpt
     "\n... Number of Cell: ", ncol(Cell_counts), "  Minimum nCounts: ", Cell_count,
     "\n... Number of Uncertain: ", ncol(Uncertain_counts), "  Minimum nCounts: ", Uncertain_count,
     "\n... Number of Empty: ", ncol(Empty_counts), "  Minimum nCounts: ", Empty_count,
-    "\n... Number of Discarded: ", ncol(counts) - ncol(Cell_counts) - ncol(Uncertain_counts) - ncol(Empty_counts), "  Minimum nCounts: ", min(meta_info$nCount), "\n"
+    "\n... Number of Discarded: ", ncol(counts) - ncol(Cell_counts) - ncol(Uncertain_counts) - ncol(Empty_counts), "  Minimum nCounts: ", min(meta_info$nCount)
   )
   # ggplot(meta_info,aes(x=log10(1:nrow(meta_info)),y=RankMSE))+
   #   geom_point(alpha=0.1)+
@@ -189,7 +189,7 @@ dropSplit <- function(counts, GiniThreshold = NULL, score_cutoff = 0.9, modelOpt
     params = xgb_params
   )
   pred <- predict(xgb, to_predict)
-  score <- min((pred + meta_info[rownames(to_predict), "GiniScore"]) / 2, pred)
+  score <- pmin((pred + meta_info[rownames(to_predict), "GiniScore"]) / 2, pred)
 
   meta_info[, "preDefinedClass"] <- "Discarded"
   meta_info[colnames(Cell_counts), "preDefinedClass"] <- "Cell"
