@@ -77,7 +77,7 @@ xgbOptimization <- function(dat, dat_label, bounds = list(),
       bounds = bounds,
       initPoints = opt_initPoints,
       iters.n = opt_itersn,
-      iters.k = opt_thread,
+      iters.k = min(opt_thread, opt_itersn - 1),
       parallel = TRUE,
       ...
     )
