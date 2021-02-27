@@ -31,7 +31,7 @@
 #' @importFrom methods as
 #' @importFrom stats na.omit predict
 #' @export
-dropSplit <- function(counts, GiniThreshold = NULL, score_cutoff = 0.9, modelOpt = FALSE,
+dropSplit <- function(counts, GiniThreshold = NULL, score_cutoff = 0.8, modelOpt = FALSE,
                       xgb_params = NULL, xgb_nrounds = 20, xgb_thread = 8,
                       bounds = list(),
                       xgb_nfold = 5, xgb_early_stopping_rounds = 3, xgb_metric = "auc",
@@ -66,7 +66,7 @@ dropSplit <- function(counts, GiniThreshold = NULL, score_cutoff = 0.9, modelOpt
 
   if (min(meta_info$nCount) <= 0) {
     warning("'counts' has cells that nCount <=0. These cells will be remove in the following steps.",
-      immediate. = TRUE
+            immediate. = TRUE
     )
     meta_info <- meta_info[meta_info$nCount > 0, ]
   }
@@ -124,7 +124,8 @@ dropSplit <- function(counts, GiniThreshold = NULL, score_cutoff = 0.9, modelOpt
   if (is.null(GiniThreshold)) {
     GiniThreshold <- min(quantile(comb_Gini[colnames(Cell_counts)], 0.01), 0.99)
   }
-  comb_GiniScore <- GiniScore(x = comb_Gini, GiniThreshold = GiniThreshold)
+  comb_GiniScore <- GiniScore(x = comb_Gini, GiniThreshold = GiniThreshold,
+                              group=c(rep("Cell",ncol(Cell_counts)),rep("Sim",ncol(Sim_counts)),rep("Uncertain",ncol(Uncertain_counts)),rep("Empty",ncol(Empty_counts))))
   MTgene <- grep(x = rownames(comb_counts), pattern = "(^MT-)|(^Mt-)|(^mt-)", perl = T, value = TRUE)
   RPgene <- grep(x = rownames(comb_counts), pattern = "(^RP[SL]\\d+(\\w|)$)|(^Rp[sl]\\d+(\\w|)$)|(^rp[sl]\\d+(\\w|)$)", perl = T, value = TRUE)
   comb_MTprop <- Matrix::colSums(comb_counts[MTgene, ]) / Matrix::colSums(comb_counts)
@@ -149,7 +150,7 @@ dropSplit <- function(counts, GiniThreshold = NULL, score_cutoff = 0.9, modelOpt
   dat <- cbind(Matrix::t(norm_counts), dat_other[, !colnames(dat_other) %in% c("CellGini", "GiniScore")])
   train <- dat[c(colnames(Cell_counts), colnames(Sim_counts), colnames(Empty_counts)), ]
   train_label <- c(rep(1, ncol(Cell_counts) + ncol(Sim_counts)), rep(0, ncol(Empty_counts)))
-  to_predict <- dat[c(colnames(Cell_counts), colnames(Uncertain_counts)), ]
+  to_predict <- dat[colnames(Uncertain_counts), ]
 
   if (isTRUE(modelOpt)) {
     opt <- xgbOptimization(
@@ -159,10 +160,10 @@ dropSplit <- function(counts, GiniThreshold = NULL, score_cutoff = 0.9, modelOpt
       opt_initPoints = opt_initPoints, opt_itersn = opt_itersn, opt_thread = opt_thread, ...
     )
     xgb_params <- c(opt$BestPars,
-      eval_metric = "error",
-      eval_metric = "auc",
-      objective = "binary:logistic",
-      nthread = xgb_thread
+                    eval_metric = "error",
+                    eval_metric = "auc",
+                    objective = "binary:logistic",
+                    nthread = xgb_thread
     )
   }
   if (is.null(xgb_params)) {
@@ -189,7 +190,8 @@ dropSplit <- function(counts, GiniThreshold = NULL, score_cutoff = 0.9, modelOpt
     params = xgb_params
   )
   pred <- predict(xgb, to_predict)
-  score <- pmin((pred + meta_info[rownames(to_predict), "GiniScore"]) / 2, pred)
+  pred <- c(rep(1,ncol(Cell_counts)),pred)
+  score <- pmin((pred + meta_info[c(colnames(Cell_counts), colnames(Uncertain_counts)), "GiniScore"]) / 2, pred)
 
   meta_info[, "preDefinedClass"] <- "Discarded"
   meta_info[colnames(Cell_counts), "preDefinedClass"] <- "Cell"
@@ -242,9 +244,8 @@ dropSplit <- function(counts, GiniThreshold = NULL, score_cutoff = 0.9, modelOpt
   # ggplot(meta_info,aes(x=log10(1:nrow(meta_info)),y=RankMSE,color=dropSplitClass))+geom_point(alpha=0.1)+
   #   geom_point(data = meta_info2,aes(x=log10(1:nrow(meta_info2)),y=RankMSE,color=dropSplitClass),alpha=0.1,color="yellow",shape=21)
   # ggplot(meta_info,aes(x=log10(nCount),y=CellEntropy,color=dropSplitClass))+
-  #   geom_point(alpha=0.1)+
-  #   # geom_point(data = meta_info[meta_info$CellGini>0.99,])+
-  #   xlim(2.5,5)
+  #   geom_point(alpha=0.1)
+  # geom_point(data = meta_info[meta_info$CellGini>0.99,])+
 
   return(result)
 }
