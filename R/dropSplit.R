@@ -197,7 +197,7 @@ dropSplit <- function(counts, GiniThreshold = NULL, score_cutoff = 0.8, modelOpt
   if (nrow(to_predict) == 0) {
     message("No Uncertain droplets.")
     pred <- numeric(0)
-  }else{
+  } else {
     pred <- predict(xgb, to_predict)
   }
   pred <- c(rep(1, ncol(Cell_counts)), pred)
