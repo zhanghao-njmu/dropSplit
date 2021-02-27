@@ -145,10 +145,10 @@ dropSplit <- function(counts, GiniThreshold = NULL, score_cutoff = 0.9, modelOpt
     nFeature = comb_nFeature,
     CellEntropy = comb_CellEntropy,
     EntropyRate = comb_EntropyRate,
-    CellGini = comb_Gini,
-    GiniScore = comb_GiniScore,
     MTprop = comb_MTprop,
-    RPprop = comb_RPprop
+    RPprop = comb_RPprop,
+    CellGini = comb_Gini,
+    GiniScore = comb_GiniScore
   )
   rownames(dat_other) <- colnames(comb_counts)
   meta_info[
