@@ -66,7 +66,7 @@ dropSplit <- function(counts, GiniThreshold = NULL, score_cutoff = 0.8, modelOpt
 
   if (min(meta_info$nCount) <= 0) {
     warning("'counts' has cells that nCount <=0. These cells will be remove in the following steps.",
-            immediate. = TRUE
+      immediate. = TRUE
     )
     meta_info <- meta_info[meta_info$nCount > 0, ]
   }
@@ -88,7 +88,10 @@ dropSplit <- function(counts, GiniThreshold = NULL, score_cutoff = 0.8, modelOpt
   Cell_count <- meta_info$nCount[Cell_rank]
   Uncertain_rank <- Cell_rank + which.max(meta_info$RankMSE[Cell_rank:length(meta_info$RankMSE)]) - 1
   Uncertain_count <- meta_info$nCount[Uncertain_rank]
-  Empty_rank <- Uncertain_rank + find_peaks(-meta_info$RankMSE[Uncertain_rank:length(meta_info$RankMSE)])[1]
+  Empty_rank <- Uncertain_rank + find_peaks(-meta_info$RankMSE[Uncertain_rank:length(meta_info$RankMSE)],
+    left_shoulder = round(0.01 * ncol(counts)),
+    right_shoulder = round(0.05 * ncol(counts))
+  )[1]
   Empty_count <- meta_info$nCount[Empty_rank]
 
   Cell_counts <- counts[, meta_info$nCount >= Cell_count]
@@ -124,8 +127,10 @@ dropSplit <- function(counts, GiniThreshold = NULL, score_cutoff = 0.8, modelOpt
   if (is.null(GiniThreshold)) {
     GiniThreshold <- min(quantile(comb_Gini[colnames(Cell_counts)], 0.01), 0.99)
   }
-  comb_GiniScore <- GiniScore(x = comb_Gini, GiniThreshold = GiniThreshold,
-                              group=c(rep("Cell",ncol(Cell_counts)),rep("Sim",ncol(Sim_counts)),rep("Uncertain",ncol(Uncertain_counts)),rep("Empty",ncol(Empty_counts))))
+  comb_GiniScore <- GiniScore(
+    x = comb_Gini, GiniThreshold = GiniThreshold,
+    group = c(rep("Cell", ncol(Cell_counts)), rep("Sim", ncol(Sim_counts)), rep("Uncertain", ncol(Uncertain_counts)), rep("Empty", ncol(Empty_counts)))
+  )
   MTgene <- grep(x = rownames(comb_counts), pattern = "(^MT-)|(^Mt-)|(^mt-)", perl = T, value = TRUE)
   RPgene <- grep(x = rownames(comb_counts), pattern = "(^RP[SL]\\d+(\\w|)$)|(^Rp[sl]\\d+(\\w|)$)|(^rp[sl]\\d+(\\w|)$)", perl = T, value = TRUE)
   comb_MTprop <- Matrix::colSums(comb_counts[MTgene, ]) / Matrix::colSums(comb_counts)
@@ -160,10 +165,10 @@ dropSplit <- function(counts, GiniThreshold = NULL, score_cutoff = 0.8, modelOpt
       opt_initPoints = opt_initPoints, opt_itersn = opt_itersn, opt_thread = opt_thread, ...
     )
     xgb_params <- c(opt$BestPars,
-                    eval_metric = "error",
-                    eval_metric = "auc",
-                    objective = "binary:logistic",
-                    nthread = xgb_thread
+      eval_metric = "error",
+      eval_metric = "auc",
+      objective = "binary:logistic",
+      nthread = xgb_thread
     )
   }
   if (is.null(xgb_params)) {
@@ -189,8 +194,13 @@ dropSplit <- function(counts, GiniThreshold = NULL, score_cutoff = 0.8, modelOpt
     early_stopping_rounds = xgb_early_stopping_rounds,
     params = xgb_params
   )
-  pred <- predict(xgb, to_predict)
-  pred <- c(rep(1,ncol(Cell_counts)),pred)
+  if (nrow(to_predict) == 0) {
+    message("No Uncertain droplets.")
+    pred <- numeric(0)
+  }else{
+    pred <- predict(xgb, to_predict)
+  }
+  pred <- c(rep(1, ncol(Cell_counts)), pred)
   score <- pmin((pred + meta_info[c(colnames(Cell_counts), colnames(Uncertain_counts)), "GiniScore"]) / 2, pred)
 
   meta_info[, "preDefinedClass"] <- "Discarded"

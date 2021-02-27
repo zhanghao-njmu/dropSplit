@@ -4,12 +4,14 @@
 \alias{GiniScore}
 \title{Calculate GiniScore under a threshold.}
 \usage{
-GiniScore(x, GiniThreshold)
+GiniScore(x, GiniThreshold, group = NULL)
 }
 \arguments{
 \item{x}{A vector of Gini index.}
 
 \item{GiniThreshold}{A value used to estimate the feature-count redundancy from the Gini index. \code{x} larger than GiniThreshold will result in a GiniScore>0.5, else GiniScore<0.5.}
+
+\item{group}{The group of x\code{x}.}
 }
 \value{
 A vector of the GiniScore.
@@ -18,7 +20,6 @@ A vector of the GiniScore.
 Calculate GiniScore under a threshold.
 }
 \examples{
-x <- c(0.6,0.7,0.8,0.85,0.9,0.91,0.92,0.93,0.95,0.98,0.99)
-GiniScore(x,0.95)
-
+x <- c(0.6, 0.7, 0.8, 0.85, 0.9, 0.91, 0.92, 0.93, 0.95, 0.98, 0.99)
+GiniScore(x, 0.95)
 }

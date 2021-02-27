@@ -7,7 +7,7 @@
 dropSplit(
   counts,
   GiniThreshold = NULL,
-  score_cutoff = 0.9,
+  score_cutoff = 0.8,
   modelOpt = FALSE,
   xgb_params = NULL,
   xgb_nrounds = 20,
