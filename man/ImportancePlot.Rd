@@ -25,5 +25,7 @@ Plot the feature importance
 counts <- DropletUtils:::simCounts()
 colnames(counts) <- paste0("Cell-", 1:ncol(counts))
 result <- dropSplit(counts)
-ImportancePlot(result$meta_info, result$train, result$importance_matrix, top_n = 20)
+pl <- ImportancePlot(result$meta_info, result$train, result$importance_matrix, top_n = 20)
+pl$Importance
+pl$preDefinedClassExp
 }

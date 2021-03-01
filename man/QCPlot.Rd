@@ -37,5 +37,6 @@ counts <- DropletUtils:::simCounts()
 colnames(counts) <- paste0("Cell-", 1:ncol(counts))
 result <- dropSplit(counts)
 pl <- QCPlot(result$meta_info, metrics = "CellEntropy")
-pl[["CellEntropy"]]
+pl$CellEntropy$Merge
+pl$CellEntropy$Cell
 }

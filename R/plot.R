@@ -357,7 +357,8 @@ CellGiniPlot <- function(meta_info, colorBy = "dropSplitClass", splitBy = "dropS
 #' colnames(counts) <- paste0("Cell-", 1:ncol(counts))
 #' result <- dropSplit(counts)
 #' pl <- QCPlot(result$meta_info, metrics = "CellEntropy")
-#' pl[["CellEntropy"]]
+#' pl$CellEntropy$Merge
+#' pl$CellEntropy$Cell
 #' @importFrom ggplot2 ggplot aes geom_point geom_vline labs guides guide_legend scale_x_log10 scale_color_brewer scale_color_manual scale_color_viridis_c annotation_logticks theme_classic theme
 #' @importFrom scales trans_format math_format
 #' @importFrom stats setNames
@@ -372,12 +373,13 @@ QCPlot <- function(meta_info, colorBy = "dropSplitClass", splitBy = "dropSplitCl
     if (!metric %in% c("Rank", "RankMSE", "CellEntropy", "CellGini")) {
       warning("metric:", metric, " is not valid. Skipped.", immediate. = TRUE)
     } else {
-      args <- as.list(match.call())
+      args <- list(meta_info = meta_info, colorBy = colorBy, splitBy = splitBy)
+
       tryCatch(expr = {
-        pl[[metric]] <- base::do.call(
-          what = paste0(metrics, "Plot"),
+        pl[[metric]] <- suppressWarnings(base::do.call(
+          what = paste0(metric, "Plot"),
           args = args
-        )
+        ))
       }, error = function(e) {
         message(e)
       })
@@ -399,7 +401,9 @@ QCPlot <- function(meta_info, colorBy = "dropSplitClass", splitBy = "dropSplitCl
 #' counts <- DropletUtils:::simCounts()
 #' colnames(counts) <- paste0("Cell-", 1:ncol(counts))
 #' result <- dropSplit(counts)
-#' ImportancePlot(result$meta_info, result$train, result$importance_matrix, top_n = 20)
+#' pl <- ImportancePlot(result$meta_info, result$train, result$importance_matrix, top_n = 20)
+#' pl$Importance
+#' pl$preDefinedClassExp
 #' @importFrom ggplot2 ggplot aes geom_col geom_boxplot scale_fill_manual labs theme_classic theme
 #' @importFrom stats setNames
 #' @export
@@ -472,6 +476,6 @@ ImportancePlot <- function(meta_info, train, importance_matrix, top_n = 20) {
   return(list(
     Importance = p1,
     preDefinedClassExp = p2,
-    dropSplitClass = p3
+    dropSplitClassExp = p3
   ))
 }
