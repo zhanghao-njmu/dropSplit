@@ -5,7 +5,7 @@ It consists of three parts:
 * model construction and droplet classification
 * summarizing features
 
-dropSplit provides some special QC metrics such as CellEntropy or CellGini which can help identification. 
+dropSplit provides some special droplet QC metrics such as CellEntropy or CellGini which can help identification. 
 
 In general, user can use the predefined parameters in the XGBoost and get the important features that help in cell identification. It also provides a automatic XGBoost hyperparameters-tuning function to optimize the model.
 

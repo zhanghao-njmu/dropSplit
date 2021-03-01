@@ -7,7 +7,7 @@
 #' @param left_shoulder A integer value.Peaks value should larger than any value in the left \code{left_shoulder} value.
 #' @param right_shoulder A integer value.Peaks value should larger than any value in the right \code{right_shoulder} value.
 #'
-#' @return A vector of the index of peaks. If no peaks found,return the index of the max number.
+#' @return A vector of the index of peaks.
 #'
 #' @examples
 #' x <- c(0, 1, 3, 6, 9, 12, 11, 7, 9, 5, 1, 9, 0, 1, 2)
@@ -25,23 +25,26 @@ find_peaks <- function(x, left_shoulder = 10000, right_shoulder = 10000) {
     filter_order <- raw_order[-na_order]
   }
   shape <- diff(sign(diff(x, na.pad = FALSE)))
+  shape <- c(-2, shape, -2)
   pks <- sapply(which(shape < 0), FUN = function(i) {
-    f <- i - left_shoulder + 1
-    b <- i + right_shoulder + 1
-    if (f <= 0 | b > length(x)) {
-      return(numeric(0))
-    }
-    if (all(x[c(f:i, (i + 2):b)] <= x[i + 1])) {
-      return(i + 1)
+    f <- i - left_shoulder
+    b <- i + right_shoulder
+    f <- max(1, f)
+    b <- min(length(x), b)
+    pk <- i
+    pkleft <- max(1, i - 1)
+    pkright <- min(length(x), i + 1)
+    # if (f <= 0 | b > length(x)) {
+    #   return(numeric(0))
+    # }
+    if (all(x[c(f:pkleft, pkright:b)] <= x[pk]) & any(x[c(f:pkleft, pkright:b)] < x[pk])) {
+      return(pk)
     } else {
       return(numeric(0))
     }
   })
-  pks_order <- filter_order[unlist(pks)]
-  if (length(pks_order) == 0) {
-    pks_order <- which.max(x)
-  }
-  return(pks_order)
+  pks_index <- filter_order[unlist(pks)]
+  return(pks_index)
 }
 
 #' Find the index of inflection in a numeric vector.

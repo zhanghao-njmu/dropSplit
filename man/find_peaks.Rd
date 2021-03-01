@@ -14,7 +14,7 @@ find_peaks(x, left_shoulder = 10000, right_shoulder = 10000)
 \item{right_shoulder}{A integer value.Peaks value should larger than any value in the right \code{right_shoulder} value.}
 }
 \value{
-A vector of the index of peaks. If no peaks found,return the index of the max number.
+A vector of the index of peaks.
 }
 \description{
 Find the index of peaks in a sequence of numeric values.
