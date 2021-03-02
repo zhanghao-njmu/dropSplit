@@ -19,7 +19,7 @@ remotes::install_github("zh542370159/dropSplit")
 ```
 library(dropSplit)
 # Simulate a counts matrix including 20000 empty droplets, 2000 large cells and 200 small cells.
-counts <- simCounts()
+counts <- simCounts(nempty = 20000, nlarge = 2000, nsmall = 200)
 counts_label <- gsub(pattern = "-.*", replacement = "", x = colnames(counts), perl = TRUE)
 result <- dropSplit(counts)
 head(result$meta_info)
