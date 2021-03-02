@@ -6,11 +6,12 @@
 #' In general, user can use the predefined parameters in the XGBoost and get the important features that help in cell identification.
 #' It also provides a automatic XGBoost hyperparameters-tuning function to optimize the model.
 #' @param counts A \code{matrix} object or a \code{dgCMatrix} object which columns represent features and rows represent samples.
-#' @param score_cutoff A cutoff value of dropSplitScore to determine if a droplet is cell-containing or empty. Default is 0.9, i.e. a droplet with dropSplitScore>0.9 will be classified as \code{Cell} and a with dropSplitScore<0.1  will be classified as \code{Empty}.
+#' @param score_cutoff A cutoff value of \code{dropSplitScore} to determine if a droplet is cell-containing or empty. Default is 0.9, i.e. a droplet with \code{dropSplitScore}>0.9 will be classified as \code{Cell} and a with \code{dropSplitScore}<0.1  will be classified as \code{Empty}.
 #' @param GiniThreshold A value used in \code{\link{GiniScore}} function. The higher, the more conservative dropSplit will be. Default is automatic.
 #' @param Uncertain_downsample Whether use a downsampled Uncertain droplets for predicting. Default is FALSE.
-#' @param Uncertain_downsample_times Number of downsample times for each Uncertain droplet. dropSplitScore for downsampled droplets from the same Uncertain droplet will be averaged. Default is 6.
+#' @param Uncertain_downsample_times Number of downsample times for each Uncertain droplet. \code{dropSplitScore} of downsampled droplets from the same Uncertain droplet will be averaged. Default is 6.
 #' @param predict_Uncertain_only Whether to predict only the Uncertain droplets. Default is \code{TRUE}.
+#' @param remove_FP_by metric used to remove the estimated false positives by. Must be one of \code{nCount}, \code{nFeature}, \code{CellEntropy}, \code{CellEntropyRate}, \code{dropSplitScore}. Default is \code{dropSplitScore}.
 #' @param Cell_rank,Uncertain_rank,Empty_rank Custom Rank value to mark the droplets as Cell, Uncertain and Empty labels for the data to be trained. Default is automatic. But useful when the default value is considered to be wrong from the RankMSE plot.
 #' @param modelOpt Whether to optimize the model using \code{\link{xgbOptimization}}. Will take long time for large datasets. If \code{TRUE}, will overwrite the parameters list in \code{xgb_params}.
 #' @param xgb_params The \code{list} of XGBoost parameters.
@@ -53,7 +54,7 @@
 #' @importFrom utils head tail
 #' @export
 dropSplit <- function(counts, score_cutoff = 0.9, GiniThreshold = NULL,
-                      Uncertain_downsample = FALSE, Uncertain_downsample_times = 6, predict_Uncertain_only = TRUE,
+                      Uncertain_downsample = FALSE, Uncertain_downsample_times = 6, predict_Uncertain_only = TRUE, remove_FP_by = "dropSplitScore",
                       Cell_rank = NULL, Uncertain_rank = NULL, Empty_rank = NULL,
                       modelOpt = FALSE, xgb_params = NULL, xgb_nrounds = 20, xgb_early_stopping_rounds = 3, xgb_thread = 8,
                       bounds = list(),
@@ -77,6 +78,9 @@ dropSplit <- function(counts, score_cutoff = 0.9, GiniThreshold = NULL,
   }
   if (class(counts) == "matrix") {
     counts <- as(counts, "dgCMatrix")
+  }
+  if (!remove_FP_by %in% c("nCount", "nFeature", "CellEntropy", "CellEntropyRate", "dropSplitScore") | length(remove_FP_by) > 1) {
+    stop("'remove_FP_by' must be one of nCount, nFeature, CellEntropy, CellEntropyRate, dropSplitScore.")
   }
 
   message(">>> Start to define the credible cell-containing droplet...")
@@ -316,11 +320,17 @@ dropSplit <- function(counts, score_cutoff = 0.9, GiniThreshold = NULL,
     score > score_cutoff, "Cell", ifelse(score < 1 - score_cutoff, "Empty", "Uncertain")
   )
 
+  if (remove_FP_by %in% c("nCount", "nFeature", "CellEntropy", "dropSplitScore")) {
+    decreasing <- FALSE
+  }
+  if (remove_FP_by %in% c("CellEntropyRate")) {
+    decreasing <- TRUE
+  }
   rescure <- which(meta_info[, "preDefinedClass"] %in% c("Uncertain", "Empty") & meta_info[, "dropSplitClass"] == "Cell")
-  rescure_score <- meta_info[rescure, "nCount"]
+  rescure_score <- meta_info[rescure, remove_FP_by]
   er_rate <- min((1 - score_cutoff) / (1 - er * 2), 1)
   drop <- ceiling(length(rescure) * er_rate)
-  drop_index <- rescure[order(rescure_score)[1:drop]]
+  drop_index <- rescure[order(rescure_score, decreasing = decreasing)[1:drop]]
   message(
     "\n>>> Control the rate of false positives",
     "\n... Number of new defined Cell from Uncertain or Empty: ", length(rescure),

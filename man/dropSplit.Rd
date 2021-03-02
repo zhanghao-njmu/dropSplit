@@ -11,6 +11,7 @@ dropSplit(
   Uncertain_downsample = FALSE,
   Uncertain_downsample_times = 6,
   predict_Uncertain_only = TRUE,
+  remove_FP_by = "dropSplitScore",
   Cell_rank = NULL,
   Uncertain_rank = NULL,
   Empty_rank = NULL,
@@ -31,15 +32,17 @@ dropSplit(
 \arguments{
 \item{counts}{A \code{matrix} object or a \code{dgCMatrix} object which columns represent features and rows represent samples.}
 
-\item{score_cutoff}{A cutoff value of dropSplitScore to determine if a droplet is cell-containing or empty. Default is 0.9, i.e. a droplet with dropSplitScore>0.9 will be classified as \code{Cell} and a with dropSplitScore<0.1  will be classified as \code{Empty}.}
+\item{score_cutoff}{A cutoff value of \code{dropSplitScore} to determine if a droplet is cell-containing or empty. Default is 0.9, i.e. a droplet with \code{dropSplitScore}>0.9 will be classified as \code{Cell} and a with \code{dropSplitScore}<0.1  will be classified as \code{Empty}.}
 
 \item{GiniThreshold}{A value used in \code{\link{GiniScore}} function. The higher, the more conservative dropSplit will be. Default is automatic.}
 
 \item{Uncertain_downsample}{Whether use a downsampled Uncertain droplets for predicting. Default is FALSE.}
 
-\item{Uncertain_downsample_times}{Number of downsample times for each Uncertain droplet. dropSplitScore for downsampled droplets from the same Uncertain droplet will be averaged. Default is 6.}
+\item{Uncertain_downsample_times}{Number of downsample times for each Uncertain droplet. \code{dropSplitScore} of downsampled droplets from the same Uncertain droplet will be averaged. Default is 6.}
 
 \item{predict_Uncertain_only}{Whether to predict only the Uncertain droplets. Default is \code{TRUE}.}
+
+\item{remove_FP_by}{metric used to remove the estimated false positives by. Must be one of \code{nCount}, \code{nFeature}, \code{CellEntropy}, \code{CellEntropyRate}, \code{dropSplitScore}. Default is \code{dropSplitScore}.}
 
 \item{Cell_rank, Uncertain_rank, Empty_rank}{Custom Rank value to mark the droplets as Cell, Uncertain and Empty labels for the data to be trained. Default is automatic. But useful when the default value is considered to be wrong from the RankMSE plot.}
 
