@@ -192,37 +192,41 @@ dropSplit <- function(counts, score_cutoff = 0.9, GiniThreshold = NULL,
   }
 
   message(">>> Calculate other cell metrics for the droplets to be trained...")
-  comb_CellEntropy <- CellEntropy(comb_counts)
-  comb_EntropyRate <- comb_CellEntropy / maxCellEntropy(comb_counts)
-  comb_EntropyRate[is.na(comb_EntropyRate)] <- 1
-  comb_Gini <- CellGini(comb_counts, normalize = T)
-  if (is.null(GiniThreshold)) {
-    GiniThreshold <- min(quantile(comb_Gini[colnames(Cell_counts)], 0.01), 0.99)
-  }
-  comb_GiniScore <- GiniScore(
-    x = comb_Gini, GiniThreshold = GiniThreshold,
-    group = group
-  )
   MTgene <- grep(x = rownames(comb_counts), pattern = "(^MT-)|(^Mt-)|(^mt-)", perl = T, value = TRUE)
   RPgene <- grep(x = rownames(comb_counts), pattern = "(^RP[SL]\\d+(\\w|)$)|(^Rp[sl]\\d+(\\w|)$)|(^rp[sl]\\d+(\\w|)$)", perl = T, value = TRUE)
   comb_MTprop <- Matrix::colSums(comb_counts[MTgene, ]) / Matrix::colSums(comb_counts)
   comb_RPprop <- Matrix::colSums(comb_counts[RPgene, ]) / Matrix::colSums(comb_counts)
-  dat_other <- cbind(
-    CellEntropy = comb_CellEntropy,
-    CellEntropyRate = comb_EntropyRate,
+  dat_Features <- cbind(
     MTprop = comb_MTprop,
-    RPprop = comb_RPprop,
-    CellGini = comb_Gini,
-    GiniScore = comb_GiniScore
+    RPprop = comb_RPprop
   )
-  rownames(dat_other) <- colnames(comb_counts)
+  rownames(dat_Features) <- colnames(comb_counts)
+
+  final_counts[, c(colnames(Cell_counts), colnames(Uncertain_counts), colnames(Empty_counts))]
+  final_CellEntropy <- CellEntropy(final_counts)
+  final_EntropyRate <- final_CellEntropy / maxCellEntropy(final_counts)
+  final_EntropyRate[is.na(final_EntropyRate)] <- 1
+  final_Gini <- CellGini(final_counts, normalize = T)
+  if (is.null(GiniThreshold)) {
+    GiniThreshold <- min(quantile(final_Gini[colnames(Cell_counts)], 0.01), 0.99)
+  }
+  final_GiniScore <- GiniScore(
+    x = final_Gini, GiniThreshold = GiniThreshold,
+    group = group
+  )
+  dat_metrics <- cbind(
+    CellEntropy = final_CellEntropy,
+    CellEntropyRate = final_EntropyRate,
+    CellGini = final_Gini,
+    GiniScore = final_GiniScore
+  )
   meta_info[
     c(colnames(Cell_counts), colnames(Uncertain_counts), colnames(Empty_counts)),
-    colnames(dat_other)
-  ] <- dat_other[c(colnames(Cell_counts), colnames(Uncertain_counts), colnames(Empty_counts)), ]
+    colnames(dat_metrics)
+  ] <- dat_metrics[c(colnames(Cell_counts), colnames(Uncertain_counts), colnames(Empty_counts)), ]
 
   norm_counts <- Matrix::t(Matrix::t(comb_counts) / Matrix::colSums(comb_counts))
-  dat <- cbind(Matrix::t(norm_counts), dat_other[, !colnames(dat_other) %in% c("CellEntropy", "CellGini", "GiniScore")])
+  dat <- cbind(Matrix::t(norm_counts), dat_Features[, colnames(dat_Features)])
   ini_train <- dat[c(colnames(Cell_counts), colnames(Sim_Cell_counts), colnames(Empty_counts)), ]
   ini_train_label <- c(rep(1, ncol(Cell_counts) + ncol(Sim_Cell_counts)), rep(0, ncol(Empty_counts)))
   to_predict <- dat[c(colnames(Cell_counts), colnames(Sim_Uncertain_counts), colnames(Empty_counts)), ]

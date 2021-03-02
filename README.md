@@ -1,9 +1,9 @@
 # dropSplit
 dropSplit is designed to identify true cells from droplet-based scRNAseq data. 
 It consists of three parts: 
-* quality control
-* model construction and droplet classification
-* summarizing features
+* Pre-define droplets as Cell, Uncertain, Empty and Discarded according to the RankMSE curve.
+* Model construction with pre-defined droplets and simulated droplets.
+* Combine multiple metrics to perform classification, post-QC and feature summary.
 
 dropSplit provides some special droplet QC metrics such as CellEntropy or CellGini which can help identification. 
 
