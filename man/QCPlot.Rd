@@ -8,7 +8,8 @@ QCPlot(
   meta_info,
   colorBy = "dropSplitClass",
   splitBy = "dropSplitClass",
-  metrics = c("Rank", "RankMSE", "CellEntropy", "CellGini")
+  metrics = c("nCount", "nFeature", "Rank", "RankMSE", "CellEntropy",
+    "CellEntropyRate", "CellGini")
 )
 }
 \arguments{
@@ -20,9 +21,12 @@ QCPlot(
 
 \item{metrics}{QC metrics used to plot. Possible options are:
 \itemize{
+\item \code{nCount}
+\item \code{nFeature}
 \item \code{Rank}
 \item \code{RankMSE}
 \item \code{CellEntropy}
+\item \code{CellEntropyRate}
 \item \code{CellGini}
 }}
 }

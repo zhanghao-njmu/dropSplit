@@ -1,4 +1,4 @@
-#' @importFrom ggplot2 ggplot aes geom_point geom_vline labs guides guide_legend scale_x_log10 scale_color_brewer scale_color_manual scale_color_viridis_c annotation_logticks theme_classic theme
+#' @importFrom ggplot2 ggplot aes geom_point geom_vline geom_histogram position_identity scale_fill_brewer labs guides guide_legend scale_x_log10 scale_color_brewer scale_color_manual scale_color_viridis_c annotation_logticks theme_classic theme
 #' @importFrom scales trans_format math_format
 #' @importFrom stats setNames
 .nCountPlot <- function(meta_info, colorBy) {
@@ -82,7 +82,7 @@ nCountPlot <- function(meta_info, colorBy = "dropSplitClass", splitBy = "dropSpl
   return(p)
 }
 
-#' @importFrom ggplot2 ggplot aes geom_point geom_vline labs guides guide_legend scale_x_log10 scale_color_brewer scale_color_manual scale_color_viridis_c annotation_logticks theme_classic theme
+#' @importFrom ggplot2 ggplot aes geom_point geom_vline geom_histogram position_identity scale_fill_brewer labs guides guide_legend scale_x_log10 scale_color_brewer scale_color_manual scale_color_viridis_c annotation_logticks theme_classic theme
 #' @importFrom scales trans_format math_format
 #' @importFrom stats setNames
 .nFeaturePlot <- function(meta_info, colorBy) {

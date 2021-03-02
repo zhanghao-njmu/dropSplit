@@ -171,24 +171,11 @@ dropSplit <- function(counts, score_cutoff = 0.9, GiniThreshold = NULL,
     }
     Sim_Uncertain_counts <- Reduce(function(x, y) cbind(x, y), Sim_Uncertain_counts_list)
     comb_counts <- cbind(Cell_counts, Sim_Cell_counts, Sim_Uncertain_counts, Uncertain_counts, Empty_counts)
-    group <- c(
-      rep("Cell", ncol(Cell_counts)),
-      rep("Sim_Cell", ncol(Sim_Cell_counts)),
-      rep("Sim_Uncertain", ncol(Sim_Uncertain_counts)),
-      rep("Uncertain", ncol(Uncertain_counts)),
-      rep("Empty", ncol(Empty_counts))
-    )
   } else {
     message(">>> Use raw Uncertain droplets...")
     Uncertain_downsample_times <- 1
     Sim_Uncertain_counts <- Uncertain_counts
     comb_counts <- cbind(Cell_counts, Sim_Cell_counts, Uncertain_counts, Empty_counts)
-    group <- c(
-      rep("Cell", ncol(Cell_counts)),
-      rep("Sim_Cell", ncol(Sim_Cell_counts)),
-      rep("Uncertain", ncol(Uncertain_counts)),
-      rep("Empty", ncol(Empty_counts))
-    )
   }
 
   message(">>> Calculate other cell metrics for the droplets to be trained...")
@@ -202,7 +189,7 @@ dropSplit <- function(counts, score_cutoff = 0.9, GiniThreshold = NULL,
   )
   rownames(dat_Features) <- colnames(comb_counts)
 
-  final_counts[, c(colnames(Cell_counts), colnames(Uncertain_counts), colnames(Empty_counts))]
+  final_counts <- comb_counts[, c(colnames(Cell_counts), colnames(Uncertain_counts), colnames(Empty_counts))]
   final_CellEntropy <- CellEntropy(final_counts)
   final_EntropyRate <- final_CellEntropy / maxCellEntropy(final_counts)
   final_EntropyRate[is.na(final_EntropyRate)] <- 1
@@ -212,7 +199,11 @@ dropSplit <- function(counts, score_cutoff = 0.9, GiniThreshold = NULL,
   }
   final_GiniScore <- GiniScore(
     x = final_Gini, GiniThreshold = GiniThreshold,
-    group = group
+    group = c(
+      rep("Cell", ncol(Cell_counts)),
+      rep("Uncertain", ncol(Uncertain_counts)),
+      rep("Empty", ncol(Empty_counts))
+    )
   )
   dat_metrics <- cbind(
     CellEntropy = final_CellEntropy,
@@ -220,6 +211,7 @@ dropSplit <- function(counts, score_cutoff = 0.9, GiniThreshold = NULL,
     CellGini = final_Gini,
     GiniScore = final_GiniScore
   )
+  rownames(dat_metrics) <- colnames(final_counts)
   meta_info[
     c(colnames(Cell_counts), colnames(Uncertain_counts), colnames(Empty_counts)),
     colnames(dat_metrics)
