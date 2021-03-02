@@ -34,7 +34,7 @@
         name = colorBy
       )
   }
-  if (class(meta_info[, colorBy]) %in% c("factor", "character")) {
+  if (class(meta_info[, colorBy]) != "numeric") {
     if (colorBy %in% c("preDefinedClass", "dropSplitClass")) {
       p <- p + geom_point(
         aes(color = meta_info[, colorBy]),
@@ -75,10 +75,10 @@
 }
 RankPlot <- function(meta_info, colorBy = "dropSplitClass", splitBy = "dropSplitClass") {
   meta_info[, "preDefinedClass"] <- factor(meta_info[, "preDefinedClass"],
-    levels = c("Cell", "Uncertain", "Empty", "Discarded")
+                                           levels = c("Cell", "Uncertain", "Empty", "Discarded")
   )
   meta_info[, "dropSplitClass"] <- factor(meta_info[, "dropSplitClass"],
-    levels = c("Cell", "Uncertain", "Empty", "Discarded")
+                                          levels = c("Cell", "Uncertain", "Empty", "Discarded")
   )
   p <- .RankPlot(meta_info, colorBy)
   if (splitBy %in% colnames(meta_info)) {
@@ -131,7 +131,7 @@ RankPlot <- function(meta_info, colorBy = "dropSplitClass", splitBy = "dropSplit
         name = colorBy
       )
   }
-  if (class(meta_info[, colorBy]) %in% c("factor", "character")) {
+  if (class(meta_info[, colorBy]) != "numeric") {
     if (colorBy %in% c("preDefinedClass", "dropSplitClass")) {
       p <- p + geom_point(
         aes(color = meta_info[, colorBy]),
@@ -161,10 +161,10 @@ RankPlot <- function(meta_info, colorBy = "dropSplitClass", splitBy = "dropSplit
 }
 RankMSEPlot <- function(meta_info, colorBy = "dropSplitClass", splitBy = "dropSplitClass") {
   meta_info[, "preDefinedClass"] <- factor(meta_info[, "preDefinedClass"],
-    levels = c("Cell", "Uncertain", "Empty", "Discarded")
+                                           levels = c("Cell", "Uncertain", "Empty", "Discarded")
   )
   meta_info[, "dropSplitClass"] <- factor(meta_info[, "dropSplitClass"],
-    levels = c("Cell", "Uncertain", "Empty", "Discarded")
+                                          levels = c("Cell", "Uncertain", "Empty", "Discarded")
   )
   p <- .RankMSEPlot(meta_info, colorBy)
   p <- p + geom_vline(
@@ -214,7 +214,7 @@ RankMSEPlot <- function(meta_info, colorBy = "dropSplitClass", splitBy = "dropSp
         name = colorBy
       )
   }
-  if (class(meta_info[, colorBy]) %in% c("factor", "character")) {
+  if (class(meta_info[, colorBy]) != "numeric") {
     if (colorBy %in% c("preDefinedClass", "dropSplitClass")) {
       p <- p + geom_point(
         aes(color = meta_info[, colorBy]),
@@ -254,10 +254,10 @@ RankMSEPlot <- function(meta_info, colorBy = "dropSplitClass", splitBy = "dropSp
 }
 CellEntropyPlot <- function(meta_info, colorBy = "dropSplitClass", splitBy = "dropSplitClass") {
   meta_info[, "preDefinedClass"] <- factor(meta_info[, "preDefinedClass"],
-    levels = c("Cell", "Uncertain", "Empty", "Discarded")
+                                           levels = c("Cell", "Uncertain", "Empty", "Discarded")
   )
   meta_info[, "dropSplitClass"] <- factor(meta_info[, "dropSplitClass"],
-    levels = c("Cell", "Uncertain", "Empty", "Discarded")
+                                          levels = c("Cell", "Uncertain", "Empty", "Discarded")
   )
   p <- .CellEntropyPlot(meta_info, colorBy)
   if (splitBy %in% colnames(meta_info)) {
@@ -298,7 +298,7 @@ CellEntropyPlot <- function(meta_info, colorBy = "dropSplitClass", splitBy = "dr
         name = colorBy
       )
   }
-  if (class(meta_info[, colorBy]) %in% c("factor", "character")) {
+  if (class(meta_info[, colorBy]) != "numeric") {
     if (colorBy %in% c("preDefinedClass", "dropSplitClass")) {
       p <- p + geom_point(
         aes(color = meta_info[, colorBy]),
@@ -338,10 +338,10 @@ CellEntropyPlot <- function(meta_info, colorBy = "dropSplitClass", splitBy = "dr
 }
 CellGiniPlot <- function(meta_info, colorBy = "dropSplitClass", splitBy = "dropSplitClass") {
   meta_info[, "preDefinedClass"] <- factor(meta_info[, "preDefinedClass"],
-    levels = c("Cell", "Uncertain", "Empty", "Discarded")
+                                           levels = c("Cell", "Uncertain", "Empty", "Discarded")
   )
   meta_info[, "dropSplitClass"] <- factor(meta_info[, "dropSplitClass"],
-    levels = c("Cell", "Uncertain", "Empty", "Discarded")
+                                          levels = c("Cell", "Uncertain", "Empty", "Discarded")
   )
   p <- .CellGiniPlot(meta_info, colorBy)
   if (splitBy %in% colnames(meta_info)) {
