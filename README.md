@@ -38,10 +38,12 @@ sum(counts_label == "Empty" & dropSplitClass == "Cell")
 qc <- QCPlot(result$meta_info)
 qc$RankMSE$Merge
 qc$CellEntropy$Merge
+qc$CellGini$Merge
 
 # Feature importance plot
 pl <- ImportancePlot(result$meta_info, result$train, result$importance_matrix, top_n = 20)
 pl$Importance
 pl$preDefinedClassExp
+pl$dropSplitClassExp
 
 ```
