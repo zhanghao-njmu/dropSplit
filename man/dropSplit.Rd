@@ -41,7 +41,7 @@ dropSplit(
 
 \item{predict_Uncertain_only}{Whether to predict only the Uncertain droplets. Default is \code{TRUE}.}
 
-\item{Cell_rank, Uncertain_rank, Empty_rank}{Custom nCount_Rank value to mark the droplets as Cell, Uncertain and Empty labels for the data to be trained. Default is automatic. But useful when the default value is considered to be wrong from the RankMSE plot.}
+\item{Cell_rank, Uncertain_rank, Empty_rank}{Custom Rank value to mark the droplets as Cell, Uncertain and Empty labels for the data to be trained. Default is automatic. But useful when the default value is considered to be wrong from the RankMSE plot.}
 
 \item{modelOpt}{Whether to optimize the model using \code{\link{xgbOptimization}}.If true, will overwrite the parameters list in \code{xgb_params}.}
 
