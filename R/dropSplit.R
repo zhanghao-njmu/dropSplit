@@ -317,16 +317,16 @@ dropSplit <- function(counts, score_cutoff = 0.9, GiniThreshold = NULL,
   )
 
   rescure <- which(meta_info[, "preDefinedClass"] %in% c("Uncertain", "Empty") & meta_info[, "dropSplitClass"] == "Cell")
-  rescure_score <- meta_info[rescure, "dropSplitScore"]
+  rescure_score <- meta_info[rescure, "nCount"]
   er_rate <- min((1 - score_cutoff) / (1 - er * 2), 1)
   drop <- ceiling(length(rescure) * er_rate)
   drop_index <- rescure[order(rescure_score)[1:drop]]
   message(
-    "\n>>> Control the rate of false positives:",
-    "\n... Number of new defined Cell from Uncertain or Empty:", length(rescure),
-    "\n... Estimated error rate:", round(er_rate, digits = 6),
-    "\n... Estimated error number:", drop,
-    "\n... Error droplets mean dropSplitScore:", round(mean(meta_info[drop_index, "dropSplitScore"]), digits = 6)
+    "\n>>> Control the rate of false positives",
+    "\n... Number of new defined Cell from Uncertain or Empty: ", length(rescure),
+    "\n... Estimated error rate: ", round(er_rate, digits = 6),
+    "\n... Estimated error number: ", drop,
+    "\n... Error droplets mean dropSplitScore: ", round(mean(meta_info[drop_index, "dropSplitScore"]), digits = 6)
   )
   meta_info[drop_index, "dropSplitScore"] <- 0.5
   meta_info[drop_index, "dropSplitClass"] <- "Uncertain"
@@ -336,19 +336,19 @@ dropSplit <- function(counts, score_cutoff = 0.9, GiniThreshold = NULL,
   meta_info <- meta_info[raw_cell_order, ]
 
   message(
-    "\n>>> Summary of dropSplit-defined droplet:",
+    "\n>>> Summary of dropSplit-defined droplet",
     "\n... Number of Cell: ", sum(meta_info$dropSplitClass == "Cell"), "  Minimum nCounts: ", min(meta_info[meta_info$dropSplitClass == "Cell", "nCount"]),
     "\n... Number of Uncertain: ", sum(meta_info$dropSplitClass == "Uncertain"), "  Minimum nCounts: ", min(meta_info[meta_info$dropSplitClass == "Uncertain", "nCount"]),
     "\n... Number of Empty: ", sum(meta_info$dropSplitClass == "Empty"), "  Minimum nCounts: ", min(meta_info[meta_info$dropSplitClass == "Empty", "nCount"]),
     "\n... Number of Discarded: ", sum(meta_info$dropSplitClass == "Discarded"), "  Minimum nCounts: ", ifelse(sum(meta_info$dropSplitClass == "Discarded") > 1, min(meta_info[meta_info$dropSplitClass == "Discarded", "nCount"]), min(meta_info[, "nCount"])),
     "\n>>> Pre-defined as 'Cell' switch to 'Empty' or 'Uncertain': ", sum(meta_info$preDefinedClass == "Cell" & meta_info$dropSplitClass != "Cell"),
-    "\n... Mean GiniScore:", round(mean(meta_info[meta_info$preDefinedClass == "Cell" & meta_info$dropSplitClass != "Cell", "GiniScore"]), 3),
-    "\n... Mean XGBoostScore:", round(mean(meta_info[meta_info$preDefinedClass == "Cell" & meta_info$dropSplitClass != "Cell", "XGBoostScore"]), 3),
-    "\n... Mean dropSplitScore:", round(mean(meta_info[meta_info$preDefinedClass == "Cell" & meta_info$dropSplitClass != "Cell", "dropSplitScore"]), 3),
+    "\n... Mean GiniScore: ", round(mean(meta_info[meta_info$preDefinedClass == "Cell" & meta_info$dropSplitClass != "Cell", "GiniScore"]), 3),
+    "\n... Mean XGBoostScore: ", round(mean(meta_info[meta_info$preDefinedClass == "Cell" & meta_info$dropSplitClass != "Cell", "XGBoostScore"]), 3),
+    "\n... Mean dropSplitScore: ", round(mean(meta_info[meta_info$preDefinedClass == "Cell" & meta_info$dropSplitClass != "Cell", "dropSplitScore"]), 3),
     "\n>>> Pre-defined as 'Uncertain' switch to 'Cell': ", sum(meta_info$preDefinedClass == "Uncertain" & meta_info$dropSplitClass == "Cell"),
-    "\n... Mean GiniScore:", round(mean(meta_info[meta_info$preDefinedClass == "Cell" & meta_info$dropSplitClass == "Cell", "GiniScore"]), 3),
-    "\n... Mean XGBoostScore:", round(mean(meta_info[meta_info$preDefinedClass == "Cell" & meta_info$dropSplitClass == "Cell", "XGBoostScore"]), 3),
-    "\n... Mean dropSplitScore:", round(mean(meta_info[meta_info$preDefinedClass == "Cell" & meta_info$dropSplitClass == "Cell", "dropSplitScore"]), 3)
+    "\n... Mean GiniScore: ", round(mean(meta_info[meta_info$preDefinedClass == "Cell" & meta_info$dropSplitClass == "Cell", "GiniScore"]), 3),
+    "\n... Mean XGBoostScore: ", round(mean(meta_info[meta_info$preDefinedClass == "Cell" & meta_info$dropSplitClass == "Cell", "XGBoostScore"]), 3),
+    "\n... Mean dropSplitScore: ", round(mean(meta_info[meta_info$preDefinedClass == "Cell" & meta_info$dropSplitClass == "Cell", "dropSplitScore"]), 3)
   )
   # }
 
