@@ -16,7 +16,7 @@ A vector of the max cell entropy.
 Calculate the max entropy for the cells when given the same counts.
 }
 \examples{
-x <- DropletUtils:::simCounts()
+x <- simCounts()
 maxCE <- maxCellEntropy(x)
 head(maxCE)
 }

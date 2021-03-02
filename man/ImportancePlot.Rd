@@ -22,7 +22,7 @@ A a list of ggplot objects.
 Plot the feature importance
 }
 \examples{
-counts <- DropletUtils:::simCounts()
+counts <- simCounts()
 colnames(counts) <- paste0("Cell-", 1:ncol(counts))
 result <- dropSplit(counts)
 pl <- ImportancePlot(result$meta_info, result$train, result$importance_matrix, top_n = 20)

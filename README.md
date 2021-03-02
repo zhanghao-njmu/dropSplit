@@ -18,8 +18,30 @@ remotes::install_github("zh542370159/dropSplit")
 # Example
 ```
 library(dropSplit)
-counts <- DropletUtils:::simCounts()
-colnames(counts) <- paste0("Cell-", 1:ncol(counts))
+# Simulate a counts matrix including 20000 empty droplets, 2000 large cells and 200 small cells.
+counts <- simCounts()
+counts_label <- gsub(pattern = "-.*", replacement = "", x = colnames(counts), perl = TRUE)
 result <- dropSplit(counts)
 head(result$meta_info)
+
+dropSplitClass <- result$meta_info$dropSplitClass
+# True positive
+sum(counts_label %in% c("LargeCell", "SmallCell") & dropSplitClass == "Cell")
+# False negative
+sum(counts_label %in% c("LargeCell", "SmallCell") & dropSplitClass != "Cell")
+# True negative
+sum(counts_label == "Empty" & dropSplitClass != "Cell")
+# False positive
+sum(counts_label == "Empty" & dropSplitClass == "Cell")
+
+# Various QC metrics plot
+qc <- QCPlot(result$meta_info)
+qc$RankMSE$Merge
+qc$CellEntropy$Merge
+
+# Feature importance plot
+pl <- ImportancePlot(result$meta_info, result$train, result$importance_matrix, top_n = 20)
+pl$Importance
+pl$preDefinedClassExp
+
 ```

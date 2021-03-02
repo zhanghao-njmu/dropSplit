@@ -26,4 +26,5 @@ Imports:
     TTR,
     Matrix,
     ggplot2,
-    scales
+    scales,
+    utils

@@ -18,7 +18,7 @@ A list of the index of the inflection and the corresponding value.
 Find the index of inflection in a numeric vector.
 }
 \examples{
-x <- DropletUtils:::simCounts()
+x <- simCounts()
 inflection <- find_inflection(Matrix::colSums(x))
 inflection
 }

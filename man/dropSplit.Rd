@@ -10,10 +10,11 @@ dropSplit(
   GiniThreshold = NULL,
   Uncertain_downsample = FALSE,
   Uncertain_downsample_times = 6,
-  modelOpt = FALSE,
+  predict_Uncertain_only = TRUE,
   Cell_rank = NULL,
   Uncertain_rank = NULL,
   Empty_rank = NULL,
+  modelOpt = FALSE,
   xgb_params = NULL,
   xgb_nrounds = 20,
   xgb_early_stopping_rounds = 3,
@@ -30,17 +31,19 @@ dropSplit(
 \arguments{
 \item{counts}{A \code{matrix} object or a \code{dgCMatrix} object which columns represent features and rows represent samples.}
 
-\item{score_cutoff}{A cutoff value of dropSplitScore to determine if a droplet is cell-containing or empty. Default is 0.9, i.g. a droplet with dropSplitScore>0.9 will be classified as \code{Cell} and a with dropSplitScore<0.1  will be classified as \code{Empty}.}
+\item{score_cutoff}{A cutoff value of dropSplitScore to determine if a droplet is cell-containing or empty. Default is 0.9, i.e. a droplet with dropSplitScore>0.9 will be classified as \code{Cell} and a with dropSplitScore<0.1  will be classified as \code{Empty}.}
 
 \item{GiniThreshold}{A value used in \code{\link{GiniScore}} function. The higher, the more conservative dropSplit will be. Default is automatic.}
 
-\item{Uncertain_downsample}{Whether use a downsampled Uncertain droplets for predicting.}
+\item{Uncertain_downsample}{Whether use a downsampled Uncertain droplets for predicting. Default is FALSE.}
 
-\item{Uncertain_downsample_times}{Number of downsample times for each Uncertain droplet. dropSplitScore for downsampled droplets from the same Uncertain droplet will be averaged.}
+\item{Uncertain_downsample_times}{Number of downsample times for each Uncertain droplet. dropSplitScore for downsampled droplets from the same Uncertain droplet will be averaged. Default is 6.}
+
+\item{predict_Uncertain_only}{Whether to predict only the Uncertain droplets. Default is \code{TRUE}.}
+
+\item{Cell_rank, Uncertain_rank, Empty_rank}{Custom nCount_Rank value to mark the droplets as Cell, Uncertain and Empty labels for the data to be trained. Default is automatic. But useful when the default value is considered to be wrong from the RankMSE plot.}
 
 \item{modelOpt}{Whether to optimize the model using \code{\link{xgbOptimization}}.If true, will overwrite the parameters list in \code{xgb_params}.}
-
-\item{Cell_rank, Uncertain_rank, Empty_rank}{Custom nCount_Rank value to mark the droplets as Cell, Uncertain and Empty labels for the data to be trained. Default is automatic. But useful when the default value is considered to be wrong from the MSE plot.}
 
 \item{xgb_params}{The \code{list} of XGBoost parameters.}
 
@@ -69,7 +72,7 @@ dropSplit(
 \item{...}{Other arguments passed to \code{\link{xgbOptimization}}.}
 }
 \value{
-A list of eight objects:
+A list of seven objects:
 \describe{
 \item{meta_info}{A \code{data.frame} object of evaluation metrics to be used in dropSplit and the final droplet classification.}
 \item{train}{The dataset trained in the XGBoost model. It consists of two pre-defined droplets: Cell(real-world + simulated) and Empty.}
@@ -78,7 +81,6 @@ A list of eight objects:
 \item{model}{The XGBoost model used in dropSplit for classification.}
 \item{importance_matrix}{A \code{data.frame} of feature importances in the classification model.}
 \item{tree}{The trees from the classification model.}
-\item{plots}{A list of \code{ggplot} object including various droplet QC metrics before and after classification.}
 }
 }
 \description{
@@ -89,8 +91,19 @@ In general, user can use the predefined parameters in the XGBoost and get the im
 It also provides a automatic XGBoost hyperparameters-tuning function to optimize the model.
 }
 \examples{
-counts <- DropletUtils:::simCounts()
-colnames(counts) <- paste0("Cell-", 1:ncol(counts))
+# Simulate a counts matrix including 20000 empty droplets, 2000 large cells and 200 small cells.
+counts <- simCounts(nempty = 20000, nlarge = 2000, nsmall = 200)
+counts_label <- gsub(pattern = "-.*", replacement = "", x = colnames(counts), perl = TRUE)
 result <- dropSplit(counts)
 head(result$meta_info)
+
+dropSplitClass <- result$meta_info$dropSplitClass
+# True positive
+sum(counts_label \%in\% c("LargeCell", "SmallCell") & dropSplitClass == "Cell")
+# False negative
+sum(counts_label \%in\% c("LargeCell", "SmallCell") & dropSplitClass != "Cell")
+# True negative
+sum(counts_label == "Empty" & dropSplitClass != "Cell")
+# False positive
+sum(counts_label == "Empty" & dropSplitClass == "Cell")
 }

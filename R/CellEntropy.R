@@ -5,7 +5,7 @@
 #' @return A vector of the cell entropy.
 #'
 #' @examples
-#' x <- DropletUtils:::simCounts()
+#' x <- simCounts()
 #' CE <- CellEntropy(x)
 #' head(CE)
 #' @importFrom Matrix t colSums
@@ -29,7 +29,7 @@ CellEntropy <- function(x) {
 #' @return A vector of the max cell entropy.
 #'
 #' @examples
-#' x <- DropletUtils:::simCounts()
+#' x <- simCounts()
 #' maxCE <- maxCellEntropy(x)
 #' head(maxCE)
 #' @importFrom Matrix t colSums
@@ -59,7 +59,7 @@ maxCellEntropy <- function(x) {
 #' @return A vector of the cell entropy rate.
 #'
 #' @examples
-#' x <- DropletUtils:::simCounts()
+#' x <- simCounts()
 #' CER <- CellEntropyRate(x)
 #' head(CER)
 #' @export

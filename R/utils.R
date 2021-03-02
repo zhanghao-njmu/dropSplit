@@ -55,7 +55,7 @@ find_peaks <- function(x, left_shoulder = 10000, right_shoulder = 10000) {
 #' @return A list of the index of the inflection and the corresponding value.
 #'
 #' @examples
-#' x <- DropletUtils:::simCounts()
+#' x <- simCounts()
 #' inflection <- find_inflection(Matrix::colSums(x))
 #' inflection
 #' @importFrom stats smooth.spline predict sd median quantile
@@ -100,4 +100,61 @@ curvatureCalcluate <- function(x, y) {
   d2n <- c(d2n[1], d2n, d2n[length(d2n)])
   curvature <- d2n / (1 + d1n^2)^1.5
   return(list(x = x, y = y, d1n = d1n, d2n = d2n, curvature = curvature))
+}
+
+#' Simulate counts for the empty and cell-containing droplets.
+#'
+#' @param ngenes Total gene number for all the simulated counts.
+#' @param nempty,nlarge,nsmall Empty, large cell and small cell droplets number.
+#' @param empty.prof,large.prof,small.prof The overall gene expression profile distribution in distinct type of droplets.
+#' @param empty.rate rate parameters in the \code{\link[stats]{Exponential}} function for empty droplets simulation.
+#' @param large.rate,small.rate rate parameters in the \code{\link[stats]{GammaDist}} for large or small cell simulation.
+#' @param large.shape,small.shape shape parameters in the \code{\link[stats]{GammaDist}} for large or small cell simulation.
+#' @param RemoveZeroCol Whether to remove all zero-valued columns.
+#'
+#' @return A sparse Matrix of class "dgCMatrix".
+#'
+#' @examples
+#' counts <- simCounts()
+#' counts
+#' @importFrom Matrix colSums
+#' @importFrom stats rexp rgamma rpois runif
+#' @export
+simCounts <- function(ngenes = 5000, nempty = 20000, nlarge = 2000, nsmall = 200,
+                      empty.prof = seq_len(ngenes), empty.rate = 0.04,
+                      large.prof = empty.prof, large.rate = 0.01, large.shape = 10,
+                      small.prof = runif(ngenes), small.rate = 0.1, small.shape = 20,
+                      RemoveZeroCol = TRUE) {
+  empty.prof <- empty.prof / sum(empty.prof)
+  large.prof <- large.prof / sum(large.prof)
+  small.prof <- small.prof / sum(small.prof)
+  total.count <- rexp(nempty, rate = empty.rate)
+  empty.counts <- matrix(rpois(ngenes * nempty, lambda = outer(
+    empty.prof,
+    total.count
+  )), ncol = nempty, nrow = ngenes)
+  empty.counts <- as(empty.counts, "dgCMatrix")
+  total.count <- rgamma(nlarge, shape = large.shape, rate = large.rate)
+  large.counts <- matrix(rpois(ngenes * nlarge, lambda = outer(
+    large.prof,
+    total.count
+  )), ncol = nlarge, nrow = ngenes)
+  large.counts <- as(large.counts, "dgCMatrix")
+  total.count <- rgamma(nsmall, shape = small.shape, rate = small.rate)
+  small.counts <- matrix(rpois(ngenes * nsmall, lambda = outer(
+    small.prof,
+    total.count
+  )), ncol = nsmall, nrow = ngenes)
+  small.counts <- as(small.counts, "dgCMatrix")
+  out <- cbind(empty.counts, large.counts, small.counts)
+  colnames(out) <- c(
+    paste0("Empty-", seq_len(nempty)),
+    paste0("LargeCell-", seq_len(nlarge)),
+    paste0("SmallCell-", seq_len(nsmall))
+  )
+  rownames(out) <- paste0("Gene-", seq_len(ngenes))
+  if (isTRUE(RemoveZeroCol)) {
+    out <- out[, Matrix::colSums(out) > 0]
+  }
+  return(out)
 }

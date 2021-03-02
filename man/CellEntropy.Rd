@@ -16,7 +16,7 @@ A vector of the cell entropy.
 Calculate entropy for each cell according to the feature counts.
 }
 \examples{
-x <- DropletUtils:::simCounts()
+x <- simCounts()
 CE <- CellEntropy(x)
 head(CE)
 }

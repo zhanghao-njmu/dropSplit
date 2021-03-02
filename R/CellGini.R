@@ -6,7 +6,7 @@
 #' @return A vector of the cell entropy rate.
 #'
 #' @examples
-#' x <- DropletUtils:::simCounts()
+#' x <- simCounts()
 #' CG <- CellGini(x, normalize = TRUE)
 #' head(CG)
 #' @importFrom Matrix t colSums
@@ -43,7 +43,7 @@ CellGini <- function(x, normalize = TRUE) {
 #' @export
 GiniScore <- function(x, GiniThreshold, group = NULL) {
   if (any(x < 0 | x > 1)) {
-    stop("'x' must be in between 0 and 1.")
+    stop("'x' must be between 0 and 1.")
   }
   if (is.null(group)) {
     group <- rep(1, length(x))

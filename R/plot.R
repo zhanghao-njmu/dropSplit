@@ -2,6 +2,9 @@
 #' @importFrom scales trans_format math_format
 #' @importFrom stats setNames
 .RankPlot <- function(meta_info, colorBy) {
+  if (nrow(meta_info) == 0) {
+    return(NULL)
+  }
   meta_info[, "nCount_rank"] <- rank(-(meta_info[, "nCount"]))
   meta_info[, "nFeature_rank"] <- rank(-(meta_info[, "nFeature"]))
 
@@ -88,13 +91,17 @@ RankPlot <- function(meta_info, colorBy = "dropSplitClass", splitBy = "dropSplit
 #' @importFrom ggplot2 ggplot aes geom_point geom_vline labs guides guide_legend scale_x_log10 scale_y_log10 scale_color_brewer scale_color_manual scale_color_viridis_c annotation_logticks theme_classic theme
 #' @importFrom scales trans_format math_format
 #' @importFrom stats setNames
+#' @importFrom TTR runMean
 .RankMSEPlot <- function(meta_info, colorBy) {
+  if (nrow(meta_info) == 0) {
+    return(NULL)
+  }
   meta_info[, "nCount_rank"] <- rank(-(meta_info[, "nCount"]))
   meta_info[, "nFeature_rank"] <- rank(-(meta_info[, "nFeature"]))
   meta_info <- meta_info[order(meta_info[, "nCount_rank"], decreasing = FALSE), ]
   meta_info[, "RankSE"] <- (meta_info[, "nCount_rank"] - meta_info[, "nFeature_rank"])^2
   x <- meta_info[, "RankSE"]
-  for (t in seq_len(2)) {
+  for (t in seq_len(3)) {
     x <- runMean(x, n = 100)
     x[is.na(x)] <- na.omit(x)[1]
   }
@@ -180,6 +187,9 @@ RankMSEPlot <- function(meta_info, colorBy = "dropSplitClass", splitBy = "dropSp
 #' @importFrom scales trans_format math_format
 #' @importFrom stats setNames
 .CellEntropyPlot <- function(meta_info, colorBy) {
+  if (nrow(meta_info) == 0) {
+    return(NULL)
+  }
   meta_info <- subset(meta_info, !is.na(CellEntropy))
   p <- ggplot(meta_info, aes(x = nCount, y = CellEntropy)) +
     scale_x_log10(
@@ -261,7 +271,11 @@ CellEntropyPlot <- function(meta_info, colorBy = "dropSplitClass", splitBy = "dr
 #' @importFrom scales trans_format math_format
 #' @importFrom stats setNames
 .CellGiniPlot <- function(meta_info, colorBy) {
-  p <- ggplot(subset(meta_info, !is.na(CellGini)), aes(x = nCount, y = CellGini)) +
+  if (nrow(meta_info) == 0) {
+    return(NULL)
+  }
+  meta_info <- subset(meta_info, !is.na(CellGini))
+  p <- ggplot(meta_info, aes(x = nCount, y = CellGini)) +
     scale_x_log10(
       labels = trans_format("log10", math_format(10^.x))
     ) +
@@ -353,8 +367,7 @@ CellGiniPlot <- function(meta_info, colorBy = "dropSplitClass", splitBy = "dropS
 #' @return A ggplot object or a list of ggplot objects.
 #'
 #' @examples
-#' counts <- DropletUtils:::simCounts()
-#' colnames(counts) <- paste0("Cell-", 1:ncol(counts))
+#' counts <- simCounts()
 #' result <- dropSplit(counts)
 #' pl <- QCPlot(result$meta_info, metrics = "CellEntropy")
 #' pl$CellEntropy$Merge
@@ -398,7 +411,7 @@ QCPlot <- function(meta_info, colorBy = "dropSplitClass", splitBy = "dropSplitCl
 #' @return A a list of ggplot objects.
 #'
 #' @examples
-#' counts <- DropletUtils:::simCounts()
+#' counts <- simCounts()
 #' colnames(counts) <- paste0("Cell-", 1:ncol(counts))
 #' result <- dropSplit(counts)
 #' pl <- ImportancePlot(result$meta_info, result$train, result$importance_matrix, top_n = 20)
