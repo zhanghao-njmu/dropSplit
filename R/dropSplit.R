@@ -108,7 +108,7 @@ dropSplit <- function(counts, score_cutoff = 0.9, GiniThreshold = NULL,
   }
   meta_info$RankMSE <- x
   if (is.null(Cell_rank)) {
-    inflection_left <- inflection - inflection * 0.4
+    inflection_left <- inflection - inflection * 0.3
     inflection_right <- inflection + inflection * 0.2
     Cell_rank <- inflection_left + which.min(meta_info$RankMSE[(inflection_left + 1):inflection_right]) - 1
   }
