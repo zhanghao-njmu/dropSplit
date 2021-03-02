@@ -318,7 +318,7 @@ dropSplit <- function(counts, score_cutoff = 0.9, GiniThreshold = NULL,
 
   rescure <- which(meta_info[, "preDefinedClass"] %in% c("Uncertain", "Empty") & meta_info[, "dropSplitClass"] == "Cell")
   rescure_score <- meta_info[rescure, "dropSplitScore"]
-  er_rate <- min((1 - score_cutoff) / (1 - er * 1.2), 1)
+  er_rate <- min((1 - score_cutoff) / (1 - er * 2), 1)
   drop <- ceiling(length(rescure) * er_rate)
   drop_index <- rescure[order(rescure_score)[1:drop]]
   message(
