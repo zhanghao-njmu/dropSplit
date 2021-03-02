@@ -67,7 +67,7 @@
         max(meta_info$nCount_rank[meta_info$preDefinedClass == "Uncertain"]),
         max(meta_info$nCount_rank[meta_info$preDefinedClass == "Empty"])
       ),
-      color = c("red3", "steelblue", "forestgreen"),
+      color = c("red3", "forestgreen", "steelblue"),
       linetype = 2
     )
   }
@@ -173,7 +173,7 @@ RankMSEPlot <- function(meta_info, colorBy = "dropSplitClass", splitBy = "dropSp
       max(meta_info$nCount_rank[meta_info$preDefinedClass == "Uncertain"]),
       max(meta_info$nCount_rank[meta_info$preDefinedClass == "Empty"])
     ),
-    color = c("red3", "steelblue", "forestgreen"),
+    color = c("red3", "forestgreen", "steelblue"),
     linetype = 2
   )
   if (splitBy %in% colnames(meta_info)) {
@@ -247,7 +247,7 @@ RankMSEPlot <- function(meta_info, colorBy = "dropSplitClass", splitBy = "dropSp
         min(meta_info$nCount[meta_info$preDefinedClass == "Uncertain"]),
         min(meta_info$nCount[meta_info$preDefinedClass == "Empty"])
       ),
-      color = c("red3", "steelblue", "forestgreen"),
+      color = c("red3", "forestgreen", "steelblue"),
       linetype = 2
     )
   }
@@ -331,7 +331,7 @@ CellEntropyPlot <- function(meta_info, colorBy = "dropSplitClass", splitBy = "dr
         min(meta_info$nCount[meta_info$preDefinedClass == "Uncertain"]),
         min(meta_info$nCount[meta_info$preDefinedClass == "Empty"])
       ),
-      color = c("red3", "steelblue", "forestgreen"),
+      color = c("red3", "forestgreen", "steelblue"),
       linetype = 2
     )
   }
