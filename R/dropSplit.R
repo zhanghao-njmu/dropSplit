@@ -12,7 +12,7 @@
 #' @param Uncertain_downsample_times Number of downsample times for each Uncertain droplet. dropSplitScore for downsampled droplets from the same Uncertain droplet will be averaged. Default is 6.
 #' @param predict_Uncertain_only Whether to predict only the Uncertain droplets. Default is \code{TRUE}.
 #' @param Cell_rank,Uncertain_rank,Empty_rank Custom Rank value to mark the droplets as Cell, Uncertain and Empty labels for the data to be trained. Default is automatic. But useful when the default value is considered to be wrong from the RankMSE plot.
-#' @param modelOpt Whether to optimize the model using \code{\link{xgbOptimization}}.If true, will overwrite the parameters list in \code{xgb_params}.
+#' @param modelOpt Whether to optimize the model using \code{\link{xgbOptimization}}. Will take long time for large dataset. If \code{TRUE}, will overwrite the parameters list in \code{xgb_params}.
 #' @param xgb_params The \code{list} of XGBoost parameters.
 #' @inheritParams xgbOptimization
 #' @param ... Other arguments passed to \code{\link{xgbOptimization}}.
