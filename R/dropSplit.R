@@ -323,9 +323,9 @@ dropSplit <- function(counts, score_cutoff = 0.9, GiniThreshold = NULL,
   message(
     "\n>>> Control the rate of false positives:",
     "\n... Number of new defined Cell from Uncertain or Empty:", length(rescure),
-    "\n... Estimated error rate:", round((1 - score_cutoff) / (1 - er*1.1),digits = 6),
+    "\n... Estimated error rate:", round((1 - score_cutoff) / (1 - er * 1.1), digits = 6),
     "\n... Estimated error number:", drop,
-    "\n... Error droplets mean dropSplitScore:", mean(meta_info[drop_index, "dropSplitScore"])
+    "\n... Error droplets mean dropSplitScore:", round(mean(meta_info[drop_index, "dropSplitScore"]), digits = 6)
   )
   meta_info[drop_index, "dropSplitScore"] <- 0.5
   meta_info[drop_index, "dropSplitClass"] <- "Uncertain"
