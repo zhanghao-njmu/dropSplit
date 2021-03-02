@@ -388,7 +388,7 @@ dropSplit <- function(counts, score_cutoff = 0.9, GiniThreshold = NULL,
   #   geom_point(data = meta_info2,aes(x=log10(1:nrow(meta_info2)),y=RankMSE,color=dropSplitClass),alpha=0.1,color="yellow",shape=21)
   # ggplot(meta_info,aes(x=log10(nCount),y=CellEntropy,color=dropSplitClass))+
   #   geom_point(alpha=0.1)
-  # geom_point(data = meta_info[meta_info$CellGini>0.99,])+
+  # geom_point(data = meta_info[meta_info$CellGini>0.99,])
 
   return(result)
 }
