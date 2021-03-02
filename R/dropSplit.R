@@ -318,13 +318,13 @@ dropSplit <- function(counts, score_cutoff = 0.9, GiniThreshold = NULL,
 
   rescure <- which(meta_info[, "preDefinedClass"] %in% c("Uncertain", "Empty") & meta_info[, "dropSplitClass"] == "Cell")
   rescure_score <- meta_info[rescure, "dropSplitScore"]
-  er_rate <- min((1 - score_cutoff) / (1 - er) * 1.2, 1)
+  er_rate <- min((1 - score_cutoff) / (1 - er * 1.2), 1)
   drop <- ceiling(length(rescure) * er_rate)
   drop_index <- rescure[order(rescure_score)[1:drop]]
   message(
     "\n>>> Control the rate of false positives:",
     "\n... Number of new defined Cell from Uncertain or Empty:", length(rescure),
-    "\n... Estimated error rate:", er_rate,
+    "\n... Estimated error rate:", round(er_rate, digits = 6),
     "\n... Estimated error number:", drop,
     "\n... Error droplets mean dropSplitScore:", round(mean(meta_info[drop_index, "dropSplitScore"]), digits = 6)
   )
