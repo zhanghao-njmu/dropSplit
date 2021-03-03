@@ -178,7 +178,7 @@ dropSplit <- function(counts, score_cutoff = 0.9, GiniThreshold = NULL,
     comb_counts <- cbind(Cell_counts, Sim_Cell_counts, Uncertain_counts, Empty_counts)
   }
 
-  message(">>> Calculate other cell metrics for the droplets to be trained...")
+  message(">>> Calculate MTprop and RPprop for the droplets to be trained...")
   MTgene <- grep(x = rownames(comb_counts), pattern = "(^MT-)|(^Mt-)|(^mt-)", perl = T, value = TRUE)
   RPgene <- grep(x = rownames(comb_counts), pattern = "(^RP[SL]\\d+(\\w|)$)|(^Rp[sl]\\d+(\\w|)$)|(^rp[sl]\\d+(\\w|)$)", perl = T, value = TRUE)
   comb_MTprop <- Matrix::colSums(comb_counts[MTgene, ]) / Matrix::colSums(comb_counts)
@@ -189,6 +189,14 @@ dropSplit <- function(counts, score_cutoff = 0.9, GiniThreshold = NULL,
   )
   rownames(dat_Features) <- colnames(comb_counts)
 
+  message(">>> Merge new features into train data...")
+  norm_counts <- Matrix::t(Matrix::t(comb_counts) / Matrix::colSums(comb_counts))
+  dat <- cbind(Matrix::t(norm_counts), dat_Features[, colnames(dat_Features)])
+  ini_train <- dat[c(colnames(Cell_counts), colnames(Sim_Cell_counts), colnames(Empty_counts)), ]
+  ini_train_label <- c(rep(1, ncol(Cell_counts) + ncol(Sim_Cell_counts)), rep(0, ncol(Empty_counts)))
+  to_predict <- dat[c(colnames(Cell_counts), colnames(Sim_Uncertain_counts), colnames(Empty_counts)), ]
+
+  message(">>> Calculate other cell metrics for the droplets...")
   final_counts <- comb_counts[, c(colnames(Cell_counts), colnames(Uncertain_counts), colnames(Empty_counts))]
   final_CellEntropy <- CellEntropy(final_counts)
   final_EntropyRate <- final_CellEntropy / maxCellEntropy(final_counts)
@@ -216,12 +224,6 @@ dropSplit <- function(counts, score_cutoff = 0.9, GiniThreshold = NULL,
     c(colnames(Cell_counts), colnames(Uncertain_counts), colnames(Empty_counts)),
     colnames(dat_metrics)
   ] <- dat_metrics[c(colnames(Cell_counts), colnames(Uncertain_counts), colnames(Empty_counts)), ]
-
-  norm_counts <- Matrix::t(Matrix::t(comb_counts) / Matrix::colSums(comb_counts))
-  dat <- cbind(Matrix::t(norm_counts), dat_Features[, colnames(dat_Features)])
-  ini_train <- dat[c(colnames(Cell_counts), colnames(Sim_Cell_counts), colnames(Empty_counts)), ]
-  ini_train_label <- c(rep(1, ncol(Cell_counts) + ncol(Sim_Cell_counts)), rep(0, ncol(Empty_counts)))
-  to_predict <- dat[c(colnames(Cell_counts), colnames(Sim_Uncertain_counts), colnames(Empty_counts)), ]
 
   if (isTRUE(modelOpt)) {
     opt <- xgbOptimization(
@@ -255,7 +257,7 @@ dropSplit <- function(counts, score_cutoff = 0.9, GiniThreshold = NULL,
       nthread = xgb_thread
     )
   }
-  message(">>> Prepare the XGBoost model with pre-defined classification...")
+  message(">>> Construct the XGBoost model with pre-defined classification...")
   # for (i in seq_len(10)) {
   # new_empty <- to_predict[rownames(meta_info)[meta_info$preDefinedClass=="Uncertain"&meta_info$dropSplitClass=="Empty"],]
   # message("Add ",nrow(new_empty)," new Empty droplets into training data from Uncertain droplets.")

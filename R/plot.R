@@ -2,7 +2,7 @@
 #' @importFrom scales trans_format math_format
 #' @importFrom stats setNames
 .nCountPlot <- function(meta_info, colorBy) {
-  meta_info <- subset(meta_info, nCount > 1)
+  meta_info <- subset(meta_info, nCount >= 3)
   if (nrow(meta_info) == 0) {
     return(NULL)
   }
@@ -86,7 +86,7 @@ nCountPlot <- function(meta_info, colorBy = "dropSplitClass", splitBy = "dropSpl
 #' @importFrom scales trans_format math_format
 #' @importFrom stats setNames
 .nFeaturePlot <- function(meta_info, colorBy) {
-  meta_info <- subset(meta_info, nFeature > 1)
+  meta_info <- subset(meta_info, nFeature >= 3)
   if (nrow(meta_info) == 0) {
     return(NULL)
   }
