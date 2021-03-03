@@ -20,7 +20,7 @@
 #'
 #' @return A list of seven objects:
 #' \describe{
-#' \item{meta_info}{A \code{data.frame} object of evaluation metrics to be used in dropSplit and the final droplet classification.}
+#' \item{meta_info}{A \code{DataFrame} object of evaluation metrics to be used in dropSplit and the final droplet classification.}
 #' \item{train}{The dataset trained in the XGBoost model. It consists of two pre-defined droplets: Cell(real-world + simulated) and Empty.}
 #' \item{train_label}{Labels for the \code{train}. 0 represents 'Empty', 1 represents 'Cell'.}
 #' \item{to_predict}{The dataset that to be predicted. It consists of all three pre-defined droplets: Cell, Uncertain and Empty.}
@@ -363,7 +363,7 @@ dropSplit <- function(counts, score_cutoff = 0.9, GiniThreshold = NULL,
   importance_matrix <- as.data.frame(xgb.importance(model = xgb))
   tree <- xgb.dump(xgb, with_stats = TRUE)
   result <- list(
-    meta_info = meta_info,
+    meta_info = DataFrame(meta_info),
     train = train,
     train_label = train_label,
     to_predict = to_predict,
