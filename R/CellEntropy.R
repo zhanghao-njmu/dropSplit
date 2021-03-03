@@ -60,10 +60,10 @@ maxCellEntropy <- function(x) {
 #'
 #' @examples
 #' x <- simCounts()
-#' CER <- CellEntropyRate(x)
+#' CER <- CellEfficiency(x)
 #' head(CER)
 #' @export
-CellEntropyRate <- function(x) {
+CellEfficiency <- function(x) {
   if (!class(x) %in% c("dgCMatrix", "dgTMatrix")) {
     stop("'x' must be sparse Matrix of class dgCMatrix or dgTMatrix")
   }

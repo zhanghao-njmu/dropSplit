@@ -11,7 +11,7 @@
 #' @param Uncertain_downsample Whether use a downsampled Uncertain droplets for predicting. Default is FALSE.
 #' @param Uncertain_downsample_times Number of downsample times for each Uncertain droplet. \code{dropSplitScore} of downsampled droplets from the same Uncertain droplet will be averaged. Default is 6.
 #' @param predict_Uncertain_only Whether to predict only the Uncertain droplets. Default is \code{TRUE}.
-#' @param remove_FP_by metric used to remove the estimated false positives by. Must be one of \code{nCount}, \code{nFeature}, \code{CellEntropy}, \code{CellEntropyRate}, \code{dropSplitScore}. Default is \code{dropSplitScore}.
+#' @param remove_FP_by metric used to remove the estimated false positives by. Must be one of \code{nCount}, \code{nFeature}, \code{CellEntropy}, \code{CellEfficiency}, \code{dropSplitScore}. Default is \code{dropSplitScore}.
 #' @param Cell_rank,Uncertain_rank,Empty_rank Custom Rank value to mark the droplets as Cell, Uncertain and Empty labels for the data to be trained. Default is automatic. But useful when the default value is considered to be wrong from the RankMSE plot.
 #' @param modelOpt Whether to optimize the model using \code{\link{xgbOptimization}}. Will take long time for large datasets. If \code{TRUE}, will overwrite the parameters list in \code{xgb_params}.
 #' @param xgb_params The \code{list} of XGBoost parameters.
@@ -52,6 +52,8 @@
 #' @importFrom methods as
 #' @importFrom stats na.omit predict
 #' @importFrom utils head tail
+#' @importFrom methods hasArg
+#' @importFrom S4Vectors DataFrame
 #' @export
 dropSplit <- function(counts, score_cutoff = 0.9, GiniThreshold = NULL,
                       Uncertain_downsample = FALSE, Uncertain_downsample_times = 6, predict_Uncertain_only = TRUE, remove_FP_by = "dropSplitScore",
@@ -60,6 +62,9 @@ dropSplit <- function(counts, score_cutoff = 0.9, GiniThreshold = NULL,
                       bounds = list(),
                       xgb_nfold = 5, xgb_metric = "auc",
                       opt_initPoints = length(bounds) + 1, opt_itersn = 10, opt_thread = 1, ...) {
+  if (!hasArg(counts)) {
+    stop("Parameter 'counts' not found.")
+  }
   if (!class(counts) %in% c("matrix", "dgCMatrix", "dgTMatrix")) {
     stop("'counts' must be a dense matrix or a sparse matrix object.")
   }
@@ -79,8 +84,8 @@ dropSplit <- function(counts, score_cutoff = 0.9, GiniThreshold = NULL,
   if (class(counts) == "matrix") {
     counts <- as(counts, "dgCMatrix")
   }
-  if (!remove_FP_by %in% c("nCount", "nFeature", "CellEntropy", "CellEntropyRate", "dropSplitScore") | length(remove_FP_by) > 1) {
-    stop("'remove_FP_by' must be one of nCount, nFeature, CellEntropy, CellEntropyRate, dropSplitScore.")
+  if (!remove_FP_by %in% c("nCount", "nFeature", "CellEntropy", "CellEfficiency", "dropSplitScore") | length(remove_FP_by) > 1) {
+    stop("'remove_FP_by' must be one of nCount, nFeature, CellEntropy, CellEfficiency, dropSplitScore.")
   }
 
   message(">>> Start to define the credible cell-containing droplet...")
@@ -215,7 +220,7 @@ dropSplit <- function(counts, score_cutoff = 0.9, GiniThreshold = NULL,
   )
   dat_metrics <- cbind(
     CellEntropy = final_CellEntropy,
-    CellEntropyRate = final_EntropyRate,
+    CellEfficiency = final_EntropyRate,
     CellGini = final_Gini,
     GiniScore = final_GiniScore
   )
@@ -321,7 +326,7 @@ dropSplit <- function(counts, score_cutoff = 0.9, GiniThreshold = NULL,
   if (remove_FP_by %in% c("nCount", "nFeature", "CellEntropy", "dropSplitScore")) {
     decreasing <- FALSE
   }
-  if (remove_FP_by %in% c("CellEntropyRate")) {
+  if (remove_FP_by %in% c("CellEfficiency")) {
     decreasing <- TRUE
   }
   rescure <- which(meta_info[, "preDefinedClass"] %in% c("Uncertain", "Empty") & meta_info[, "dropSplitClass"] == "Cell")

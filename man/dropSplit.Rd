@@ -42,7 +42,7 @@ dropSplit(
 
 \item{predict_Uncertain_only}{Whether to predict only the Uncertain droplets. Default is \code{TRUE}.}
 
-\item{remove_FP_by}{metric used to remove the estimated false positives by. Must be one of \code{nCount}, \code{nFeature}, \code{CellEntropy}, \code{CellEntropyRate}, \code{dropSplitScore}. Default is \code{dropSplitScore}.}
+\item{remove_FP_by}{metric used to remove the estimated false positives by. Must be one of \code{nCount}, \code{nFeature}, \code{CellEntropy}, \code{CellEfficiency}, \code{dropSplitScore}. Default is \code{dropSplitScore}.}
 
 \item{Cell_rank, Uncertain_rank, Empty_rank}{Custom Rank value to mark the droplets as Cell, Uncertain and Empty labels for the data to be trained. Default is automatic. But useful when the default value is considered to be wrong from the RankMSE plot.}
 
@@ -77,7 +77,7 @@ dropSplit(
 \value{
 A list of seven objects:
 \describe{
-\item{meta_info}{A \code{data.frame} object of evaluation metrics to be used in dropSplit and the final droplet classification.}
+\item{meta_info}{A \code{DataFrame} object of evaluation metrics to be used in dropSplit and the final droplet classification.}
 \item{train}{The dataset trained in the XGBoost model. It consists of two pre-defined droplets: Cell(real-world + simulated) and Empty.}
 \item{train_label}{Labels for the \code{train}. 0 represents 'Empty', 1 represents 'Cell'.}
 \item{to_predict}{The dataset that to be predicted. It consists of all three pre-defined droplets: Cell, Uncertain and Empty.}
