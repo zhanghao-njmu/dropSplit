@@ -8,7 +8,7 @@ utils::globalVariables(c(".x","Exp","Feature","Gain","RankMSE","nCount","nCount_
   if (nrow(meta_info) == 0) {
     return(NULL)
   }
-  color <- c("red3", "forestgreen", "steelblue", "grey85")
+  color <- c("red3", "forestgreen", "steelblue", "grey80")
   names(color) <- c("Cell", "Uncertain", "Empty", "Discarded")
   p <- ggplot(meta_info, aes(x = nCount)) +
     scale_x_log10(
@@ -40,8 +40,7 @@ utils::globalVariables(c(".x","Exp","Feature","Gain","RankMSE","nCount","nCount_
         scale_fill_manual(
           name = colorBy,
           values = color
-        ) +
-        guides(fill = guide_legend(override.aes = list(alpha = 1)))
+        )
     } else {
       p <- p + geom_histogram(
         aes(color = meta_info[, colorBy], fill = meta_info[, colorBy]),
@@ -54,8 +53,7 @@ utils::globalVariables(c(".x","Exp","Feature","Gain","RankMSE","nCount","nCount_
         scale_fill_brewer(
           name = colorBy,
           palette = "Set1"
-        ) +
-        guides(fill = guide_legend(override.aes = list(alpha = 1)))
+        )
     }
   }
   preDefinedClass <- unique(meta_info$preDefinedClass)
@@ -92,7 +90,7 @@ nCountPlot <- function(meta_info, colorBy = "dropSplitClass", splitBy = "dropSpl
   if (nrow(meta_info) == 0) {
     return(NULL)
   }
-  color <- c("red3", "forestgreen", "steelblue", "grey85")
+  color <- c("red3", "forestgreen", "steelblue", "grey80")
   names(color) <- c("Cell", "Uncertain", "Empty", "Discarded")
   p <- ggplot(meta_info, aes(x = nFeature)) +
     scale_x_log10(
@@ -124,8 +122,7 @@ nCountPlot <- function(meta_info, colorBy = "dropSplitClass", splitBy = "dropSpl
         scale_fill_manual(
           name = colorBy,
           values = color
-        ) +
-        guides(fill = guide_legend(override.aes = list(alpha = 1)))
+        )
     } else {
       p <- p + geom_histogram(
         aes(color = meta_info[, colorBy], fill = meta_info[, colorBy]),
@@ -138,8 +135,7 @@ nCountPlot <- function(meta_info, colorBy = "dropSplitClass", splitBy = "dropSpl
         scale_fill_brewer(
           name = colorBy,
           palette = "Set1"
-        ) +
-        guides(fill = guide_legend(override.aes = list(alpha = 1)))
+        )
     }
   }
   preDefinedClass <- unique(meta_info$preDefinedClass)
@@ -176,7 +172,7 @@ nFeaturePlot <- function(meta_info, colorBy = "dropSplitClass", splitBy = "dropS
   if (nrow(meta_info) == 0) {
     return(NULL)
   }
-  color <- c("red3", "forestgreen", "steelblue", "grey85")
+  color <- c("red3", "forestgreen", "steelblue", "grey80")
   names(color) <- c("Cell", "Uncertain", "Empty", "Discarded")
   meta_info[, "nCount_rank"] <- rank(-(meta_info[, "nCount"]))
   meta_info[, "nFeature_rank"] <- rank(-(meta_info[, "nFeature"]))
@@ -265,7 +261,7 @@ RankPlot <- function(meta_info, colorBy = "dropSplitClass", splitBy = "dropSplit
   if (nrow(meta_info) == 0) {
     return(NULL)
   }
-  color <- c("red3", "forestgreen", "steelblue", "grey85")
+  color <- c("red3", "forestgreen", "steelblue", "grey80")
   names(color) <- c("Cell", "Uncertain", "Empty", "Discarded")
   meta_info[, "nCount_rank"] <- rank(-(meta_info[, "nCount"]))
   meta_info[, "nFeature_rank"] <- rank(-(meta_info[, "nFeature"]))
@@ -311,7 +307,7 @@ RankPlot <- function(meta_info, colorBy = "dropSplitClass", splitBy = "dropSplit
         scale_color_manual(
           name = colorBy,
           values = setNames(
-            c("red3", "forestgreen", "steelblue", "grey85"),
+            c("red3", "forestgreen", "steelblue", "grey80"),
             c("Cell", "Uncertain", "Empty", "Discarded")
           )
         ) +
@@ -362,7 +358,7 @@ RankMSEPlot <- function(meta_info, colorBy = "dropSplitClass", splitBy = "dropSp
   if (nrow(meta_info) == 0) {
     return(NULL)
   }
-  color <- c("red3", "forestgreen", "steelblue", "grey85")
+  color <- c("red3", "forestgreen", "steelblue", "grey80")
   names(color) <- c("Cell", "Uncertain", "Empty", "Discarded")
   p <- ggplot(meta_info, aes(x = nCount, y = CellEntropy)) +
     scale_x_log10(
@@ -444,7 +440,7 @@ CellEntropyPlot <- function(meta_info, colorBy = "dropSplitClass", splitBy = "dr
   if (nrow(meta_info) == 0) {
     return(NULL)
   }
-  color <- c("red3", "forestgreen", "steelblue", "grey85")
+  color <- c("red3", "forestgreen", "steelblue", "grey80")
   names(color) <- c("Cell", "Uncertain", "Empty", "Discarded")
   p <- ggplot(meta_info, aes(x = nCount, y = CellRedundancy)) +
     scale_x_log10(
@@ -526,7 +522,7 @@ CellRedundancyPlot <- function(meta_info, colorBy = "dropSplitClass", splitBy = 
   if (nrow(meta_info) == 0) {
     return(NULL)
   }
-  color <- c("red3", "forestgreen", "steelblue", "grey85")
+  color <- c("red3", "forestgreen", "steelblue", "grey80")
   names(color) <- c("Cell", "Uncertain", "Empty", "Discarded")
   p <- ggplot(meta_info, aes(x = nCount, y = CellGini)) +
     scale_x_log10(
