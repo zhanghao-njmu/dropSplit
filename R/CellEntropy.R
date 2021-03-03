@@ -18,6 +18,7 @@ CellEntropy <- function(x) {
   logp_matrix@x <- log2(logp_matrix@x)
   e <- p_matrix * logp_matrix
   entropy <- -Matrix::colSums(e, na.rm = TRUE)
+  names(entropy) <- colnames(x)
   return(entropy)
 }
 
@@ -49,24 +50,48 @@ maxCellEntropy <- function(x) {
   ei[is.na(ei)] <- 0
   er[is.na(er)] <- 0
   entropy <- -(ei + er)
+  names(entropy) <- colnames(x)
   return(entropy)
 }
 
-#' Calculate the entropy rate for the cells according to the feature counts.
+#' Calculate the Efficiency for the cells according to the feature counts.
 #'
 #' @param x A sparse matrix which columns represent cells and rows represent features.
 #'
-#' @return A vector of the cell entropy rate.
+#' @return A vector of the CellEfficiency.
 #'
 #' @examples
 #' x <- simCounts()
-#' CER <- CellEfficiency(x)
-#' head(CER)
+#' ce <- CellEfficiency(x)
+#' head(ce)
 #' @export
 CellEfficiency <- function(x) {
   if (!class(x) %in% c("dgCMatrix", "dgTMatrix")) {
     stop("'x' must be sparse Matrix of class dgCMatrix or dgTMatrix")
   }
-  er <- CellEntropy(x) / maxCellEntropy(x)
-  return(er)
+  e <- CellEntropy(x) / maxCellEntropy(x)
+  e[is.na(e)] <- 1
+  names(e) <- colnames(x)
+  return(e)
+}
+
+#' Calculate the Redundancy for the cells according to the feature counts.
+#'
+#' @param x A sparse matrix which columns represent cells and rows represent features.
+#'
+#' @return A vector of the CellRedundancy.
+#'
+#' @examples
+#' x <- simCounts()
+#' cr <- CellRedundancy(x)
+#' head(cr)
+#' @export
+CellRedundancy <- function(x) {
+  if (!class(x) %in% c("dgCMatrix", "dgTMatrix")) {
+    stop("'x' must be sparse Matrix of class dgCMatrix or dgTMatrix")
+  }
+  r <- 1 - CellEfficiency(x)
+  r[r < 0] <- 0
+  names(r) <- colnames(x)
+  return(r)
 }

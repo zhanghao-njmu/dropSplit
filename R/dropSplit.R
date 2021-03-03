@@ -7,8 +7,9 @@
 #' It also provides a automatic XGBoost hyperparameters-tuning function to optimize the model.
 #' @param counts A \code{matrix} object or a \code{dgCMatrix} object which columns represent features and rows represent samples.
 #' @param score_cutoff A cutoff value of \code{dropSplitScore} to determine if a droplet is cell-containing or empty. Default is 0.9, i.e. a droplet with \code{dropSplitScore}>0.9 will be classified as \code{Cell} and a with \code{dropSplitScore}<0.1  will be classified as \code{Empty}.
-#' @param GiniThreshold A value used in \code{\link{GiniScore}} function. The higher, the more conservative dropSplit will be. Default is automatic.
-#' @param Uncertain_downsample Whether use a downsampled Uncertain droplets for predicting. Default is FALSE.
+#' @param Gini_control Whether to control cell quality by CellGini. Default is \code{TRUE}.
+#' @param Gini_threshold A value used in \code{\link{Score}} function for CellGini metric. The higher, the more conservative and will get a lower number of cells. Default is automatic.
+#' @param Uncertain_downsample Whether to use a downsampled Uncertain droplets for predicting. Default is FALSE.
 #' @param Uncertain_downsample_times Number of downsample times for each Uncertain droplet. \code{dropSplitScore} of downsampled droplets from the same Uncertain droplet will be averaged. Default is 6.
 #' @param predict_Uncertain_only Whether to predict only the Uncertain droplets. Default is \code{TRUE}.
 #' @param remove_FP_by metric used to remove the estimated false positives by. Must be one of \code{nCount}, \code{nFeature}, \code{CellEntropy}, \code{CellEfficiency}, \code{dropSplitScore}. Default is \code{dropSplitScore}.
@@ -55,7 +56,7 @@
 #' @importFrom methods hasArg
 #' @importFrom S4Vectors DataFrame
 #' @export
-dropSplit <- function(counts, score_cutoff = 0.9, GiniThreshold = NULL,
+dropSplit <- function(counts, score_cutoff = 0.9, Gini_control = TRUE, Gini_threshold = 0.99,
                       Uncertain_downsample = FALSE, Uncertain_downsample_times = 6, predict_Uncertain_only = TRUE, remove_FP_by = "dropSplitScore",
                       Cell_rank = NULL, Uncertain_rank = NULL, Empty_rank = NULL,
                       modelOpt = FALSE, xgb_params = NULL, xgb_nrounds = 20, xgb_early_stopping_rounds = 3, xgb_thread = 8,
@@ -71,21 +72,21 @@ dropSplit <- function(counts, score_cutoff = 0.9, GiniThreshold = NULL,
   if (length(colnames(counts)) != ncol(counts) | length(rownames(counts)) != nrow(counts)) {
     stop("'counts' matrix must have both row(feature) names and column(cell) names.")
   }
-  if (!is.null(GiniThreshold)) {
-    if (GiniThreshold < 0 | GiniThreshold > 1) {
-      stop("'GiniThreshold' must be between 0 and 1.")
-    }
-  }
   if (!is.null(score_cutoff)) {
     if (score_cutoff < 0 | score_cutoff > 1) {
       stop("'score_cutoff' must be between 0 and 1.")
     }
   }
+  if (!is.null(Gini_threshold)) {
+    if (Gini_threshold < 0 | Gini_threshold > 1) {
+      stop("'Gini_threshold' must be between 0 and 1.")
+    }
+  }
+  if (!remove_FP_by %in% c("nCount", "nFeature", "CellEntropy", "CellEfficiency", "CellRedundancy", "dropSplitScore") | length(remove_FP_by) > 1) {
+    stop("'remove_FP_by' must be one of nCount, nFeature, CellEntropy, CellEfficiency, CellRedundancy, dropSplitScore.")
+  }
   if (class(counts) == "matrix") {
     counts <- as(counts, "dgCMatrix")
-  }
-  if (!remove_FP_by %in% c("nCount", "nFeature", "CellEntropy", "CellEfficiency", "dropSplitScore") | length(remove_FP_by) > 1) {
-    stop("'remove_FP_by' must be one of nCount, nFeature, CellEntropy, CellEfficiency, dropSplitScore.")
   }
 
   message(">>> Start to define the credible cell-containing droplet...")
@@ -97,8 +98,8 @@ dropSplit <- function(counts, score_cutoff = 0.9, GiniThreshold = NULL,
   meta_info$nFeature_rank <- rank(-(meta_info$nFeature))
 
   if (min(meta_info$nCount) <= 0) {
-    warning("'counts' has cells that nCount <=0. These cells will be removed in the following steps.",
-      immediate. = TRUE
+    warning("'counts' has droplets that nCount <=0. These droplets are removed in the following steps.",
+            immediate. = TRUE
     )
     meta_info <- meta_info[meta_info$nCount > 0, ]
   }
@@ -122,10 +123,10 @@ dropSplit <- function(counts, score_cutoff = 0.9, GiniThreshold = NULL,
     Cell_rank <- inflection_left + which.min(meta_info$RankMSE[(inflection_left + 1):inflection_right]) - 1
   }
   if (is.null(Uncertain_rank)) {
-    Uncertain_rank <- Cell_rank + which.max(meta_info$RankMSE[Cell_rank:(3 * Cell_rank)]) - 1
+    Uncertain_rank <- Cell_rank + which.max(meta_info$RankMSE[Cell_rank:min(3 * Cell_rank, nrow(meta_info))]) - 1
   }
   if (is.null(Empty_rank)) {
-    Empty_rank <- Uncertain_rank + which.min(meta_info$RankMSE[Uncertain_rank:(5 * Uncertain_rank)]) - 1
+    Empty_rank <- Uncertain_rank + which.min(meta_info$RankMSE[Uncertain_rank:min(10 * Cell_rank, nrow(meta_info))]) - 1
   }
 
   Uncertain_count <- meta_info$nCount[Uncertain_rank]
@@ -148,14 +149,63 @@ dropSplit <- function(counts, score_cutoff = 0.9, GiniThreshold = NULL,
 
   if (ncol(Empty_counts) > 100000) {
     warning("Too many Empty droplets. Only take the top 100000 droplets in the following steps.",
-      immediate. = TRUE
+            immediate. = TRUE
     )
     Empty_counts <- Empty_counts[, 1:100000]
   }
   Uncertain_nCount <- Matrix::colSums(Uncertain_counts)
   Empty_nCount <- Matrix::colSums(Empty_counts)
 
-  message(">>> Downsample pre-defined Cell droplets to a depth similar to the 'Empty': Min=", min(Empty_nCount), " Median=", median(Empty_nCount), " Max=", max(Empty_nCount))
+  message(">>> Calculate various cell metrics for the droplets...")
+  final_counts <- cbind(Cell_counts, Uncertain_counts, Empty_counts)
+  final_Gini <- CellGini(final_counts, normalize = TRUE)
+  if (is.null(Gini_threshold)) {
+    Gini_threshold <- min(0.99, quantile(final_Gini[colnames(Cell_counts)], 0.01))
+  }
+  final_CellGiniScore <- Score(
+    x = final_Gini, threshold = Gini_threshold,
+    group = c(
+      rep("1", ncol(Cell_counts)),
+      rep("2", ncol(Uncertain_counts)),
+      rep("3", ncol(Empty_counts))
+    )
+  )
+  final_CellEntropy <- CellEntropy(final_counts)
+  final_maxCellEntropy <- maxCellEntropy(final_counts)
+  final_CellEfficiency <- final_CellEntropy / final_maxCellEntropy
+  final_CellEfficiency[is.na(final_CellEfficiency)] <- 1
+  final_CellRedundancy <- 1 - final_CellEfficiency
+  final_CellRedundancy[final_CellRedundancy < 0] <- 0
+  dat_metrics <- cbind(
+    CellEntropy = final_CellEntropy,
+    CellEfficiency = final_CellEfficiency,
+    CellRedundancy = final_CellRedundancy,
+    CellGini = final_Gini,
+    CellGiniScore = final_CellGiniScore
+  )
+  rownames(dat_metrics) <- colnames(final_counts)
+  meta_info[
+    c(colnames(Cell_counts), colnames(Uncertain_counts), colnames(Empty_counts)),
+    colnames(dat_metrics)
+  ] <- dat_metrics[c(colnames(Cell_counts), colnames(Uncertain_counts), colnames(Empty_counts)), ]
+
+  cell_Gini <- final_Gini[colnames(Cell_counts)]
+  cell_drop <- names(cell_Gini)[cell_Gini < Gini_threshold]
+  cell_use <- names(cell_Gini)[cell_Gini >= Gini_threshold]
+  if (length(cell_drop) > 0) {
+    message(
+      "*** There are ", length(cell_drop), " pre-defined droplets with lower CellGini value than Gini_threshold:", round(Gini_threshold, 3), "\n",
+      "*** These ", length(cell_drop), " droplets are converted to 'Uncertain'."
+    )
+    Drop_counts <- Cell_counts[, cell_drop]
+    Cell_counts <- Cell_counts[, cell_use]
+    Uncertain_counts <- cbind(Drop_counts, Uncertain_counts)
+  }
+
+  message(
+    ">>> Downsample pre-defined Cell droplets to a depth similar to the 'Empty'\n",
+    "... nCount in 'Empty' droplets: Min=", min(Empty_nCount), " Median=", median(Empty_nCount), " Max=", max(Empty_nCount)
+  )
   i <- sample(x = 1:ncol(Cell_counts), size = ncol(Empty_counts), replace = TRUE)
   Sim_Cell_counts <- Cell_counts[, i]
   colnames(Sim_Cell_counts) <- paste0("Sim-", 1:ncol(Sim_Cell_counts))
@@ -193,6 +243,11 @@ dropSplit <- function(counts, score_cutoff = 0.9, GiniThreshold = NULL,
     RPprop = comb_RPprop
   )
   rownames(dat_Features) <- colnames(comb_counts)
+  meta_info[
+    c(colnames(Cell_counts), colnames(Uncertain_counts), colnames(Empty_counts)),
+    colnames(dat_Features)
+  ] <- dat_Features[c(colnames(Cell_counts), colnames(Uncertain_counts), colnames(Empty_counts)), ]
+
 
   message(">>> Merge new features into train data...")
   norm_counts <- Matrix::t(Matrix::t(comb_counts) / Matrix::colSums(comb_counts))
@@ -200,35 +255,6 @@ dropSplit <- function(counts, score_cutoff = 0.9, GiniThreshold = NULL,
   ini_train <- dat[c(colnames(Cell_counts), colnames(Sim_Cell_counts), colnames(Empty_counts)), ]
   ini_train_label <- c(rep(1, ncol(Cell_counts) + ncol(Sim_Cell_counts)), rep(0, ncol(Empty_counts)))
   to_predict <- dat[c(colnames(Cell_counts), colnames(Sim_Uncertain_counts), colnames(Empty_counts)), ]
-
-  message(">>> Calculate other cell metrics for the droplets...")
-  final_counts <- comb_counts[, c(colnames(Cell_counts), colnames(Uncertain_counts), colnames(Empty_counts))]
-  final_CellEntropy <- CellEntropy(final_counts)
-  final_EntropyRate <- final_CellEntropy / maxCellEntropy(final_counts)
-  final_EntropyRate[is.na(final_EntropyRate)] <- 1
-  final_Gini <- CellGini(final_counts, normalize = T)
-  if (is.null(GiniThreshold)) {
-    GiniThreshold <- min(quantile(final_Gini[colnames(Cell_counts)], 0.01), 0.99)
-  }
-  final_GiniScore <- GiniScore(
-    x = final_Gini, GiniThreshold = GiniThreshold,
-    group = c(
-      rep("Cell", ncol(Cell_counts)),
-      rep("Uncertain", ncol(Uncertain_counts)),
-      rep("Empty", ncol(Empty_counts))
-    )
-  )
-  dat_metrics <- cbind(
-    CellEntropy = final_CellEntropy,
-    CellEfficiency = final_EntropyRate,
-    CellGini = final_Gini,
-    GiniScore = final_GiniScore
-  )
-  rownames(dat_metrics) <- colnames(final_counts)
-  meta_info[
-    c(colnames(Cell_counts), colnames(Uncertain_counts), colnames(Empty_counts)),
-    colnames(dat_metrics)
-  ] <- dat_metrics[c(colnames(Cell_counts), colnames(Uncertain_counts), colnames(Empty_counts)), ]
 
   if (isTRUE(modelOpt)) {
     opt <- xgbOptimization(
@@ -238,11 +264,11 @@ dropSplit <- function(counts, score_cutoff = 0.9, GiniThreshold = NULL,
       opt_initPoints = opt_initPoints, opt_itersn = opt_itersn, opt_thread = opt_thread, ...
     )
     xgb_params <- c(opt$BestPars,
-      eval_metric = "logloss",
-      eval_metric = "error",
-      eval_metric = "auc",
-      objective = "binary:logistic",
-      nthread = xgb_thread
+                    eval_metric = "logloss",
+                    eval_metric = "error",
+                    eval_metric = "auc",
+                    objective = "binary:logistic",
+                    nthread = xgb_thread
     )
   }
   if (is.null(xgb_params)) {
@@ -301,14 +327,18 @@ dropSplit <- function(counts, score_cutoff = 0.9, GiniThreshold = NULL,
     rowMeans(matrix(XGBoostScore[(ncol(Cell_counts) + 1):(ncol(Cell_counts) + ncol(Sim_Uncertain_counts))], ncol = Uncertain_downsample_times)),
     XGBoostScore[(ncol(Cell_counts) + ncol(Sim_Uncertain_counts) + 1):length(XGBoostScore)]
   )
+  names(XGBoostScore) <- c(colnames(Cell_counts), colnames(Uncertain_counts), colnames(Empty_counts))
+
   if (isTRUE(predict_Uncertain_only)) {
-    XGBoostScore[1:ncol(Cell_counts)] <- 1
-    multiscore <- (XGBoostScore + ifelse(XGBoostScore > 0.5, 1, -1) * meta_info[c(colnames(Cell_counts), colnames(Uncertain_counts), colnames(Empty_counts)), "GiniScore"] + ifelse(XGBoostScore > 0.5, 0, 1)) / 2
-    score <- ifelse(XGBoostScore > 0.5, pmin(multiscore, XGBoostScore), pmax(multiscore, XGBoostScore))
-    score[(ncol(Cell_counts) + ncol(Uncertain_counts) + 1):length(score)][score[(ncol(Cell_counts) + ncol(Uncertain_counts) + 1):length(score)] > score_cutoff] <- 0.5
-  } else {
-    multiscore <- (XGBoostScore + ifelse(XGBoostScore > 0.5, 1, -1) * meta_info[c(colnames(Cell_counts), colnames(Uncertain_counts), colnames(Empty_counts)), "GiniScore"] + ifelse(XGBoostScore > 0.5, 0, 1)) / 2
-    score <- ifelse(XGBoostScore > 0.5, pmin(multiscore, XGBoostScore), pmax(multiscore, XGBoostScore))
+    XGBoostScore[colnames(Cell_counts)] <- 1
+    XGBoostScore[colnames(Empty_counts)][XGBoostScore[colnames(Empty_counts)] > 0.5] <- 0.5
+  }
+
+  multiscore <- XGBoostScore
+  if (isTRUE(Gini_control)) {
+    raw_score <- multiscore
+    multiscore <- (multiscore + ifelse(multiscore > 0.5, 1, -1) * meta_info[names(multiscore), "CellGiniScore"] + ifelse(multiscore > 0.5, 0, 1)) / 2
+    multiscore <- ifelse(raw_score > 0.5, pmin(raw_score, multiscore), pmax(raw_score, multiscore))
   }
 
   meta_info[, "preDefinedClass"] <- "Discarded"
@@ -318,12 +348,12 @@ dropSplit <- function(counts, score_cutoff = 0.9, GiniThreshold = NULL,
   meta_info[c(colnames(Cell_counts), colnames(Uncertain_counts), colnames(Empty_counts)), "XGBoostScore"] <- XGBoostScore
   meta_info[, "dropSplitClass"] <- meta_info[, "preDefinedClass"]
   meta_info[, "dropSplitScore"] <- 0
-  meta_info[c(colnames(Cell_counts), colnames(Uncertain_counts), colnames(Empty_counts)), "dropSplitScore"] <- score
+  meta_info[c(colnames(Cell_counts), colnames(Uncertain_counts), colnames(Empty_counts)), "dropSplitScore"] <- multiscore
   meta_info[c(colnames(Cell_counts), colnames(Uncertain_counts), colnames(Empty_counts)), "dropSplitClass"] <- ifelse(
-    score > score_cutoff, "Cell", ifelse(score < 1 - score_cutoff, "Empty", "Uncertain")
+    multiscore > score_cutoff, "Cell", ifelse(multiscore < 1 - score_cutoff, "Empty", "Uncertain")
   )
 
-  if (remove_FP_by %in% c("nCount", "nFeature", "CellEntropy", "dropSplitScore")) {
+  if (remove_FP_by %in% c("nCount", "nFeature", "CellEntropy", "CellRedundancy", "dropSplitScore")) {
     decreasing <- FALSE
   }
   if (remove_FP_by %in% c("CellEfficiency")) {
@@ -333,16 +363,22 @@ dropSplit <- function(counts, score_cutoff = 0.9, GiniThreshold = NULL,
   rescure_score <- meta_info[rescure, remove_FP_by]
   er_rate <- min((1 - score_cutoff) / (1 - er * 2), 1)
   drop <- ceiling(length(rescure) * er_rate)
-  drop_index <- rescure[order(rescure_score, decreasing = decreasing)[1:drop]]
+  if (drop > 0) {
+    drop_index <- rescure[order(rescure_score, decreasing = decreasing)[1:drop]]
+    drop_score <- round(mean(meta_info[drop_index, remove_FP_by]), digits = 3)
+    meta_info[drop_index, "dropSplitScore"] <- 0.5
+    meta_info[drop_index, "dropSplitClass"] <- "Uncertain"
+  } else {
+    drop_score <- NA
+  }
   message(
     "\n>>> Control the rate of false positives",
     "\n... Number of new defined Cell from Uncertain or Empty: ", length(rescure),
-    "\n... Estimated error rate: ", round(er_rate, digits = 6),
+    "\n... Estimated error rate: ", round(er_rate, digits = 3),
     "\n... Estimated error number: ", drop,
-    "\n... Error droplets mean dropSplitScore: ", round(mean(meta_info[drop_index, "dropSplitScore"]), digits = 6)
+    "\n... Estimated error droplets mean ", remove_FP_by, ": ", drop_score,
+    "\n*** The dropSplitScore and dropSplitClass for these ", drop, " droplets are converted to 0.5 and 'Uncertain'"
   )
-  meta_info[drop_index, "dropSplitScore"] <- 0.5
-  meta_info[drop_index, "dropSplitClass"] <- "Uncertain"
 
   meta_info[, "preDefinedClass"] <- factor(meta_info[, "preDefinedClass"], levels = c("Cell", "Uncertain", "Empty", "Discarded"))
   meta_info[, "dropSplitClass"] <- factor(meta_info[, "dropSplitClass"], levels = c("Cell", "Uncertain", "Empty", "Discarded"))
@@ -350,18 +386,18 @@ dropSplit <- function(counts, score_cutoff = 0.9, GiniThreshold = NULL,
 
   message(
     "\n>>> Summary of dropSplit-defined droplet",
-    "\n... Number of Cell: ", sum(meta_info$dropSplitClass == "Cell"), "  Minimum nCounts: ", min(meta_info[meta_info$dropSplitClass == "Cell", "nCount"]),
-    "\n... Number of Uncertain: ", sum(meta_info$dropSplitClass == "Uncertain"), "  Minimum nCounts: ", min(meta_info[meta_info$dropSplitClass == "Uncertain", "nCount"]),
-    "\n... Number of Empty: ", sum(meta_info$dropSplitClass == "Empty"), "  Minimum nCounts: ", min(meta_info[meta_info$dropSplitClass == "Empty", "nCount"]),
-    "\n... Number of Discarded: ", sum(meta_info$dropSplitClass == "Discarded"), "  Minimum nCounts: ", ifelse(sum(meta_info$dropSplitClass == "Discarded") > 1, min(meta_info[meta_info$dropSplitClass == "Discarded", "nCount"]), min(meta_info[, "nCount"])),
+    "\n... Number of 'Cell': ", sum(meta_info$dropSplitClass == "Cell"), "  Minimum nCounts: ", ifelse(sum(meta_info$dropSplitClass == "Cell") > 1, min(meta_info[meta_info$dropSplitClass == "Cell", "nCount"]), 1),
+    "\n... Number of 'Uncertain': ", sum(meta_info$dropSplitClass == "Uncertain"), "  Minimum nCounts: ", ifelse(sum(meta_info$dropSplitClass == "Uncertain") > 1, min(meta_info[meta_info$dropSplitClass == "Uncertain", "nCount"]), 1),
+    "\n... Number of 'Empty': ", sum(meta_info$dropSplitClass == "Empty"), "  Minimum nCounts: ", ifelse(sum(meta_info$dropSplitClass == "Empty") > 1, min(meta_info[meta_info$dropSplitClass == "Empty", "nCount"]), 1),
+    "\n... Number of 'Discarded': ", sum(meta_info$dropSplitClass == "Discarded"), "  Minimum nCounts: ", ifelse(sum(meta_info$dropSplitClass == "Discarded") > 1, min(meta_info[meta_info$dropSplitClass == "Discarded", "nCount"]), 1),
     "\n>>> Pre-defined as 'Cell' switch to 'Empty' or 'Uncertain': ", sum(meta_info$preDefinedClass == "Cell" & meta_info$dropSplitClass != "Cell"),
-    "\n... Mean GiniScore: ", round(mean(meta_info[meta_info$preDefinedClass == "Cell" & meta_info$dropSplitClass != "Cell", "GiniScore"]), 3),
     "\n... Mean XGBoostScore: ", round(mean(meta_info[meta_info$preDefinedClass == "Cell" & meta_info$dropSplitClass != "Cell", "XGBoostScore"]), 3),
+    "\n... Mean CellGiniScore: ", round(mean(meta_info[meta_info$preDefinedClass == "Cell" & meta_info$dropSplitClass != "Cell", "CellGiniScore"]), 3),
     "\n... Mean dropSplitScore: ", round(mean(meta_info[meta_info$preDefinedClass == "Cell" & meta_info$dropSplitClass != "Cell", "dropSplitScore"]), 3),
-    "\n>>> Pre-defined as 'Uncertain' switch to 'Cell': ", sum(meta_info$preDefinedClass == "Uncertain" & meta_info$dropSplitClass == "Cell"),
-    "\n... Mean GiniScore: ", round(mean(meta_info[meta_info$preDefinedClass == "Cell" & meta_info$dropSplitClass == "Cell", "GiniScore"]), 3),
-    "\n... Mean XGBoostScore: ", round(mean(meta_info[meta_info$preDefinedClass == "Cell" & meta_info$dropSplitClass == "Cell", "XGBoostScore"]), 3),
-    "\n... Mean dropSplitScore: ", round(mean(meta_info[meta_info$preDefinedClass == "Cell" & meta_info$dropSplitClass == "Cell", "dropSplitScore"]), 3)
+    "\n>>> Pre-defined as 'Uncertain' or 'Empty' switch to 'Cell': ", sum(meta_info$preDefinedClass != "Cell" & meta_info$dropSplitClass == "Cell"),
+    "\n... Mean XGBoostScore: ", round(mean(meta_info[meta_info$preDefinedClass != "Cell" & meta_info$dropSplitClass == "Cell", "XGBoostScore"]), 3),
+    "\n... Mean CellGiniScore: ", round(mean(meta_info[meta_info$preDefinedClass != "Cell" & meta_info$dropSplitClass == "Cell", "CellGiniScore"]), 3),
+    "\n... Mean dropSplitScore: ", round(mean(meta_info[meta_info$preDefinedClass != "Cell" & meta_info$dropSplitClass == "Cell", "dropSplitScore"]), 3)
   )
   # }
 
@@ -376,26 +412,6 @@ dropSplit <- function(counts, score_cutoff = 0.9, GiniThreshold = NULL,
     importance_matrix = importance_matrix,
     tree = tree
   )
-
-
-  # xgb.ggplot.importance(importance_matrix[1:20, ])
-  # meta_info <- meta_info[order(meta_info$nCount_rank, decreasing = FALSE), ]
-  # meta_info2 <- meta_info[meta_info$dropSplitClass=="Cell",]
-  # meta_info2$nCount_rank <- rank(-(meta_info2$nCount))
-  # meta_info2$nFeature_rank <- rank(-(meta_info2$nFeature))
-  # meta_info2 <- meta_info2[order(meta_info2$nCount_rank, decreasing = FALSE), ]
-  # meta_info2$RankSE <- (log10(meta_info2$nCount_rank) - log10(meta_info2$nFeature_rank))^2
-  # x <- meta_info2$RankSE
-  # for (t in seq_len(2)) {
-  #   x <- runMean(x, n = 100)
-  #   x[is.na(x)] <- na.omit(x)[1]
-  # }
-  # meta_info2$RankMSE <- x
-  # ggplot(meta_info,aes(x=log10(1:nrow(meta_info)),y=RankMSE,color=dropSplitClass))+geom_point(alpha=0.1)+
-  #   geom_point(data = meta_info2,aes(x=log10(1:nrow(meta_info2)),y=RankMSE,color=dropSplitClass),alpha=0.1,color="yellow",shape=21)
-  # ggplot(meta_info,aes(x=log10(nCount),y=CellEntropy,color=dropSplitClass))+
-  #   geom_point(alpha=0.1)
-  # geom_point(data = meta_info[meta_info$CellGini>0.99,])
 
   return(result)
 }

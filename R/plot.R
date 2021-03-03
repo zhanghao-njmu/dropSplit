@@ -1,3 +1,5 @@
+utils::globalVariables(c(".x","Exp","Feature","Gain","RankMSE","nCount","nCount_rank","nFeature","nFeature_rank"))
+
 #' @importFrom ggplot2 ggplot aes geom_point geom_vline geom_histogram position_identity scale_fill_brewer labs guides guide_legend scale_x_log10 scale_color_brewer scale_color_manual scale_color_viridis_c annotation_logticks theme_classic theme
 #' @importFrom scales trans_format math_format
 #' @importFrom stats setNames
@@ -437,14 +439,14 @@ CellEntropyPlot <- function(meta_info, colorBy = "dropSplitClass", splitBy = "dr
 #' @importFrom ggplot2 ggplot aes geom_point geom_vline labs guides guide_legend scale_x_log10 scale_color_brewer scale_color_manual scale_color_viridis_c annotation_logticks theme_classic theme
 #' @importFrom scales trans_format math_format
 #' @importFrom stats setNames
-.CellEfficiencyPlot <- function(meta_info, colorBy) {
-  meta_info <- subset(meta_info, !is.na(CellEfficiency))
+.CellRedundancyPlot <- function(meta_info, colorBy) {
+  meta_info <- subset(meta_info, !is.na(CellRedundancy))
   if (nrow(meta_info) == 0) {
     return(NULL)
   }
   color <- c("red3", "forestgreen", "steelblue", "grey85")
   names(color) <- c("Cell", "Uncertain", "Empty", "Discarded")
-  p <- ggplot(meta_info, aes(x = nCount, y = CellEfficiency)) +
+  p <- ggplot(meta_info, aes(x = nCount, y = CellRedundancy)) +
     scale_x_log10(
       labels = trans_format("log10", math_format(10^.x))
     ) +
@@ -452,7 +454,7 @@ CellEntropyPlot <- function(meta_info, colorBy = "dropSplitClass", splitBy = "dr
     labs(
       title = "Cell Entropy Rate",
       subtitle = paste0("#Cell: ", sum(meta_info$dropSplitClass == "Cell")),
-      x = "nCount", y = "CellEfficiency"
+      x = "nCount", y = "CellRedundancy"
     ) +
     theme_classic() +
     theme(
@@ -501,17 +503,17 @@ CellEntropyPlot <- function(meta_info, colorBy = "dropSplitClass", splitBy = "dr
     linetype = 2
   )
 }
-CellEfficiencyPlot <- function(meta_info, colorBy = "dropSplitClass", splitBy = "dropSplitClass") {
+CellRedundancyPlot <- function(meta_info, colorBy = "dropSplitClass", splitBy = "dropSplitClass") {
   meta_info[, "preDefinedClass"] <- factor(meta_info[, "preDefinedClass"],
     levels = c("Cell", "Uncertain", "Empty", "Discarded")
   )
   meta_info[, "dropSplitClass"] <- factor(meta_info[, "dropSplitClass"],
     levels = c("Cell", "Uncertain", "Empty", "Discarded")
   )
-  p <- .CellEfficiencyPlot(meta_info, colorBy)
+  p <- .CellRedundancyPlot(meta_info, colorBy)
   if (splitBy %in% colnames(meta_info)) {
     meta_sp <- split.data.frame(meta_info, meta_info[[splitBy]])
-    p <- c(list(Merge = p), lapply(meta_sp, function(x) .CellEfficiencyPlot(x, colorBy)))
+    p <- c(list(Merge = p), lapply(meta_sp, function(x) .CellRedundancyPlot(x, colorBy)))
   }
   return(p)
 }
@@ -610,7 +612,7 @@ CellGiniPlot <- function(meta_info, colorBy = "dropSplitClass", splitBy = "dropS
 #' \item \code{Rank}
 #' \item \code{RankMSE}
 #' \item \code{CellEntropy}
-#' \item \code{CellEfficiency}
+#' \item \code{CellRedundancy}
 #' \item \code{CellGini}
 #' }
 #'
@@ -628,9 +630,9 @@ CellGiniPlot <- function(meta_info, colorBy = "dropSplitClass", splitBy = "dropS
 #' @importFrom methods hasArg
 #' @export
 QCPlot <- function(meta_info, colorBy = "dropSplitClass", splitBy = "dropSplitClass",
-                   metrics = c("nCount", "nFeature", "Rank", "RankMSE", "CellEntropy", "CellEfficiency", "CellGini")) {
-  if (any(!metrics %in% c("nCount", "nFeature", "Rank", "RankMSE", "CellEntropy", "CellGini"))) {
-    stop("'metrics' must be in the options: 'nCount','nFeature','Rank','RankMSE','CellEntropy','CellEfficiency','CellGini'")
+                   metrics = c("nCount", "nFeature", "Rank", "RankMSE", "CellEntropy", "CellRedundancy", "CellGini")) {
+  if (any(!metrics %in% c("nCount", "nFeature", "Rank", "RankMSE", "CellEntropy", "CellRedundancy", "CellGini"))) {
+    stop("'metrics' must be in the options: 'nCount','nFeature','Rank','RankMSE','CellEntropy','CellRedundancy','CellGini'")
   }
   if (!hasArg(meta_info)) {
     stop("Parameter 'meta_info' not found.")

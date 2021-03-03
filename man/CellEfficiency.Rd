@@ -2,7 +2,7 @@
 % Please edit documentation in R/CellEntropy.R
 \name{CellEfficiency}
 \alias{CellEfficiency}
-\title{Calculate the entropy rate for the cells according to the feature counts.}
+\title{Calculate the Efficiency for the cells according to the feature counts.}
 \usage{
 CellEfficiency(x)
 }
@@ -10,13 +10,13 @@ CellEfficiency(x)
 \item{x}{A sparse matrix which columns represent cells and rows represent features.}
 }
 \value{
-A vector of the cell entropy rate.
+A vector of the CellEfficiency.
 }
 \description{
-Calculate the entropy rate for the cells according to the feature counts.
+Calculate the Efficiency for the cells according to the feature counts.
 }
 \examples{
 x <- simCounts()
-CER <- CellEfficiency(x)
-head(CER)
+ce <- CellEfficiency(x)
+head(ce)
 }

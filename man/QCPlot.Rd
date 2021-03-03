@@ -8,7 +8,7 @@ QCPlot(
   meta_info,
   colorBy = "dropSplitClass",
   splitBy = "dropSplitClass",
-  metrics = c("nCount", "nFeature", "Rank", "RankMSE", "CellEntropy", "CellEfficiency",
+  metrics = c("nCount", "nFeature", "Rank", "RankMSE", "CellEntropy", "CellRedundancy",
     "CellGini")
 )
 }
@@ -26,7 +26,7 @@ QCPlot(
 \item \code{Rank}
 \item \code{RankMSE}
 \item \code{CellEntropy}
-\item \code{CellEfficiency}
+\item \code{CellRedundancy}
 \item \code{CellGini}
 }}
 }

@@ -7,7 +7,8 @@
 dropSplit(
   counts,
   score_cutoff = 0.9,
-  GiniThreshold = NULL,
+  Gini_control = TRUE,
+  Gini_threshold = 0.99,
   Uncertain_downsample = FALSE,
   Uncertain_downsample_times = 6,
   predict_Uncertain_only = TRUE,
@@ -34,9 +35,11 @@ dropSplit(
 
 \item{score_cutoff}{A cutoff value of \code{dropSplitScore} to determine if a droplet is cell-containing or empty. Default is 0.9, i.e. a droplet with \code{dropSplitScore}>0.9 will be classified as \code{Cell} and a with \code{dropSplitScore}<0.1  will be classified as \code{Empty}.}
 
-\item{GiniThreshold}{A value used in \code{\link{GiniScore}} function. The higher, the more conservative dropSplit will be. Default is automatic.}
+\item{Gini_control}{Whether to control cell quality by CellGini. Default is \code{TRUE}.}
 
-\item{Uncertain_downsample}{Whether use a downsampled Uncertain droplets for predicting. Default is FALSE.}
+\item{Gini_threshold}{A value used in \code{\link{Score}} function for CellGini metric. The higher, the more conservative and will get a lower number of cells. Default is automatic.}
+
+\item{Uncertain_downsample}{Whether to use a downsampled Uncertain droplets for predicting. Default is FALSE.}
 
 \item{Uncertain_downsample_times}{Number of downsample times for each Uncertain droplet. \code{dropSplitScore} of downsampled droplets from the same Uncertain droplet will be averaged. Default is 6.}
 

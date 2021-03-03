@@ -158,3 +158,61 @@ simCounts <- function(ngenes = 5000, nempty = 20000, nlarge = 2000, nsmall = 200
   }
   return(out)
 }
+
+#' Calculate Score under a threshold within groups.
+#'
+#' @param x A vector of metric used to score.
+#' @param threshold A value used to calculate the score. \code{x} larger than threshold will result in a Score>0.5, else Score<0.5.
+#' @param group The groups of \code{x}. If \code{NULL}, elements in \code{x} will be treated as the same group.
+#' @param upper,lower A named vector of value to specify the upper/lower value for each group. Default is to find the upper for each group automatically.
+#' @return A vector of the Score. A Score>0.5 represent that corresponding x is larger than the \code{threshold} when fuzz=\code{FALSE}.
+#'
+#' @examples
+#' x <- c(0.6, 0.7, 0.8, 0.85, 0.9, 0.91, 0.92, 0.93, 0.95, 0.98, 0.99)
+#' Score(x, 0.95)
+#' @export
+Score <- function(x, threshold, group = NULL, upper = NULL, lower = NULL) {
+  if (is.null(group)) {
+    group <- rep(1, length(x))
+  }
+  if (!is.null(upper)) {
+    if (all(upper < threshold)) {
+      stop("values in the 'upper' must be >=threshold")
+    }
+  }
+  if (!is.null(lower)) {
+    if (all(lower > threshold)) {
+      stop("values in the 'lower' must be <=threshold")
+    }
+  }
+  r <- x - threshold
+  score <- rep(0, length(x))
+  for (g in unique(group)) {
+    j <- group == g
+    i <- r[j]
+
+    ilarge <- i[i >= 0]
+    if (length(ilarge) > 0) {
+      if (!g %in% (names(upper))) {
+        maxi <- quantile(ilarge, 0.9)
+      } else {
+        maxi <- upper[g] - threshold
+      }
+      score[j][i >= 0] <- ifelse(maxi == 0 & ilarge != 0, 1, ifelse(maxi == 0 & ilarge == 0, 0, ilarge / maxi))
+    }
+
+    ilow <- i[i < 0]
+    if (length(ilow) > 0) {
+      if (!g %in% (names(lower))) {
+        mini <- quantile(ilow, 0.1)
+      } else {
+        mini <- threshold - lower[g]
+      }
+      score[j][i < 0] <- ifelse(mini == 0 & ilow != 0, -1, ifelse(mini == 0 & ilow == 0, 0, -ilow / mini))
+    }
+  }
+  score <- (score + 1) / 2
+  score[score > 1] <- 1
+  score[score < 0] <- 0
+  return(score)
+}
