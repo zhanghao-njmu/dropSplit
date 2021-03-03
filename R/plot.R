@@ -282,7 +282,7 @@ RankPlot <- function(meta_info, colorBy = "dropSplitClass", splitBy = "dropSplit
     ) +
     annotation_logticks() +
     labs(
-      title = "Mean Squared Error of nCount/nFeature Rank within a window.",
+      title = "Mean Squared Error of nCount/nFeature Rank within a window",
       subtitle = paste("#Cell:", sum(meta_info$dropSplitClass == "Cell")), x = "nCount_rank", y = "RankMSE"
     ) +
     theme_classic() +
