@@ -63,6 +63,7 @@ dropSplit <- function(counts, score_cutoff = 0.9, Gini_control = TRUE, Gini_thre
                       bounds = list(),
                       xgb_nfold = 5, xgb_metric = "auc",
                       opt_initPoints = length(bounds) + 1, opt_itersn = 10, opt_thread = 1, ...) {
+  start <- Sys.time()
   if (!hasArg(counts)) {
     stop("Parameter 'counts' not found.")
   }
@@ -385,7 +386,7 @@ dropSplit <- function(counts, score_cutoff = 0.9, Gini_control = TRUE, Gini_thre
   meta_info <- meta_info[raw_cell_order, ]
 
   message(
-    "\n>>> Summary of dropSplit-defined droplet",
+    ">>> Summary of dropSplit-defined droplet",
     "\n... Number of 'Cell': ", sum(meta_info$dropSplitClass == "Cell"), "  Minimum nCounts: ", ifelse(sum(meta_info$dropSplitClass == "Cell") > 1, min(meta_info[meta_info$dropSplitClass == "Cell", "nCount"]), 1),
     "\n... Number of 'Uncertain': ", sum(meta_info$dropSplitClass == "Uncertain"), "  Minimum nCounts: ", ifelse(sum(meta_info$dropSplitClass == "Uncertain") > 1, min(meta_info[meta_info$dropSplitClass == "Uncertain", "nCount"]), 1),
     "\n... Number of 'Empty': ", sum(meta_info$dropSplitClass == "Empty"), "  Minimum nCounts: ", ifelse(sum(meta_info$dropSplitClass == "Empty") > 1, min(meta_info[meta_info$dropSplitClass == "Empty", "nCount"]), 1),
@@ -413,5 +414,8 @@ dropSplit <- function(counts, score_cutoff = 0.9, Gini_control = TRUE, Gini_thre
     tree = tree
   )
 
+  end <- Sys.time()
+  message("\n+++ dropSplit has finished its work ++++\n",
+          "Elapsed: ",round(difftime(time1 = end,time2 = start,units = "mins"),digits = 3)," mins")
   return(result)
 }
