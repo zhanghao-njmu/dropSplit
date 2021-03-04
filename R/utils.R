@@ -58,7 +58,7 @@ find_peaks <- function(x, left_shoulder = 10000, right_shoulder = 10000) {
 #' x <- simCounts()
 #' inflection <- find_inflection(Matrix::colSums(x))
 #' inflection
-#' @importFrom stats smooth.spline predict sd median quantile
+#' @importFrom stats smooth.spline predict
 #' @export
 find_inflection <- function(x, df = 20) {
   r <- x
@@ -70,8 +70,8 @@ find_inflection <- function(x, df = 20) {
   fitted <- predict(sp_fit1)
   fitted_x <- 10^fitted$x
   fitted_y <- 10^fitted$y
-  curvature <- curvatureCalcluate(fitted_x, fitted_y)$curvature
-  if (min(curvature) < 0 & min(curvature) < median(curvature) - 1.5 * (quantile(curvature, 0.75) - quantile(curvature, 0.25))) {
+  curvature <- curvatureCalcluate(fitted_y,fitted_x)$curvature
+  if (min(curvature) < 0 & which.min(curvature) < length(x)*0.5) {
     inflection_y <- fitted_y[which(curvature == max(curvature[which.min(curvature):length(curvature)]))]
   } else {
     inflection_y <- fitted_y[which.max(curvature)]
