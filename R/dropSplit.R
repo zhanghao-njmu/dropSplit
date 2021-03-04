@@ -15,7 +15,7 @@
 #' @param remove_FP_by metric used to remove the estimated false positives by. Must be one of \code{nCount}, \code{nFeature}, \code{CellEntropy}, \code{CellEfficiency}, \code{dropSplitScore}. Default is \code{dropSplitScore}.
 #' @param Cell_rank,Uncertain_rank,Empty_rank Custom Rank value to mark the droplets as Cell, Uncertain and Empty labels for the data to be trained. Default is automatic. But useful when the default value is considered to be wrong from the RankMSE plot.
 #' @param xgb_params The \code{list} of XGBoost parameters.
-#' @param modelOpt Whether to optimize the model using \code{\link{xgbOptimization}}. Will take long time for large datasets. If \code{TRUE}, will overwrite the parameters list in \code{xgb_params}.
+#' @param modelOpt Whether to optimize the model using \code{\link{xgbOptimization}}. Will take long time for large datasets. If \code{TRUE}, will overwrite the parameters list in \code{xgb_params}. The following parameters are only used in \code{\link{xgbOptimization}}.
 #' @inheritParams xgbOptimization
 #' @param ... Other arguments passed to \code{\link{xgbOptimization}}.
 #'
@@ -392,7 +392,7 @@ dropSplit <- function(counts, score_cutoff = 0.9, Gini_control = TRUE, Gini_thre
   meta_info <- meta_info[raw_cell_order, ]
 
   message(
-    ">>> Summary of dropSplit-defined droplet",
+    "\n>>> Summary of dropSplit-defined droplet",
     "\n... Number of 'Cell': ", sum(meta_info$dropSplitClass == "Cell"), "  Minimum nCounts: ", ifelse(sum(meta_info$dropSplitClass == "Cell") > 1, min(meta_info[meta_info$dropSplitClass == "Cell", "nCount"]), 1),
     "\n... Number of 'Uncertain': ", sum(meta_info$dropSplitClass == "Uncertain"), "  Minimum nCounts: ", ifelse(sum(meta_info$dropSplitClass == "Uncertain") > 1, min(meta_info[meta_info$dropSplitClass == "Uncertain", "nCount"]), 1),
     "\n... Number of 'Empty': ", sum(meta_info$dropSplitClass == "Empty"), "  Minimum nCounts: ", ifelse(sum(meta_info$dropSplitClass == "Empty") > 1, min(meta_info[meta_info$dropSplitClass == "Empty", "nCount"]), 1),
