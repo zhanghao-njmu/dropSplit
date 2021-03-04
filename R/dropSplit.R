@@ -120,7 +120,11 @@ dropSplit <- function(counts, score_cutoff = 0.9, Gini_control = TRUE, Gini_thre
   if (is.null(Cell_rank)) {
     inflection_left <- inflection - inflection * 0.3
     inflection_right <- inflection + inflection * 0.2
-    Cell_rank <- inflection_left + which.min(meta_info$RankMSE[(inflection_left + 1):inflection_right]) - 1
+    # Cell_rank <- inflection_left + which.min(meta_info$RankMSE[(inflection_left + 1):inflection_right]) - 1
+    pks_rank <- inflection_left + find_peaks(-meta_info$RankMSE[(inflection_left + 1):inflection_right],
+      left_shoulder = lowest_rank * 0.05
+    ) - 1
+    Cell_rank <- max(pks_rank[meta_info$RankMSE[pks_rank] < max(meta_info$RankMSE[1:inflection_right])])
   }
   if (is.null(Uncertain_rank)) {
     Uncertain_rank <- Cell_rank + which.max(meta_info$RankMSE[Cell_rank:min(3 * Cell_rank, nrow(meta_info))]) - 1
@@ -148,7 +152,7 @@ dropSplit <- function(counts, score_cutoff = 0.9, Gini_control = TRUE, Gini_thre
     "\n... Number of Discarded: ", ncol(counts) - ncol(Cell_counts) - ncol(Uncertain_counts) - ncol(Empty_counts), "  Minimum nCounts: ", min(meta_info$nCount)
   )
 
-  p <- RankMSEPlot(meta_info, colorBy = "preDefinedClass", splitBy = NULL,cell_stat_by = "preDefinedClass")
+  p <- RankMSEPlot(meta_info, colorBy = "preDefinedClass", splitBy = NULL, cell_stat_by = "preDefinedClass")
   print(p)
 
   if (ncol(Uncertain_counts) == 0) {
