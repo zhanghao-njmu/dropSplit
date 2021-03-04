@@ -4,8 +4,8 @@
 #' If no peaks found, function will return the index of the max number.
 #'
 #' @param x A numeric vector.
-#' @param left_shoulder A integer value.Peaks value should larger than any value in the left \code{left_shoulder} value.
-#' @param right_shoulder A integer value.Peaks value should larger than any value in the right \code{right_shoulder} value.
+#' @param left_shoulder A integer value. Peaks value should larger than any value in the left \code{left_shoulder} value.
+#' @param right_shoulder A integer value. Peaks value should larger than any value in the right \code{right_shoulder} value.
 #'
 #' @return A vector of the index of peaks.
 #'
@@ -106,10 +106,10 @@ curvatureCalcluate <- function(x, y) {
 #'
 #' @param ngenes Total gene number for all the simulated counts.
 #' @param nempty,nlarge,nsmall Empty, large cell and small cell droplets number.
-#' @param empty.prof,large.prof,small.prof The overall gene expression profile distribution in distinct type of droplets.
-#' @param empty.rate rate parameters in the \code{\link[stats]{Exponential}} function for empty droplets simulation.
-#' @param large.rate,small.rate rate parameters in the \code{\link[stats]{GammaDist}} for large or small cell simulation.
-#' @param large.shape,small.shape shape parameters in the \code{\link[stats]{GammaDist}} for large or small cell simulation.
+#' @param empty_prof,large_prof,small_prof The overall gene expression profile distribution in distinct type of droplets.
+#' @param empty_rate rate parameters in the \code{\link[stats]{Exponential}} function for empty droplets simulation.
+#' @param large_scale,small_scale scale parameters in the \code{\link[stats]{GammaDist}} for large or small cell simulation.
+#' @param large_shape,small_shape shape parameters in the \code{\link[stats]{GammaDist}} for large or small cell simulation.
 #' @param RemoveZeroCol Whether to remove all zero-valued columns.
 #'
 #' @return A sparse Matrix of class "dgCMatrix".
@@ -121,32 +121,35 @@ curvatureCalcluate <- function(x, y) {
 #' @importFrom stats rexp rgamma rpois runif
 #' @export
 simCounts <- function(ngenes = 5000, nempty = 20000, nlarge = 2000, nsmall = 200,
-                      empty.prof = seq_len(ngenes), empty.rate = 0.04,
-                      large.prof = empty.prof, large.rate = 0.01, large.shape = 10,
-                      small.prof = runif(ngenes), small.rate = 0.1, small.shape = 20,
+                      empty_prof = seq_len(ngenes), empty_rate = 0.04,
+                      large_prof = empty_prof, large_scale = 100, large_shape = 10,
+                      small_prof = runif(ngenes), small_scale = 10, small_shape = 20,
                       RemoveZeroCol = TRUE) {
-  empty.prof <- empty.prof / sum(empty.prof)
-  large.prof <- large.prof / sum(large.prof)
-  small.prof <- small.prof / sum(small.prof)
-  total.count <- rexp(nempty, rate = empty.rate)
-  empty.counts <- matrix(rpois(ngenes * nempty, lambda = outer(
-    empty.prof,
-    total.count
+  empty_prof <- empty_prof / sum(empty_prof)
+  large_prof <- large_prof / sum(large_prof)
+  small_prof <- small_prof / sum(small_prof)
+  total_count <- rexp(nempty, rate = empty_rate)
+  empty_counts <- matrix(rpois(ngenes * nempty, lambda = outer(
+    empty_prof,
+    total_count
   )), ncol = nempty, nrow = ngenes)
-  empty.counts <- as(empty.counts, "dgCMatrix")
-  total.count <- rgamma(nlarge, shape = large.shape, rate = large.rate)
-  large.counts <- matrix(rpois(ngenes * nlarge, lambda = outer(
-    large.prof,
-    total.count
+  empty_counts <- as(empty_counts, "dgCMatrix")
+
+  total_count <- rgamma(nlarge, shape = large_shape, scale = large_scale)
+  large_counts <- matrix(rpois(ngenes * nlarge, lambda = outer(
+    large_prof,
+    total_count
   )), ncol = nlarge, nrow = ngenes)
-  large.counts <- as(large.counts, "dgCMatrix")
-  total.count <- rgamma(nsmall, shape = small.shape, rate = small.rate)
-  small.counts <- matrix(rpois(ngenes * nsmall, lambda = outer(
-    small.prof,
-    total.count
+  large_counts <- as(large_counts, "dgCMatrix")
+
+  total_count <- rgamma(nsmall, shape = small_shape, scale = small_scale)
+  small_counts <- matrix(rpois(ngenes * nsmall, lambda = outer(
+    small_prof,
+    total_count
   )), ncol = nsmall, nrow = ngenes)
-  small.counts <- as(small.counts, "dgCMatrix")
-  out <- cbind(empty.counts, large.counts, small.counts)
+  small_counts <- as(small_counts, "dgCMatrix")
+
+  out <- cbind(empty_counts, large_counts, small_counts)
   colnames(out) <- c(
     paste0("Empty-", seq_len(nempty)),
     paste0("LargeCell-", seq_len(nlarge)),

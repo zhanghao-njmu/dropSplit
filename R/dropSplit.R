@@ -14,12 +14,12 @@
 #' @param predict_Uncertain_only Whether to predict only the Uncertain droplets. Default is \code{TRUE}.
 #' @param remove_FP_by metric used to remove the estimated false positives by. Must be one of \code{nCount}, \code{nFeature}, \code{CellEntropy}, \code{CellEfficiency}, \code{dropSplitScore}. Default is \code{dropSplitScore}.
 #' @param Cell_rank,Uncertain_rank,Empty_rank Custom Rank value to mark the droplets as Cell, Uncertain and Empty labels for the data to be trained. Default is automatic. But useful when the default value is considered to be wrong from the RankMSE plot.
-#' @param modelOpt Whether to optimize the model using \code{\link{xgbOptimization}}. Will take long time for large datasets. If \code{TRUE}, will overwrite the parameters list in \code{xgb_params}.
 #' @param xgb_params The \code{list} of XGBoost parameters.
+#' @param modelOpt Whether to optimize the model using \code{\link{xgbOptimization}}. Will take long time for large datasets. If \code{TRUE}, will overwrite the parameters list in \code{xgb_params}.
 #' @inheritParams xgbOptimization
 #' @param ... Other arguments passed to \code{\link{xgbOptimization}}.
 #'
-#' @return A list of seven objects:
+#' @return A list of six objects:
 #' \describe{
 #' \item{meta_info}{A \code{DataFrame} object of evaluation metrics to be used in dropSplit and the final droplet classification.}
 #' \item{train}{The dataset trained in the XGBoost model. It consists of two pre-defined droplets: Cell(real-world + simulated) and Empty.}
@@ -27,7 +27,6 @@
 #' \item{to_predict}{The dataset that to be predicted. It consists of all three pre-defined droplets: Cell, Uncertain and Empty.}
 #' \item{model}{The XGBoost model used in dropSplit for classification.}
 #' \item{importance_matrix}{A \code{data.frame} of feature importances in the classification model.}
-#' \item{tree}{The trees from the classification model.}
 #' }
 #'
 #' @examples
@@ -55,13 +54,13 @@
 #' @importFrom utils head tail
 #' @importFrom methods hasArg
 #' @importFrom S4Vectors DataFrame
+#' @importFrom ggplot2 ggplot aes geom_point geom_vline
 #' @export
 dropSplit <- function(counts, score_cutoff = 0.9, Gini_control = TRUE, Gini_threshold = 0.99,
                       Uncertain_downsample = FALSE, Uncertain_downsample_times = 6, predict_Uncertain_only = TRUE, remove_FP_by = "dropSplitScore",
                       Cell_rank = NULL, Uncertain_rank = NULL, Empty_rank = NULL,
-                      modelOpt = FALSE, xgb_params = NULL, xgb_nrounds = 20, xgb_early_stopping_rounds = 3, xgb_thread = 8,
-                      bounds = list(),
-                      xgb_nfold = 5, xgb_metric = "auc",
+                      xgb_params = NULL, xgb_nrounds = 20, xgb_thread = 8,
+                      modelOpt = FALSE, bounds = list(), xgb_nfold = 5, xgb_metric = "auc", xgb_early_stopping_rounds = 5,
                       opt_initPoints = length(bounds) + 1, opt_itersn = 10, opt_thread = 1, ...) {
   start <- Sys.time()
   if (!hasArg(counts)) {
@@ -100,7 +99,7 @@ dropSplit <- function(counts, score_cutoff = 0.9, Gini_control = TRUE, Gini_thre
 
   if (min(meta_info$nCount) <= 0) {
     warning("'counts' has droplets that nCount <=0. These droplets are removed in the following steps.",
-            immediate. = TRUE
+      immediate. = TRUE
     )
     meta_info <- meta_info[meta_info$nCount > 0, ]
   }
@@ -137,6 +136,10 @@ dropSplit <- function(counts, score_cutoff = 0.9, Gini_control = TRUE, Gini_thre
   Cell_counts <- counts[, meta_info$nCount >= Cell_count]
   Uncertain_counts <- counts[, meta_info$nCount < Cell_count & meta_info$nCount >= Uncertain_count]
   Empty_counts <- counts[, meta_info$nCount < Uncertain_count & meta_info$nCount >= Empty_count]
+  meta_info[, "preDefinedClass"] <- "Discarded"
+  meta_info[colnames(Cell_counts), "preDefinedClass"] <- "Cell"
+  meta_info[colnames(Uncertain_counts), "preDefinedClass"] <- "Uncertain"
+  meta_info[colnames(Empty_counts), "preDefinedClass"] <- "Empty"
   message(
     ">>> Summary of pre-defined droplets",
     "\n... Number of Cell: ", ncol(Cell_counts), "  Minimum nCounts: ", Cell_count,
@@ -144,13 +147,19 @@ dropSplit <- function(counts, score_cutoff = 0.9, Gini_control = TRUE, Gini_thre
     "\n... Number of Empty: ", ncol(Empty_counts), "  Minimum nCounts: ", Empty_count,
     "\n... Number of Discarded: ", ncol(counts) - ncol(Cell_counts) - ncol(Uncertain_counts) - ncol(Empty_counts), "  Minimum nCounts: ", min(meta_info$nCount)
   )
-  # ggplot(meta_info, aes(x = log10(1:nrow(meta_info)), y = log10(RankMSE))) +
-  #   geom_point(alpha = 0.1) +
-  #   geom_vline(xintercept = log10(c(Cell_rank, Uncertain_rank, Empty_rank)))
 
+  p <- RankMSEPlot(meta_info, colorBy = "preDefinedClass", splitBy = NULL,cell_stat_by = "preDefinedClass")
+  print(p)
+
+  if (ncol(Uncertain_counts) == 0) {
+    stop("No 'Uncertain' droplets detected.Please check the RankMSE curve and the pre-defined droplet cutoff.")
+  }
+  if (ncol(Empty_counts) == 0) {
+    stop("No 'Empty' droplets detected.Please check the RankMSE curve and the pre-defined droplet cutoff.")
+  }
   if (ncol(Empty_counts) > 100000) {
     warning("Too many Empty droplets. Only take the top 100000 droplets in the following steps.",
-            immediate. = TRUE
+      immediate. = TRUE
     )
     Empty_counts <- Empty_counts[, 1:100000]
   }
@@ -265,11 +274,11 @@ dropSplit <- function(counts, score_cutoff = 0.9, Gini_control = TRUE, Gini_thre
       opt_initPoints = opt_initPoints, opt_itersn = opt_itersn, opt_thread = opt_thread, ...
     )
     xgb_params <- c(opt$BestPars,
-                    eval_metric = "logloss",
-                    eval_metric = "error",
-                    eval_metric = "auc",
-                    objective = "binary:logistic",
-                    nthread = xgb_thread
+      eval_metric = "logloss",
+      eval_metric = "error",
+      eval_metric = "auc",
+      objective = "binary:logistic",
+      nthread = xgb_thread
     )
   }
   if (is.null(xgb_params)) {
@@ -301,7 +310,6 @@ dropSplit <- function(counts, score_cutoff = 0.9, Gini_control = TRUE, Gini_thre
   xgb <- xgboost(
     data = xgb.DMatrix(data = train, label = train_label),
     nrounds = xgb_nrounds,
-    early_stopping_rounds = xgb_early_stopping_rounds,
     params = xgb_params
   )
   er <- tail(xgb$evaluation_log$train_error, 1)
@@ -311,7 +319,6 @@ dropSplit <- function(counts, score_cutoff = 0.9, Gini_control = TRUE, Gini_thre
   # new_xgb <- xgboost(
   #   data = xgb.DMatrix(data = new_train, label = train_label),
   #   nrounds = xgb_nrounds,
-  #   early_stopping_rounds = xgb_early_stopping_rounds,
   #   params = xgb_params
   # )
   # if (nrow(to_predict) == 0) {
@@ -342,10 +349,6 @@ dropSplit <- function(counts, score_cutoff = 0.9, Gini_control = TRUE, Gini_thre
     multiscore <- ifelse(raw_score > 0.5, pmin(raw_score, multiscore), pmax(raw_score, multiscore))
   }
 
-  meta_info[, "preDefinedClass"] <- "Discarded"
-  meta_info[colnames(Cell_counts), "preDefinedClass"] <- "Cell"
-  meta_info[colnames(Uncertain_counts), "preDefinedClass"] <- "Uncertain"
-  meta_info[colnames(Empty_counts), "preDefinedClass"] <- "Empty"
   meta_info[c(colnames(Cell_counts), colnames(Uncertain_counts), colnames(Empty_counts)), "XGBoostScore"] <- XGBoostScore
   meta_info[, "dropSplitClass"] <- meta_info[, "preDefinedClass"]
   meta_info[, "dropSplitScore"] <- 0
@@ -403,19 +406,19 @@ dropSplit <- function(counts, score_cutoff = 0.9, Gini_control = TRUE, Gini_thre
   # }
 
   importance_matrix <- as.data.frame(xgb.importance(model = xgb))
-  tree <- xgb.dump(xgb, with_stats = TRUE)
   result <- list(
     meta_info = DataFrame(meta_info),
     train = train,
     train_label = train_label,
     to_predict = to_predict,
     model = xgb,
-    importance_matrix = importance_matrix,
-    tree = tree
+    importance_matrix = importance_matrix
   )
 
   end <- Sys.time()
-  message("\n+++ dropSplit has finished its work ++++\n",
-          "Elapsed: ",round(difftime(time1 = end,time2 = start,units = "mins"),digits = 3)," mins")
+  message(
+    "\n+++ dropSplit has finished its work ++++\n",
+    "Elapsed: ", round(difftime(time1 = end, time2 = start, units = "mins"), digits = 3), " mins"
+  )
   return(result)
 }
