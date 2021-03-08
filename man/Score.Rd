@@ -4,7 +4,15 @@
 \alias{Score}
 \title{Calculate Score under a threshold within groups.}
 \usage{
-Score(x, threshold, group = NULL, upper = NULL, lower = NULL)
+Score(
+  x,
+  threshold,
+  group = NULL,
+  upper = NULL,
+  lower = NULL,
+  higher_score = NULL,
+  lower_score = NULL
+)
 }
 \arguments{
 \item{x}{A vector of metric used to score.}
@@ -14,6 +22,8 @@ Score(x, threshold, group = NULL, upper = NULL, lower = NULL)
 \item{group}{The groups of \code{x}. If \code{NULL}, elements in \code{x} will be treated as the same group.}
 
 \item{upper, lower}{A named vector of value to specify the upper/lower value for each group. Default is to find the upper for each group automatically.}
+
+\item{higher_score, lower_score}{If provided, function will return a fixed score. \code{x>threshold} return \code{higher_score}, else return \code{higher_score}.}
 }
 \value{
 A vector of the Score. A Score>0.5 represent that corresponding x is larger than the \code{threshold} when fuzz=\code{FALSE}.

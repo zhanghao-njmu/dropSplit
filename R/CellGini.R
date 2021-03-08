@@ -6,7 +6,7 @@
 #' @return A vector of the cell entropy rate.
 #'
 #' @examples
-#' x <- simCounts()
+#' x <- simSimpleCounts()
 #' CG <- CellGini(x, normalize = TRUE)
 #' head(CG)
 #' @importFrom Matrix t colSums

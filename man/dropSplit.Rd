@@ -6,87 +6,89 @@
 \usage{
 dropSplit(
   counts,
-  score_cutoff = 0.9,
+  cell_score = 0.8,
+  empty_score = 0.2,
+  max_iter = 5,
+  smooth_num = 5,
+  smooth_window = 100,
+  tolerance = 0.5,
   Gini_control = TRUE,
-  Gini_threshold = 0.99,
-  Uncertain_downsample = FALSE,
-  Uncertain_downsample_times = 6,
-  predict_Uncertain_only = TRUE,
-  remove_FP_by = "dropSplitScore",
+  Gini_threshold = NULL,
   Cell_rank = NULL,
   Uncertain_rank = NULL,
   Empty_rank = NULL,
-  modelOpt = FALSE,
+  Uncertain_downsample = TRUE,
+  Uncertain_downsample_times = 10,
+  Uncertain_downsample_FDR = 0.05,
+  predict_Uncertain_only = NULL,
   xgb_params = NULL,
   xgb_nrounds = 20,
-  xgb_early_stopping_rounds = 3,
   xgb_thread = 8,
-  bounds = list(),
-  xgb_nfold = 5,
-  xgb_metric = "auc",
-  opt_initPoints = length(bounds) + 1,
-  opt_itersn = 10,
-  opt_thread = 1,
+  modelOpt = FALSE,
+  seed = 0,
   ...
 )
 }
 \arguments{
-\item{counts}{A \code{matrix} object or a \code{dgCMatrix} object which columns represent features and rows represent samples.}
+\item{counts}{A \code{matrix} object or a \code{dgCMatrix} object which columns represent features and rows represent droplets.}
 
-\item{score_cutoff}{A cutoff value of \code{dropSplitScore} to determine if a droplet is cell-containing or empty. Default is 0.9, i.e. a droplet with \code{dropSplitScore}>0.9 will be classified as \code{Cell} and a with \code{dropSplitScore}<0.1  will be classified as \code{Empty}.}
+\item{cell_score}{A cutoff value of \code{dropSplitScore} to determine if a droplet is cell-containing. Range between 0.5 and 1. Default is 0.8.}
+
+\item{empty_score}{A cutoff value of \code{dropSplitScore} to determine if a droplet is empty. Range between 0 and 0.5. Note, a reasonable will also improve the accuracy for 'Cell' identification and this can be checked by \code{\link{QCplot}}. Default is 0.2.}
+
+\item{max_iter}{An integer specifying the number of iterations to use to rebuild the model with new defined droplets. Default is 5.}
+
+\item{smooth_num}{Number of times to smooth(take a mean value within a window length \code{smooth_window}) the squared error.}
+
+\item{smooth_window}{Window length used to smooth the squared error.}
+
+\item{tolerance}{A value indicated the tolerance when finding RankMSE valleys. A value greater than 1 indicates relaxed and will find more valleys; lower than 1 indicates strict and will find less valleys.}
 
 \item{Gini_control}{Whether to control cell quality by CellGini. Default is \code{TRUE}.}
 
 \item{Gini_threshold}{A value used in \code{\link{Score}} function for CellGini metric. The higher, the more conservative and will get a lower number of cells. Default is automatic.}
 
-\item{Uncertain_downsample}{Whether to use a downsampled Uncertain droplets for predicting. Default is FALSE.}
-
-\item{Uncertain_downsample_times}{Number of downsample times for each Uncertain droplet. \code{dropSplitScore} of downsampled droplets from the same Uncertain droplet will be averaged. Default is 6.}
-
-\item{predict_Uncertain_only}{Whether to predict only the Uncertain droplets. Default is \code{TRUE}.}
-
-\item{remove_FP_by}{metric used to remove the estimated false positives by. Must be one of \code{nCount}, \code{nFeature}, \code{CellEntropy}, \code{CellEfficiency}, \code{dropSplitScore}. Default is \code{dropSplitScore}.}
-
 \item{Cell_rank, Uncertain_rank, Empty_rank}{Custom Rank value to mark the droplets as Cell, Uncertain and Empty labels for the data to be trained. Default is automatic. But useful when the default value is considered to be wrong from the RankMSE plot.}
 
-\item{modelOpt}{Whether to optimize the model using \code{\link{xgbOptimization}}. Will take long time for large datasets. If \code{TRUE}, will overwrite the parameters list in \code{xgb_params}.}
+\item{Uncertain_downsample}{Whether to use a downsampled Uncertain droplets.If \code{TRUE}, will simulate droplets under a depth of 'Empty' used for model construction and prediction. Default is \code{TRUE}.}
+
+\item{Uncertain_downsample_times}{Number of downsample times for each Uncertain droplet. \code{XGBoostScore} of downsampled droplets from the same Uncertain droplet will be averaged and perform \code{\link[stats]{t.test}} with \code{cell_score}. Default is 10.}
+
+\item{Uncertain_downsample_FDR}{FDR control for droplets that predicted as 'Cell' from downsampled 'Uncertain' droplets. Note, t.test and FDR control only performed on the difference between averaged \code{XGBoostScore} and cell_score. It is not a false 'Cell' rate. Default is 0.05.}
+
+\item{predict_Uncertain_only}{logical; Whether to predict only the Uncertain droplets. If \code{TRUE}, XGBoostScore for all droplets pre-defined as 'Cell' will be set to 1; Default is automatic.}
 
 \item{xgb_params}{The \code{list} of XGBoost parameters.}
 
 \item{xgb_nrounds}{Max number of boosting iterations.}
 
-\item{xgb_early_stopping_rounds}{If NULL, the early stopping function is not triggered. If set to an integer k, training with a validation set will stop if the performance doesn't improve for k rounds. Setting this parameter engages the \code{cb.early.stop} callback.}
-
 \item{xgb_thread}{Number of thread used in \code{\link[xgboost]{xgb.cv}}.}
 
-\item{bounds}{A named list of lower and upper bounds for \code{params} in \code{\link[xgboost]{xgb.cv}}. The names of the list should be arguments passed to xgb.cv Use "L" suffix to indicate integers. A fixed parameter should be a two-length vector with the same value, i.e. bound=list(lambda = c(5, 5))}
+\item{modelOpt}{Whether to optimize the model using \code{\link{xgbOptimization}}. Will take long time for large datasets. If \code{TRUE}, will overwrite the parameters list in \code{xgb_params}. The following parameters are only used in \code{\link{xgbOptimization}}.}
 
-\item{xgb_nfold}{The original dataset is randomly partitioned into nfold equal size subsamples.}
-
-\item{xgb_metric}{A evaluation metric to be used in cross validation and will to be maximized. Possible options are:
-\itemize{
-\item \code{auc} Area under curve
-\item \code{aucpr} Area under PR curve
-}}
-
-\item{opt_initPoints}{Number of points to initialize the process with. Points are chosen with latin hypercube sampling within the bounds supplied.}
-
-\item{opt_itersn}{The total number of times \code{xgb.cv} will be run after initialization.}
-
-\item{opt_thread}{Number of thread used in \code{\link[ParBayesianOptimization]{bayesOpt}}.}
+\item{seed}{Random seed used in simulation. Default is 0.}
 
 \item{...}{Other arguments passed to \code{\link{xgbOptimization}}.}
 }
 \value{
-A list of seven objects:
+A list of six objects:
 \describe{
-\item{meta_info}{A \code{DataFrame} object of evaluation metrics to be used in dropSplit and the final droplet classification.}
-\item{train}{The dataset trained in the XGBoost model. It consists of two pre-defined droplets: Cell(real-world + simulated) and Empty.}
+\item{meta_info}{A \code{DataFrame} object of evaluation metrics to be used in dropSplit and classification task. Important columns in the \code{meta_info}:
+\itemize{
+\item \code{preDefinedClass}
+\item \code{CellGini}
+\item \code{CellGiniScore}
+\item \code{XGBoostScore}
+\item \code{pvalue}
+\item \code{FDR}
+\item \code{dropSplitClass}
+\item \code{dropSplitScore}
+}}
+\item{train}{The dataset trained in the final XGBoost model. It consists of two pre-defined droplets: Cell(raw + simulated) and Empty.}
 \item{train_label}{Labels for the \code{train}. 0 represents 'Empty', 1 represents 'Cell'.}
-\item{to_predict}{The dataset that to be predicted. It consists of all three pre-defined droplets: Cell, Uncertain and Empty.}
+\item{to_predict}{The dataset that to be predicted. It consists of all three pre-defined droplets: Cell(raw + simulated), Uncertain(simulated) and Empty.}
 \item{model}{The XGBoost model used in dropSplit for classification.}
 \item{importance_matrix}{A \code{data.frame} of feature importances in the classification model.}
-\item{tree}{The trees from the classification model.}
 }
 }
 \description{
@@ -97,19 +99,38 @@ In general, user can use the predefined parameters in the XGBoost and get the im
 It also provides a automatic XGBoost hyperparameters-tuning function to optimize the model.
 }
 \examples{
+library(dropSplit)
 # Simulate a counts matrix including 20000 empty droplets, 2000 large cells and 200 small cells.
-counts <- simCounts(nempty = 20000, nlarge = 2000, nsmall = 200)
-counts_label <- gsub(pattern = "-.*", replacement = "", x = colnames(counts), perl = TRUE)
-result <- dropSplit(counts)
-head(result$meta_info)
+simple_counts <- simSimpleCounts()
+true <- strsplit(colnames(simple_counts), "-")
+true <- as.data.frame(Reduce(function(x, y) rbind(x, y), true))
+colnames(true) <- c("label", "Type", "Cluster", "Cell")
+rownames(true) <- colnames(simple_counts)
+true_label <- true$label
+table(true_label)
 
+## DropSplit ---------------------------------------------------------------
+result <- dropSplit(simple_counts)
+qc <- QCplot(result$meta_info)
 dropSplitClass <- result$meta_info$dropSplitClass
-# True positive
-sum(counts_label \%in\% c("LargeCell", "SmallCell") & dropSplitClass == "Cell")
-# False negative
-sum(counts_label \%in\% c("LargeCell", "SmallCell") & dropSplitClass != "Cell")
-# True negative
-sum(counts_label == "Empty" & dropSplitClass != "Cell")
-# False positive
-sum(counts_label == "Empty" & dropSplitClass == "Cell")
+table(true_label, result$meta_info$dropSplitClass)
+
+# compare with the true labels
+result$meta_info$true_label <- true_label
+qc_true <- QCplot(result$meta_info,colorBy = "true_label")
+qc_true$CellEntropy$Merge
+
+# QC plot using all metrics
+qc <- QCplot(result$meta_info)
+qc$RankMSE$Merge
+qc$CellEntropy$Merge
+qc$CellEfficiency$Merge
+
+# Feature importance plot
+fp <- ImportancePlot(result$meta_info, result$train, result$importance_matrix, top_n = 20)
+fp$Importance
+fp$preDefinedClassExp
+fp$dropSplitClassExp
+
+
 }

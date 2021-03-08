@@ -16,7 +16,7 @@ A vector of the cell entropy.
 Calculate entropy for each cell according to the feature counts.
 }
 \examples{
-x <- simCounts()
+x <- simSimpleCounts()
 CE <- CellEntropy(x)
 head(CE)
 }

@@ -9,9 +9,9 @@ find_peaks(x, left_shoulder = 10000, right_shoulder = 10000)
 \arguments{
 \item{x}{A numeric vector.}
 
-\item{left_shoulder}{A integer value.Peaks value should larger than any value in the left \code{left_shoulder} value.}
+\item{left_shoulder}{A integer value. Peaks value should larger than any value in the left \code{left_shoulder} value.}
 
-\item{right_shoulder}{A integer value.Peaks value should larger than any value in the right \code{right_shoulder} value.}
+\item{right_shoulder}{A integer value. Peaks value should larger than any value in the right \code{right_shoulder} value.}
 }
 \value{
 A vector of the index of peaks.
