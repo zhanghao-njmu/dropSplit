@@ -8,20 +8,20 @@ RankMSE(
   meta_info,
   smooth_num = 5,
   smooth_window = 100,
-  find_cell_count = TRUE,
+  find_cell_count = FALSE,
   tolerance = 0.5
 )
 }
 \arguments{
 \item{meta_info}{A \code{data.frame} or \code{DataFrame}. Must contain the 'nCount' and 'nFeature' columns.}
 
-\item{smooth_num}{Number of times to smooth(take a mean value within a window length \code{smooth_window}) the squared error.}
+\item{smooth_num}{Number of times to smooth(take a mean value within a window length \code{smooth_window}) the squared error. Default is 5.}
 
-\item{smooth_window}{Window length used to smooth the squared error.}
+\item{smooth_window}{Window length used to smooth the squared error. Default is 100.}
 
-\item{find_cell_count}{Whether to find RankMSE valleys ('Cell' count cutoff).}
+\item{find_cell_count}{Whether to find RankMSE valleys ('Cell' count cutoff). Default is FALSE.}
 
-\item{tolerance}{A value indicated the tolerance when finding RankMSE valleys. A value greater than 1 indicates relaxed and will find more valleys; lower than 1 indicates strict and will find less valleys.}
+\item{tolerance}{A value indicated the tolerance when finding RankMSE valleys. A value greater than 1 indicates relaxed and will find more valleys; lower than 1 indicates strict and will find less valleys. Default is 0.5.}
 }
 \value{
 A list include \code{meta_info} and \code{cell_rank_count}

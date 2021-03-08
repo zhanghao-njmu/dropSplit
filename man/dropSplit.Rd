@@ -38,11 +38,11 @@ dropSplit(
 
 \item{max_iter}{An integer specifying the number of iterations to use to rebuild the model with new defined droplets. Default is 5.}
 
-\item{smooth_num}{Number of times to smooth(take a mean value within a window length \code{smooth_window}) the squared error.}
+\item{smooth_num}{Number of times to smooth(take a mean value within a window length \code{smooth_window}) the squared error. Default is 5.}
 
-\item{smooth_window}{Window length used to smooth the squared error.}
+\item{smooth_window}{Window length used to smooth the squared error. Default is 100.}
 
-\item{tolerance}{A value indicated the tolerance when finding RankMSE valleys. A value greater than 1 indicates relaxed and will find more valleys; lower than 1 indicates strict and will find less valleys.}
+\item{tolerance}{A value indicated the tolerance when finding RankMSE valleys. A value greater than 1 indicates relaxed and will find more valleys; lower than 1 indicates strict and will find less valleys. Default is 0.5.}
 
 \item{Gini_control}{Whether to control cell quality by CellGini. Default is \code{TRUE}.}
 
