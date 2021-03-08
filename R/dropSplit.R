@@ -5,7 +5,7 @@
 #' dropSplit provides some special droplet QC metrics such as CellEntropy or CellGini which can help identification.
 #' In general, user can use the predefined parameters in the XGBoost and get the important features that help in cell identification.
 #' It also provides a automatic XGBoost hyperparameters-tuning function to optimize the model.
-#' @param counts A \code{matrix} object or a \code{dgCMatrix} object which columns represent features and rows represent droplets.
+#' @param counts A \code{matrix} object or a \code{dgCMatrix} object which columns represent droplets and rows represent features.
 #' @param cell_score A cutoff value of \code{dropSplitScore} to determine if a droplet is cell-containing. Range between 0.5 and 1. Default is 0.8.
 #' @param empty_score A cutoff value of \code{dropSplitScore} to determine if a droplet is empty. Range between 0 and 0.5. Note, a reasonable will also improve the accuracy for 'Cell' identification and this can be checked by \code{\link{QCplot}}. Default is 0.2.
 #' @param max_iter An integer specifying the number of iterations to use to rebuild the model with new defined droplets. Default is 5.
