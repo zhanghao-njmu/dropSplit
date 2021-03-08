@@ -55,7 +55,7 @@ find_peaks <- function(x, left_shoulder = 10000, right_shoulder = 10000) {
 #' @return A list of the index of the inflection and the corresponding value.
 #'
 #' @examples
-#' x <- simCounts()
+#' x <- simSimpleCounts()
 #' inflection <- find_inflection(Matrix::colSums(x))
 #' inflection
 #' @importFrom stats smooth.spline predict
@@ -70,8 +70,8 @@ find_inflection <- function(x, df = 20) {
   fitted <- predict(sp_fit1)
   fitted_x <- 10^fitted$x
   fitted_y <- 10^fitted$y
-  curvature <- curvatureCalcluate(fitted_y,fitted_x)$curvature
-  if (min(curvature) < 0 & which.min(curvature) < length(x)*0.5) {
+  curvature <- curvatureCalcluate(fitted_y, fitted_x)$curvature
+  if (min(curvature) < 0 & which.min(curvature) < length(x) * 0.5) {
     inflection_y <- fitted_y[which(curvature == max(curvature[which.min(curvature):length(curvature)]))]
   } else {
     inflection_y <- fitted_y[which.max(curvature)]
@@ -102,79 +102,21 @@ curvatureCalcluate <- function(x, y) {
   return(list(x = x, y = y, d1n = d1n, d2n = d2n, curvature = curvature))
 }
 
-#' Simulate counts for the empty and cell-containing droplets.
-#'
-#' @param ngenes Total gene number for all the simulated counts.
-#' @param nempty,nlarge,nsmall Empty, large cell and small cell droplets number.
-#' @param empty_prof,large_prof,small_prof The overall gene expression profile distribution in distinct type of droplets.
-#' @param empty_rate rate parameters in the \code{\link[stats]{Exponential}} function for empty droplets simulation.
-#' @param large_scale,small_scale scale parameters in the \code{\link[stats]{GammaDist}} for large or small cell simulation.
-#' @param large_shape,small_shape shape parameters in the \code{\link[stats]{GammaDist}} for large or small cell simulation.
-#' @param RemoveZeroCol Whether to remove all zero-valued columns.
-#'
-#' @return A sparse Matrix of class "dgCMatrix".
-#'
-#' @examples
-#' counts <- simCounts()
-#' counts
-#' @importFrom Matrix colSums
-#' @importFrom stats rexp rgamma rpois runif
-#' @export
-simCounts <- function(ngenes = 5000, nempty = 20000, nlarge = 2000, nsmall = 200,
-                      empty_prof = seq_len(ngenes), empty_rate = 0.04,
-                      large_prof = empty_prof, large_scale = 100, large_shape = 10,
-                      small_prof = runif(ngenes), small_scale = 10, small_shape = 20,
-                      RemoveZeroCol = TRUE) {
-  empty_prof <- empty_prof / sum(empty_prof)
-  large_prof <- large_prof / sum(large_prof)
-  small_prof <- small_prof / sum(small_prof)
-  total_count <- rexp(nempty, rate = empty_rate)
-  empty_counts <- matrix(rpois(ngenes * nempty, lambda = outer(
-    empty_prof,
-    total_count
-  )), ncol = nempty, nrow = ngenes)
-  empty_counts <- as(empty_counts, "dgCMatrix")
-
-  total_count <- rgamma(nlarge, shape = large_shape, scale = large_scale)
-  large_counts <- matrix(rpois(ngenes * nlarge, lambda = outer(
-    large_prof,
-    total_count
-  )), ncol = nlarge, nrow = ngenes)
-  large_counts <- as(large_counts, "dgCMatrix")
-
-  total_count <- rgamma(nsmall, shape = small_shape, scale = small_scale)
-  small_counts <- matrix(rpois(ngenes * nsmall, lambda = outer(
-    small_prof,
-    total_count
-  )), ncol = nsmall, nrow = ngenes)
-  small_counts <- as(small_counts, "dgCMatrix")
-
-  out <- cbind(empty_counts, large_counts, small_counts)
-  colnames(out) <- c(
-    paste0("Empty-", seq_len(nempty)),
-    paste0("LargeCell-", seq_len(nlarge)),
-    paste0("SmallCell-", seq_len(nsmall))
-  )
-  rownames(out) <- paste0("Gene-", seq_len(ngenes))
-  if (isTRUE(RemoveZeroCol)) {
-    out <- out[, Matrix::colSums(out) > 0]
-  }
-  return(out)
-}
-
 #' Calculate Score under a threshold within groups.
 #'
 #' @param x A vector of metric used to score.
 #' @param threshold A value used to calculate the score. \code{x} larger than threshold will result in a Score>0.5, else Score<0.5.
 #' @param group The groups of \code{x}. If \code{NULL}, elements in \code{x} will be treated as the same group.
 #' @param upper,lower A named vector of value to specify the upper/lower value for each group. Default is to find the upper for each group automatically.
+#' @param higher_score,lower_score If provided, function will return a fixed score. \code{x>threshold} return \code{higher_score}, else return \code{higher_score}.
 #' @return A vector of the Score. A Score>0.5 represent that corresponding x is larger than the \code{threshold} when fuzz=\code{FALSE}.
 #'
 #' @examples
 #' x <- c(0.6, 0.7, 0.8, 0.85, 0.9, 0.91, 0.92, 0.93, 0.95, 0.98, 0.99)
 #' Score(x, 0.95)
+#' @importFrom stats quantile
 #' @export
-Score <- function(x, threshold, group = NULL, upper = NULL, lower = NULL) {
+Score <- function(x, threshold, group = NULL, upper = NULL, lower = NULL, higher_score = NULL, lower_score = NULL) {
   if (is.null(group)) {
     group <- rep(1, length(x))
   }
@@ -191,31 +133,38 @@ Score <- function(x, threshold, group = NULL, upper = NULL, lower = NULL) {
   r <- x - threshold
   score <- rep(0, length(x))
   for (g in unique(group)) {
-    j <- group == g
+    j <- which(group == g)
     i <- r[j]
 
-    ilarge <- i[i >= 0]
+    ilarge <- i[which(i >= 0)]
     if (length(ilarge) > 0) {
       if (!g %in% (names(upper))) {
         maxi <- quantile(ilarge, 0.9)
       } else {
         maxi <- upper[g] - threshold
       }
-      score[j][i >= 0] <- ifelse(maxi == 0 & ilarge != 0, 1, ifelse(maxi == 0 & ilarge == 0, 0, ilarge / maxi))
+      score[j[which(i >= 0)]] <- ifelse(maxi == 0 & ilarge != 0, 1, ifelse(maxi == 0 & ilarge == 0, 0, ilarge / maxi))
     }
 
-    ilow <- i[i < 0]
+    ilow <- i[which(i < 0)]
     if (length(ilow) > 0) {
       if (!g %in% (names(lower))) {
         mini <- quantile(ilow, 0.1)
       } else {
         mini <- threshold - lower[g]
       }
-      score[j][i < 0] <- ifelse(mini == 0 & ilow != 0, -1, ifelse(mini == 0 & ilow == 0, 0, -ilow / mini))
+      score[j][which(i < 0)] <- ifelse(mini == 0 & ilow != 0, -1, ifelse(mini == 0 & ilow == 0, 0, -ilow / mini))
     }
   }
   score <- (score + 1) / 2
   score[score > 1] <- 1
   score[score < 0] <- 0
+  if (!is.null(higher_score)) {
+    score[score > 0.5] <- higher_score
+  }
+  if (!is.null(lower_score)) {
+    score[score <= 0.5] <- lower_score
+  }
   return(score)
 }
+

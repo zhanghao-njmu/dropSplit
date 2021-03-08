@@ -16,7 +16,7 @@ A vector of the CellRedundancy.
 Calculate the Redundancy for the cells according to the feature counts.
 }
 \examples{
-x <- simCounts()
+x <- simSimpleCounts()
 cr <- CellRedundancy(x)
 head(cr)
 }

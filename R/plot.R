@@ -17,7 +17,7 @@ utils::globalVariables(c(".x", "Exp", "Feature", "Gain", "RankMSE", "nCount", "n
     annotation_logticks(sides = "b") +
     labs(
       title = "nCount Histogram",
-      subtitle = paste0("#Cell: ", sum(meta_info[,cell_stat_by] == "Cell")),
+      subtitle = paste0("#Cell: ", sum(meta_info[, cell_stat_by] == "Cell")),
       x = "nCount", y = "Count"
     ) +
     theme_classic() +
@@ -79,11 +79,11 @@ nCountPlot <- function(meta_info, colorBy = "dropSplitClass", splitBy = "dropSpl
       levels = c("Cell", "Uncertain", "Empty", "Discarded")
     )
   }
-  p <- .nCountPlot(meta_info, colorBy)
+  p <- .nCountPlot(meta_info, colorBy, cell_stat_by)
   if (!is.null(splitBy)) {
     if (splitBy %in% colnames(meta_info)) {
       meta_sp <- split.data.frame(meta_info, meta_info[[splitBy]])
-      p <- c(list(Merge = p), lapply(meta_sp, function(x) .nCountPlot(x, colorBy)))
+      p <- c(list(Merge = p), lapply(meta_sp, function(x) .nCountPlot(x, colorBy, cell_stat_by)))
     }
   }
   return(p)
@@ -106,7 +106,7 @@ nCountPlot <- function(meta_info, colorBy = "dropSplitClass", splitBy = "dropSpl
     annotation_logticks(sides = "b") +
     labs(
       title = "nFeature Histogram",
-      subtitle = paste0("#Cell: ", sum(meta_info[,cell_stat_by] == "Cell")),
+      subtitle = paste0("#Cell: ", sum(meta_info[, cell_stat_by] == "Cell")),
       x = "nFeature", y = "Count"
     ) +
     theme_classic() +
@@ -168,11 +168,11 @@ nFeaturePlot <- function(meta_info, colorBy = "dropSplitClass", splitBy = "dropS
       levels = c("Cell", "Uncertain", "Empty", "Discarded")
     )
   }
-  p <- .nFeaturePlot(meta_info, colorBy)
+  p <- .nFeaturePlot(meta_info, colorBy, cell_stat_by)
   if (!is.null(splitBy)) {
     if (splitBy %in% colnames(meta_info)) {
       meta_sp <- split.data.frame(meta_info, meta_info[[splitBy]])
-      p <- c(list(Merge = p), lapply(meta_sp, function(x) .nFeaturePlot(x, colorBy)))
+      p <- c(list(Merge = p), lapply(meta_sp, function(x) .nFeaturePlot(x, colorBy, cell_stat_by)))
     }
   }
   return(p)
@@ -201,7 +201,7 @@ nFeaturePlot <- function(meta_info, colorBy = "dropSplitClass", splitBy = "dropS
     annotation_logticks() +
     labs(
       title = "nCount/nFeature Rank",
-      subtitle = paste0("#Cell: ", sum(meta_info[,cell_stat_by] == "Cell")),
+      subtitle = paste0("#Cell: ", sum(meta_info[, cell_stat_by] == "Cell")),
       x = "nCount_rank", y = "nFeature_rank"
     ) +
     theme_classic() +
@@ -264,11 +264,11 @@ RankPlot <- function(meta_info, colorBy = "dropSplitClass", splitBy = "dropSplit
       levels = c("Cell", "Uncertain", "Empty", "Discarded")
     )
   }
-  p <- .RankPlot(meta_info, colorBy)
+  p <- .RankPlot(meta_info, colorBy, cell_stat_by)
   if (!is.null(splitBy)) {
     if (splitBy %in% colnames(meta_info)) {
       meta_sp <- split.data.frame(meta_info, meta_info[[splitBy]])
-      p <- c(list(Merge = p), lapply(meta_sp, function(x) .RankPlot(x, colorBy)))
+      p <- c(list(Merge = p), lapply(meta_sp, function(x) .RankPlot(x, colorBy, cell_stat_by)))
     }
   }
   return(p)
@@ -278,22 +278,16 @@ RankPlot <- function(meta_info, colorBy = "dropSplitClass", splitBy = "dropSplit
 #' @importFrom scales trans_format math_format
 #' @importFrom stats setNames
 #' @importFrom TTR runMean
-.RankMSEPlot <- function(meta_info, colorBy, cell_stat_by) {
+.RankMSEPlot <- function(meta_info, colorBy, cell_stat_by, ...) {
   if (nrow(meta_info) == 0) {
     return(NULL)
   }
   color <- c("red3", "forestgreen", "steelblue", "grey80")
   names(color) <- c("Cell", "Uncertain", "Empty", "Discarded")
-  meta_info[, "nCount_rank"] <- rank(-(meta_info[, "nCount"]))
-  meta_info[, "nFeature_rank"] <- rank(-(meta_info[, "nFeature"]))
-  meta_info <- meta_info[order(meta_info[, "nCount_rank"], decreasing = FALSE), ]
-  meta_info[, "RankSE"] <- (meta_info[, "nCount_rank"] - meta_info[, "nFeature_rank"])^2
-  x <- meta_info[, "RankSE"]
-  for (t in seq_len(3)) {
-    x <- runMean(x, n = 100)
-    x[is.na(x)] <- na.omit(x)[1]
-  }
-  meta_info[, "RankMSE"] <- x
+
+  out <- RankMSE(meta_info = meta_info,find_cell_count = FALSE, ...)
+  meta_info <- out$meta_info
+
   p <- ggplot(meta_info, aes(x = nCount_rank, y = RankMSE)) +
     scale_x_log10(
       labels = trans_format("log10", math_format(10^.x))
@@ -304,7 +298,7 @@ RankPlot <- function(meta_info, colorBy = "dropSplitClass", splitBy = "dropSplit
     annotation_logticks() +
     labs(
       title = "Mean Squared Error of nCount/nFeature Rank within a window",
-      subtitle = paste("#Cell:", sum(meta_info[,cell_stat_by] == "Cell")), x = "nCount_rank", y = "RankMSE"
+      subtitle = paste("#Cell:", sum(meta_info[, cell_stat_by] == "Cell")), x = "nCount_rank", y = "RankMSE"
     ) +
     theme_classic() +
     theme(
@@ -347,7 +341,7 @@ RankPlot <- function(meta_info, colorBy = "dropSplitClass", splitBy = "dropSplit
   }
   return(p)
 }
-RankMSEPlot <- function(meta_info, colorBy = "dropSplitClass", splitBy = "dropSplitClass", cell_stat_by = "dropSplitClass") {
+RankMSEPlot <- function(meta_info, colorBy = "dropSplitClass", splitBy = "dropSplitClass", cell_stat_by = "dropSplitClass", ...) {
   meta_info <- as.data.frame(meta_info)
   if ("preDefinedClass" %in% colnames(meta_info)) {
     meta_info[, "preDefinedClass"] <- factor(meta_info[, "preDefinedClass"],
@@ -359,7 +353,7 @@ RankMSEPlot <- function(meta_info, colorBy = "dropSplitClass", splitBy = "dropSp
       levels = c("Cell", "Uncertain", "Empty", "Discarded")
     )
   }
-  p <- .RankMSEPlot(meta_info, colorBy)
+  p <- .RankMSEPlot(meta_info, colorBy, cell_stat_by,...)
   if ("preDefinedClass" %in% colnames(meta_info)) {
     p <- p + geom_vline(
       xintercept = c(
@@ -374,7 +368,7 @@ RankMSEPlot <- function(meta_info, colorBy = "dropSplitClass", splitBy = "dropSp
   if (!is.null(splitBy)) {
     if (splitBy %in% colnames(meta_info)) {
       meta_sp <- split.data.frame(meta_info, meta_info[[splitBy]])
-      p <- c(list(Merge = p), lapply(meta_sp, function(x) .RankMSEPlot(x, colorBy)))
+      p <- c(list(Merge = p), lapply(meta_sp, function(x) .RankMSEPlot(x, colorBy, cell_stat_by)))
     }
   }
   return(p)
@@ -397,7 +391,7 @@ RankMSEPlot <- function(meta_info, colorBy = "dropSplitClass", splitBy = "dropSp
     annotation_logticks(sides = "b") +
     labs(
       title = "Cell Entropy",
-      subtitle = paste0("#Cell: ", sum(meta_info[,cell_stat_by] == "Cell")),
+      subtitle = paste0("#Cell: ", sum(meta_info[, cell_stat_by] == "Cell")),
       x = "nCount", y = "CellEntropy"
     ) +
     theme_classic() +
@@ -459,11 +453,11 @@ CellEntropyPlot <- function(meta_info, colorBy = "dropSplitClass", splitBy = "dr
       levels = c("Cell", "Uncertain", "Empty", "Discarded")
     )
   }
-  p <- .CellEntropyPlot(meta_info, colorBy)
+  p <- .CellEntropyPlot(meta_info, colorBy, cell_stat_by)
   if (!is.null(splitBy)) {
     if (splitBy %in% colnames(meta_info)) {
       meta_sp <- split.data.frame(meta_info, meta_info[[splitBy]])
-      p <- c(list(Merge = p), lapply(meta_sp, function(x) .CellEntropyPlot(x, colorBy)))
+      p <- c(list(Merge = p), lapply(meta_sp, function(x) .CellEntropyPlot(x, colorBy, cell_stat_by)))
     }
   }
   return(p)
@@ -486,7 +480,7 @@ CellEntropyPlot <- function(meta_info, colorBy = "dropSplitClass", splitBy = "dr
     annotation_logticks(sides = "b") +
     labs(
       title = "Cell Entropy Rate",
-      subtitle = paste0("#Cell: ", sum(meta_info[,cell_stat_by] == "Cell")),
+      subtitle = paste0("#Cell: ", sum(meta_info[, cell_stat_by] == "Cell")),
       x = "nCount", y = "CellRedundancy"
     ) +
     theme_classic() +
@@ -548,11 +542,11 @@ CellRedundancyPlot <- function(meta_info, colorBy = "dropSplitClass", splitBy = 
       levels = c("Cell", "Uncertain", "Empty", "Discarded")
     )
   }
-  p <- .CellRedundancyPlot(meta_info, colorBy)
+  p <- .CellRedundancyPlot(meta_info, colorBy, cell_stat_by)
   if (!is.null(splitBy)) {
     if (splitBy %in% colnames(meta_info)) {
       meta_sp <- split.data.frame(meta_info, meta_info[[splitBy]])
-      p <- c(list(Merge = p), lapply(meta_sp, function(x) .CellRedundancyPlot(x, colorBy)))
+      p <- c(list(Merge = p), lapply(meta_sp, function(x) .CellRedundancyPlot(x, colorBy, cell_stat_by)))
     }
   }
   return(p)
@@ -575,7 +569,7 @@ CellRedundancyPlot <- function(meta_info, colorBy = "dropSplitClass", splitBy = 
     annotation_logticks(sides = "b") +
     labs(
       title = "Cell Gini index",
-      subtitle = paste0("#Cell: ", sum(meta_info[,cell_stat_by] == "Cell")),
+      subtitle = paste0("#Cell: ", sum(meta_info[, cell_stat_by] == "Cell")),
       x = "nCount", y = "CellGini"
     ) +
     theme_classic() +
@@ -637,11 +631,11 @@ CellGiniPlot <- function(meta_info, colorBy = "dropSplitClass", splitBy = "dropS
       levels = c("Cell", "Uncertain", "Empty", "Discarded")
     )
   }
-  p <- .CellGiniPlot(meta_info, colorBy)
+  p <- .CellGiniPlot(meta_info, colorBy, cell_stat_by)
   if (!is.null(splitBy)) {
     if (splitBy %in% colnames(meta_info)) {
       meta_sp <- split.data.frame(meta_info, meta_info[[splitBy]])
-      p <- c(list(Merge = p), lapply(meta_sp, function(x) .CellGiniPlot(x, colorBy)))
+      p <- c(list(Merge = p), lapply(meta_sp, function(x) .CellGiniPlot(x, colorBy, cell_stat_by)))
     }
   }
   return(p)
@@ -663,13 +657,14 @@ CellGiniPlot <- function(meta_info, colorBy = "dropSplitClass", splitBy = "dropS
 #' \item \code{CellRedundancy}
 #' \item \code{CellGini}
 #' }
+#' @param ... Other arguments passed to \code{\link{RankMSE}}.
 #'
 #' @return A ggplot object or a list of ggplot objects.
 #'
 #' @examples
-#' counts <- simCounts()
+#' counts <- simSimpleCounts()
 #' result <- dropSplit(counts)
-#' pl <- QCPlot(result$meta_info, metrics = "CellEntropy")
+#' pl <- QCplot(result$meta_info, metrics = "CellEntropy")
 #' pl$CellEntropy$Merge
 #' pl$CellEntropy$Cell
 #' @importFrom ggplot2 ggplot aes geom_point geom_vline labs guides guide_legend scale_x_log10 scale_color_brewer scale_color_manual scale_color_viridis_c annotation_logticks theme_classic theme
@@ -677,8 +672,9 @@ CellGiniPlot <- function(meta_info, colorBy = "dropSplitClass", splitBy = "dropS
 #' @importFrom stats setNames
 #' @importFrom methods hasArg
 #' @export
-QCPlot <- function(meta_info, colorBy = "dropSplitClass", splitBy = "dropSplitClass", cell_stat_by = "dropSplitClass",
-                   metrics = c("nCount", "nFeature", "Rank", "RankMSE", "CellEntropy", "CellRedundancy", "CellGini")) {
+QCplot <- function(meta_info, colorBy = "dropSplitClass", splitBy = "dropSplitClass", cell_stat_by = "dropSplitClass",
+                   metrics = c("nCount", "nFeature", "Rank", "RankMSE", "CellEntropy", "CellRedundancy", "CellGini"), ...) {
+
   if (any(!metrics %in% c("nCount", "nFeature", "Rank", "RankMSE", "CellEntropy", "CellRedundancy", "CellGini"))) {
     stop("'metrics' must be in the options: 'nCount','nFeature','Rank','RankMSE','CellEntropy','CellRedundancy','CellGini'")
   }
@@ -701,12 +697,18 @@ QCPlot <- function(meta_info, colorBy = "dropSplitClass", splitBy = "dropSplitCl
       stop("'colorBy' must be one of the column names of the meta_info.")
     }
   }
+  args1 <- mget(names(formals()))
+  args2 <- as.list(match.call())
+  for (n in names(args2)) {
+    args1[[n]] <- args2[[n]]
+  }
+  args1[["metrics"]] <- args1[["..."]] <- NULL
+
   for (metric in metrics) {
-    args <- list(meta_info = meta_info, colorBy = colorBy, splitBy = splitBy)
     tryCatch(expr = {
       pl[[metric]] <- suppressWarnings(base::do.call(
         what = paste0(metric, "Plot"),
-        args = args
+        args = args1
       ))
     }, error = function(e) {
       message(e)
@@ -725,8 +727,7 @@ QCPlot <- function(meta_info, colorBy = "dropSplitClass", splitBy = "dropSplitCl
 #' @return A a list of ggplot objects.
 #'
 #' @examples
-#' counts <- simCounts()
-#' colnames(counts) <- paste0("Cell-", 1:ncol(counts))
+#' counts <- simSimpleCounts()
 #' result <- dropSplit(counts)
 #' pl <- ImportancePlot(result$meta_info, result$train, result$importance_matrix, top_n = 20)
 #' pl$Importance
@@ -816,5 +817,3 @@ ImportancePlot <- function(meta_info, train, importance_matrix, top_n = 20) {
     dropSplitClassExp = p3
   ))
 }
-
-

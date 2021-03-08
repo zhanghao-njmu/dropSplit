@@ -5,7 +5,7 @@
 #' @return A vector of the cell entropy.
 #'
 #' @examples
-#' x <- simCounts()
+#' x <- simSimpleCounts()
 #' CE <- CellEntropy(x)
 #' head(CE)
 #' @importFrom Matrix t colSums
@@ -30,7 +30,7 @@ CellEntropy <- function(x) {
 #' @return A vector of the max cell entropy.
 #'
 #' @examples
-#' x <- simCounts()
+#' x <- simSimpleCounts()
 #' maxCE <- maxCellEntropy(x)
 #' head(maxCE)
 #' @importFrom Matrix t colSums
@@ -61,7 +61,7 @@ maxCellEntropy <- function(x) {
 #' @return A vector of the CellEfficiency.
 #'
 #' @examples
-#' x <- simCounts()
+#' x <- simSimpleCounts()
 #' ce <- CellEfficiency(x)
 #' head(ce)
 #' @export
@@ -82,7 +82,7 @@ CellEfficiency <- function(x) {
 #' @return A vector of the CellRedundancy.
 #'
 #' @examples
-#' x <- simCounts()
+#' x <- simSimpleCounts()
 #' cr <- CellRedundancy(x)
 #' head(cr)
 #' @export

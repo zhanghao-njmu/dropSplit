@@ -1,18 +1,17 @@
 Package: dropSplit
 Type: Package
 Title: Automatically identify cell-containing and empty droplets for droplet-based scRNAseq data using dropSplit
-Version: 0.1.2
+Version: 1.0.0
 Author: Hao Zhang
 Maintainer: Hao Zhang <542370159@qq.com>
-Description: dropSplit is designed to identify true cells from droplet-based scRNAseq data. 
-    dropSplit is designed to identify true cells from droplet-based scRNAseq data. 
-    It consists of three parts: 
-    * Pre-define droplets as Cell, Uncertain, Empty and Discarded according to the RankMSE curve.
-    * Model construction with pre-defined droplets and simulated droplets.
-    * Combine multiple metrics to perform classification, post-QC and feature summary.
-    dropSplit provides some special droplet QC metrics such as CellEntropy or CellGini which can help identification. 
-    In general, user can use the predefined parameters in the XGBoost and get the important features that help in cell identification. 
-    It also provides a automatic XGBoost hyperparameters-tuning function to optimize the model.
+Description: Automatically and accurately split droplets into 'Cell' and 'Empty' for droplet-based scRNAseq data using dropSplit.
+    dropSplit is designed to accurately identify 'Cell' droplets for the droplet-based scRNAseq data. 
+    It consists of three main steps:
+    * Pre-define droplets as 'Cell', 'Uncertain', 'Empty' and 'Discarded' droplets according to the RankMSE curve.
+    * Simulate 'Cell' and 'Uncertain' droplets under a depth of 'Empty' used for model construction and prediction.
+    * Combine prediction score and other metrics to perform statistical tests, make the classification and control false positive rates.
+    dropSplit provides some special droplet QC metrics such as CellEntropy or CellGini and plot function, which can help quickly check quality of the prediction.
+    In general, user can use the predefined parameters in the XGBoost. It also provides a automatic XGBoost hyperparameters-tuning function to optimize the model.
 License: AGPL-3
 Encoding: UTF-8
 LazyData: true
@@ -24,6 +23,7 @@ Imports:
     methods,
     xgboost,
     S4Vectors,
+    inflection,
     DropletUtils,
     ParBayesianOptimization,
     BiocGenerics,

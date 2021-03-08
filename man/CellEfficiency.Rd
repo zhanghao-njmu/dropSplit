@@ -16,7 +16,7 @@ A vector of the CellEfficiency.
 Calculate the Efficiency for the cells according to the feature counts.
 }
 \examples{
-x <- simCounts()
+x <- simSimpleCounts()
 ce <- CellEfficiency(x)
 head(ce)
 }

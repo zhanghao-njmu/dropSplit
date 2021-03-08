@@ -18,7 +18,7 @@ A vector of the cell entropy rate.
 Calculate the Gini index for the cells according to the feature counts.
 }
 \examples{
-x <- simCounts()
+x <- simSimpleCounts()
 CG <- CellGini(x, normalize = TRUE)
 head(CG)
 }
