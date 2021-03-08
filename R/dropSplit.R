@@ -564,8 +564,8 @@ RankMSE <- function(meta_info, smooth_num = 3, smooth_window = 100, find_cell_co
     nCount_inflection <- tail(find_inflection(meta_info$nCount)$index, 1)
     nFeature_inflection <- tail(find_inflection(meta_info$nFeature)$index, 1)
     inflection <- max(nCount_inflection, nFeature_inflection)
-    inflection_left <- round(inflection - inflection * 0.2)
-    inflection_right <- round(inflection + inflection * 0.2)
+    inflection_left <- round(inflection - inflection * 0.3)
+    inflection_right <- round(inflection + inflection * 0.3)
     inflection_left <- head(which(filled_df[, "nCount"] <= meta_info$nCount[inflection_left]), 1)
     inflection_right <- tail(which(filled_df[, "nCount"] >= meta_info$nCount[inflection_right]), 1)
     pks <- inflection_left + find_peaks(-filled_df$RankMSE[inflection_left:inflection_right],

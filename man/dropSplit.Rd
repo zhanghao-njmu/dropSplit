@@ -30,7 +30,7 @@ dropSplit(
 )
 }
 \arguments{
-\item{counts}{A \code{matrix} object or a \code{dgCMatrix} object which columns represent features and rows represent droplets.}
+\item{counts}{A \code{matrix} object or a \code{dgCMatrix} object which columns represent droplets and rows represent features.}
 
 \item{cell_score}{A cutoff value of \code{dropSplitScore} to determine if a droplet is cell-containing. Range between 0.5 and 1. Default is 0.8.}
 
