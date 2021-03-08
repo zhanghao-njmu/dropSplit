@@ -8,7 +8,7 @@ dropSplit(
   counts,
   cell_score = 0.8,
   empty_score = 0.2,
-  max_iter = 5,
+  CE_ratio = 2,
   smooth_num = 5,
   smooth_window = 100,
   tolerance = 0.5,
@@ -19,6 +19,9 @@ dropSplit(
   Empty_rank = NULL,
   Uncertain_downsample_times = 10,
   cell_score_FDR = 0.05,
+  max_iter = 10,
+  min_error = 0.002,
+  min_improve = 0.002,
   preCell_mask = NULL,
   preEmpty_mask = TRUE,
   xgb_params = NULL,
@@ -36,7 +39,7 @@ dropSplit(
 
 \item{empty_score}{A cutoff value of \code{dropSplitScore} to determine if a droplet is empty. Range between 0 and 0.5. Note, a reasonable will also improve the accuracy for 'Cell' identification and this can be checked by \code{\link{QCplot}}. Default is 0.2.}
 
-\item{max_iter}{An integer specifying the number of iterations to use to rebuild the model with new defined droplets. Default is 5.}
+\item{CE_ratio}{Ratio value between down-sampled 'Cells' and 'Empty' droplets. The actual value will be slightly higher. Default is 2.}
 
 \item{smooth_num}{Number of times to smooth(take a mean value within a window length \code{smooth_window}) the squared error. Default is 5.}
 
@@ -50,9 +53,15 @@ dropSplit(
 
 \item{Cell_rank, Uncertain_rank, Empty_rank}{Custom Rank value to mark the droplets as Cell, Uncertain and Empty labels for the data to be trained. Default is automatic. But useful when the default value is considered to be wrong from the RankMSE plot.}
 
-\item{Uncertain_downsample_times}{Number of downsample times for each Uncertain droplet. \code{XGBoostScore} of downsampled droplets from the same Uncertain droplet will be averaged and perform \code{\link[stats]{t.test}} with \code{cell_score}. Default is 10.}
+\item{Uncertain_downsample_times}{Number of downsample times for each Uncertain droplet. \code{XGBoostScore} of down-sampled droplets from the same Uncertain droplet will be averaged and perform \code{\link[stats]{t.test}} with \code{cell_score}. Default is 10.}
 
 \item{cell_score_FDR}{FDR cutoff for droplets that predicted as 'Cell' from pre-defined 'Uncertain' or pre-defined 'Cell' droplets. Note, statistic tests and the FDR control only performed on the difference between averaged \code{XGBoostScore} and cell_score. It is not a false 'Cell' rate. Default is 0.05.}
+
+\item{max_iter}{An integer specifying the number of iterations to use to rebuild the model with new defined droplets. Default is 10.}
+
+\item{min_error}{The minimum train error value to be achieved by the model. Default is 0.002.}
+
+\item{min_improve}{Minimal improvement of the model. Default is 0.002.}
 
 \item{preCell_mask}{logical; Whether to mask pre-defined 'Cell' droplets when prediction. If \code{TRUE}, XGBoostScore for all droplets pre-defined as 'Cell' will be set to 1; Default is automatic.}
 
