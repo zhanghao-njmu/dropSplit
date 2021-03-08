@@ -13,10 +13,10 @@
 #' @param Gini_control Whether to control cell quality by CellGini. Default is \code{TRUE}.
 #' @param Gini_threshold A value used in \code{\link{Score}} function for CellGini metric. The higher, the more conservative and will get a lower number of cells. Default is automatic.
 #' @param Cell_rank,Uncertain_rank,Empty_rank Custom Rank value to mark the droplets as Cell, Uncertain and Empty labels for the data to be trained. Default is automatic. But useful when the default value is considered to be wrong from the RankMSE plot.
-#' @param Uncertain_downsample Whether to use a downsampled Uncertain droplets.If \code{TRUE}, will simulate droplets under a depth of 'Empty' used for model construction and prediction. Default is \code{TRUE}.
 #' @param Uncertain_downsample_times Number of downsample times for each Uncertain droplet. \code{XGBoostScore} of downsampled droplets from the same Uncertain droplet will be averaged and perform \code{\link[stats]{t.test}} with \code{cell_score}. Default is 10.
 #' @param Uncertain_downsample_FDR FDR control for droplets that predicted as 'Cell' from downsampled 'Uncertain' droplets. Note, t.test and FDR control only performed on the difference between averaged \code{XGBoostScore} and cell_score. It is not a false 'Cell' rate. Default is 0.05.
-#' @param predict_Uncertain_only logical; Whether to predict only the Uncertain droplets. If \code{TRUE}, XGBoostScore for all droplets pre-defined as 'Cell' will be set to 1; Default is automatic.
+#' @param preCell_mask logical; Whether to mask pre-defined 'Cell' droplets when prediction. If \code{TRUE}, XGBoostScore for all droplets pre-defined as 'Cell' will be set to 1; Default is automatic.
+#' @param preEmpty_mask logical; Whether to mask pre-defined 'Empty' droplets when prediction. There is a little different with parameter \code{preCell_mask}. If \code{TRUE}, XGBoostScore will not change, but the final classification will not be 'Cell' in any case. Default is \code{TRUE}.
 #' @param xgb_params The \code{list} of XGBoost parameters.
 #' @param modelOpt Whether to optimize the model using \code{\link{xgbOptimization}}. Will take long time for large datasets. If \code{TRUE}, will overwrite the parameters list in \code{xgb_params}. The following parameters are only used in \code{\link{xgbOptimization}}.
 #' @inheritParams xgbOptimization
@@ -91,7 +91,8 @@ dropSplit <- function(counts, cell_score = 0.8, empty_score = 0.2, max_iter = 5,
                       smooth_num = 5, smooth_window = 100, tolerance = 0.5,
                       Gini_control = TRUE, Gini_threshold = NULL,
                       Cell_rank = NULL, Uncertain_rank = NULL, Empty_rank = NULL,
-                      Uncertain_downsample = TRUE, Uncertain_downsample_times = 10, Uncertain_downsample_FDR = 0.05, predict_Uncertain_only = NULL,
+                      Uncertain_downsample_times = 10, Uncertain_downsample_FDR = 0.05,
+                      preCell_mask = NULL, preEmpty_mask = TRUE,
                       xgb_params = NULL, xgb_nrounds = 20, xgb_thread = 8,
                       modelOpt = FALSE, seed = 0, ...) {
   start <- Sys.time()
@@ -282,26 +283,18 @@ dropSplit <- function(counts, cell_score = 0.8, empty_score = 0.2, max_iter = 5,
   Sim_Cell_nCount_assign <- sample(unique(Empty_nCount), ncol(Sim_Cell_counts), replace = TRUE)
   Sim_Cell_counts <- downsampleMatrix(x = Sim_Cell_counts, prop = Sim_Cell_nCount_assign / Sim_Cell_nCount, bycol = TRUE)
 
-  if (isTRUE(Uncertain_downsample)) {
-    message(
-      ">>> Downsample pre-defined 'Uncertain' droplets to a depth similar to the 'Empty' for prediction",
-      "\n... nCount in 'Uncertain' droplets: Min=", min(Uncertain_nCount), " Median=", median(Uncertain_nCount), " Max=", max(Uncertain_nCount),
-      "\n... nCount in 'Empty' droplets: Min=", min(Empty_nCount), " Median=", median(Empty_nCount), " Max=", max(Empty_nCount),
-      "\n... Downsample times for each 'Uncertain' droplet: ", Uncertain_downsample_times
-    )
-    Sim_Uncertain_counts <- Uncertain_counts[, rep(1:ncol(Uncertain_counts), Uncertain_downsample_times)]
-    colnames(Sim_Uncertain_counts) <- paste0(rep(paste0("Sim", 1:Uncertain_downsample_times), each = ncol(Uncertain_counts)), "-", colnames(Sim_Uncertain_counts))
-    Sim_Uncertain_nCount <- Matrix::colSums(Sim_Uncertain_counts)
-    Sim_Uncertain_nCount_assign <- sample(unique(Empty_nCount), ncol(Sim_Uncertain_counts), replace = TRUE)
-    Sim_Uncertain_counts <- downsampleMatrix(x = Sim_Uncertain_counts, prop = Sim_Uncertain_nCount_assign / Sim_Uncertain_nCount, bycol = TRUE)
-
-    comb_counts <- cbind(Cell_counts, Sim_Cell_counts, Sim_Uncertain_counts, Uncertain_counts, Empty_counts)
-  } else {
-    message(">>> Use raw Uncertain droplets for prediction...")
-    Uncertain_downsample_times <- 1
-    Sim_Uncertain_counts <- Uncertain_counts
-    comb_counts <- cbind(Cell_counts, Sim_Cell_counts, Uncertain_counts, Empty_counts)
-  }
+  message(
+    ">>> Downsample pre-defined 'Uncertain' droplets to a depth similar to the 'Empty' for prediction",
+    "\n... nCount in 'Uncertain' droplets: Min=", min(Uncertain_nCount), " Median=", median(Uncertain_nCount), " Max=", max(Uncertain_nCount),
+    "\n... nCount in 'Empty' droplets: Min=", min(Empty_nCount), " Median=", median(Empty_nCount), " Max=", max(Empty_nCount),
+    "\n... Downsample times for each 'Uncertain' droplet: ", Uncertain_downsample_times
+  )
+  Sim_Uncertain_counts <- Uncertain_counts[, rep(1:ncol(Uncertain_counts), Uncertain_downsample_times)]
+  colnames(Sim_Uncertain_counts) <- paste0(rep(paste0("Sim", 1:Uncertain_downsample_times), each = ncol(Uncertain_counts)), "-", colnames(Sim_Uncertain_counts))
+  Sim_Uncertain_nCount <- Matrix::colSums(Sim_Uncertain_counts)
+  Sim_Uncertain_nCount_assign <- sample(unique(Empty_nCount), ncol(Sim_Uncertain_counts), replace = TRUE)
+  Sim_Uncertain_counts <- downsampleMatrix(x = Sim_Uncertain_counts, prop = Sim_Uncertain_nCount_assign / Sim_Uncertain_nCount, bycol = TRUE)
+  comb_counts <- cbind(Cell_counts, Sim_Cell_counts, Sim_Uncertain_counts, Uncertain_counts, Empty_counts)
 
   message(">>> Calculate MTprop and RPprop for the droplets to be trained...")
   MTgene <- grep(x = rownames(comb_counts), pattern = "(^MT-)|(^Mt-)|(^mt-)", perl = T, value = TRUE)
@@ -317,7 +310,6 @@ dropSplit <- function(counts, cell_score = 0.8, empty_score = 0.2, max_iter = 5,
     c(colnames(Cell_counts), colnames(Uncertain_counts), colnames(Empty_counts)),
     colnames(dat_Features)
   ] <- dat_Features[c(colnames(Cell_counts), colnames(Uncertain_counts), colnames(Empty_counts)), ]
-
 
   message(">>> Merge new features into train data...")
   norm_counts <- Matrix::t(Matrix::t(comb_counts) / Matrix::colSums(comb_counts))
@@ -432,12 +424,11 @@ dropSplit <- function(counts, cell_score = 0.8, empty_score = 0.2, max_iter = 5,
       XGBoostScore[colnames(Empty_counts)]
     )
     names(XGBoostScore) <- c(colnames(Cell_counts), colnames(Uncertain_counts), colnames(Empty_counts))
-    XGBoostScore[colnames(Empty_counts)][XGBoostScore[colnames(Empty_counts)] > 0.5] <- 0.5
 
-    if (is.null(predict_Uncertain_only)) {
-      predict_Uncertain_only <- train_error > 0.1
+    if (is.null(preCell_mask)) {
+      preCell_mask <- train_error > 0.1
     }
-    if (isTRUE(predict_Uncertain_only)) {
+    if (isTRUE(preCell_mask)) {
       XGBoostScore[colnames(Cell_counts)] <- 1
     }
 
@@ -464,6 +455,9 @@ dropSplit <- function(counts, cell_score = 0.8, empty_score = 0.2, max_iter = 5,
       multiscore > cell_score, "Cell", ifelse(multiscore < empty_score, "Empty", "Uncertain")
     )
     meta_info[meta_info$preDefinedClass == "Uncertain" & meta_info$dropSplitClass %in% c("Cell", "Empty") & meta_info$FDR >= Uncertain_downsample_FDR, "dropSplitClass"] <- "Uncertain"
+    if (isTRUE(preEmpty_mask)) {
+      meta_info[meta_info$preDefinedClass == "Empty" & meta_info$dropSplitClass == "Cell"] <- "Uncertain"
+    }
     meta_info[, "preDefinedClass"] <- factor(meta_info[, "preDefinedClass"], levels = c("Cell", "Uncertain", "Empty", "Discarded"))
     meta_info[, "dropSplitClass"] <- factor(meta_info[, "dropSplitClass"], levels = c("Cell", "Uncertain", "Empty", "Discarded"))
 
@@ -485,7 +479,7 @@ dropSplit <- function(counts, cell_score = 0.8, empty_score = 0.2, max_iter = 5,
     k <- k + 1
     j <- j + 1
   }
-  meta_info[,"dropSplitClass_pre"] <- NULL
+  meta_info[, "dropSplitClass_pre"] <- NULL
 
   message("\n  ============= Final result =============  ")
 

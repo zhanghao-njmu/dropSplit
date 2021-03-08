@@ -17,10 +17,10 @@ dropSplit(
   Cell_rank = NULL,
   Uncertain_rank = NULL,
   Empty_rank = NULL,
-  Uncertain_downsample = TRUE,
   Uncertain_downsample_times = 10,
   Uncertain_downsample_FDR = 0.05,
-  predict_Uncertain_only = NULL,
+  preCell_mask = NULL,
+  preEmpty_mask = TRUE,
   xgb_params = NULL,
   xgb_nrounds = 20,
   xgb_thread = 8,
@@ -50,13 +50,13 @@ dropSplit(
 
 \item{Cell_rank, Uncertain_rank, Empty_rank}{Custom Rank value to mark the droplets as Cell, Uncertain and Empty labels for the data to be trained. Default is automatic. But useful when the default value is considered to be wrong from the RankMSE plot.}
 
-\item{Uncertain_downsample}{Whether to use a downsampled Uncertain droplets.If \code{TRUE}, will simulate droplets under a depth of 'Empty' used for model construction and prediction. Default is \code{TRUE}.}
-
 \item{Uncertain_downsample_times}{Number of downsample times for each Uncertain droplet. \code{XGBoostScore} of downsampled droplets from the same Uncertain droplet will be averaged and perform \code{\link[stats]{t.test}} with \code{cell_score}. Default is 10.}
 
 \item{Uncertain_downsample_FDR}{FDR control for droplets that predicted as 'Cell' from downsampled 'Uncertain' droplets. Note, t.test and FDR control only performed on the difference between averaged \code{XGBoostScore} and cell_score. It is not a false 'Cell' rate. Default is 0.05.}
 
-\item{predict_Uncertain_only}{logical; Whether to predict only the Uncertain droplets. If \code{TRUE}, XGBoostScore for all droplets pre-defined as 'Cell' will be set to 1; Default is automatic.}
+\item{preCell_mask}{logical; Whether to mask pre-defined 'Cell' droplets when prediction. If \code{TRUE}, XGBoostScore for all droplets pre-defined as 'Cell' will be set to 1; Default is automatic.}
+
+\item{preEmpty_mask}{logical; Whether to mask pre-defined 'Empty' droplets when prediction. There is a little different with parameter \code{preCell_mask}. If \code{TRUE}, XGBoostScore will not change, but the final classification will not be 'Cell' in any case. Default is \code{TRUE}.}
 
 \item{xgb_params}{The \code{list} of XGBoost parameters.}
 
