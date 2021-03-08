@@ -6,7 +6,7 @@
 \usage{
 RankMSE(
   meta_info,
-  smooth_num = 3,
+  smooth_num = 5,
   smooth_window = 100,
   find_cell_count = TRUE,
   tolerance = 0.5

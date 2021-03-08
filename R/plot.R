@@ -4,7 +4,7 @@ utils::globalVariables(c(".x", "Exp", "Feature", "Gain", "RankMSE", "nCount", "n
 #' @importFrom scales trans_format math_format
 #' @importFrom stats setNames
 .nCountPlot <- function(meta_info, colorBy, cell_stat_by) {
-  meta_info <- subset(meta_info, nCount >= 3)
+  meta_info <- subset(meta_info, nCount >= 10)
   if (nrow(meta_info) == 0) {
     return(NULL)
   }
@@ -93,7 +93,7 @@ nCountPlot <- function(meta_info, colorBy = "dropSplitClass", splitBy = "dropSpl
 #' @importFrom scales trans_format math_format
 #' @importFrom stats setNames
 .nFeaturePlot <- function(meta_info, colorBy, cell_stat_by) {
-  meta_info <- subset(meta_info, nFeature >= 3)
+  meta_info <- subset(meta_info, nFeature >= 10)
   if (nrow(meta_info) == 0) {
     return(NULL)
   }

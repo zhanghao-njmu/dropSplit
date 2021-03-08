@@ -18,7 +18,7 @@ dropSplit(
   Uncertain_rank = NULL,
   Empty_rank = NULL,
   Uncertain_downsample_times = 10,
-  Uncertain_downsample_FDR = 0.05,
+  cell_score_FDR = 0.05,
   preCell_mask = NULL,
   preEmpty_mask = TRUE,
   xgb_params = NULL,
@@ -52,7 +52,7 @@ dropSplit(
 
 \item{Uncertain_downsample_times}{Number of downsample times for each Uncertain droplet. \code{XGBoostScore} of downsampled droplets from the same Uncertain droplet will be averaged and perform \code{\link[stats]{t.test}} with \code{cell_score}. Default is 10.}
 
-\item{Uncertain_downsample_FDR}{FDR control for droplets that predicted as 'Cell' from downsampled 'Uncertain' droplets. Note, t.test and FDR control only performed on the difference between averaged \code{XGBoostScore} and cell_score. It is not a false 'Cell' rate. Default is 0.05.}
+\item{cell_score_FDR}{FDR cutoff for droplets that predicted as 'Cell' from pre-defined 'Uncertain' or pre-defined 'Cell' droplets. Note, statistic tests and the FDR control only performed on the difference between averaged \code{XGBoostScore} and cell_score. It is not a false 'Cell' rate. Default is 0.05.}
 
 \item{preCell_mask}{logical; Whether to mask pre-defined 'Cell' droplets when prediction. If \code{TRUE}, XGBoostScore for all droplets pre-defined as 'Cell' will be set to 1; Default is automatic.}
 
