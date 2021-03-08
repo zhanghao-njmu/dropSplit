@@ -62,7 +62,7 @@
 #'
 #' # compare with the true labels
 #' result$meta_info$true_label <- true_label
-#' qc_true <- QCplot(result$meta_info,colorBy = "true_label")
+#' qc_true <- QCplot(result$meta_info, colorBy = "true_label")
 #' qc_true$CellEntropy$Merge
 #'
 #' # QC plot using all metrics
@@ -76,8 +76,6 @@
 #' fp$Importance
 #' fp$preDefinedClassExp
 #' fp$dropSplitClassExp
-#'
-#'
 #' @importFrom TTR runMean
 #' @importFrom DropletUtils downsampleMatrix
 #' @importFrom xgboost xgboost xgb.DMatrix xgb.create.features xgb.importance xgb.dump
@@ -243,7 +241,7 @@ dropSplit <- function(counts, cell_score = 0.8, empty_score = 0.2, max_iter = 5,
       colnames(Drop_counts) <- cell_drop
     }
     Cell_counts <- Cell_counts[, cell_use]
-    Uncertain_counts <- cbind(as(Drop_counts,"dgCMatrix"), Uncertain_counts)
+    Uncertain_counts <- cbind(as(Drop_counts, "dgCMatrix"), Uncertain_counts)
   }
   Cell_nCount <- Matrix::colSums(Cell_counts)
   Uncertain_nCount <- Matrix::colSums(Uncertain_counts)
@@ -378,7 +376,8 @@ dropSplit <- function(counts, cell_score = 0.8, empty_score = 0.2, max_iter = 5,
       }
       message(
         "... Number of removed 'Empty' droplets: ", ncol(Empty_counts) - length(raw_empty),
-        "\n... Number of newly added 'Empty' droplets from 'Uncertain'(including the simulated): ", length(new_empty)
+        "\n... Number of newly added 'Empty' droplets from 'Uncertain'(including the simulated): ", length(new_empty),
+        "\n... Number of total 'Empty' droplets used for taining: ", length(empty_update), " Previous: ", sum(meta_info$dropSplitClass_pre == "Empty")
       )
       train <- dat[c(colnames(Cell_counts), colnames(Sim_Cell_counts), empty_update), ]
       train_label <- c(rep(1, ncol(Cell_counts) + ncol(Sim_Cell_counts)), rep(0, length(empty_update)))
@@ -392,11 +391,11 @@ dropSplit <- function(counts, cell_score = 0.8, empty_score = 0.2, max_iter = 5,
     new_train_error <- tail(xgb$evaluation_log$train_error, 1)
 
     if (new_train_error > train_error) {
-      message("*** train_error increased(",new_train_error,">",train_error,"). Use the previous model for final classification.")
+      message("*** train_error increased(", new_train_error, ">", train_error, "). Use the previous model for final classification.")
       break
     }
     if (new_train_error > 0.5 * train_error | new_train_error < 0.001) {
-      message("*** train_error is limited(",new_train_error,"). Use the current model for final classification.")
+      message("*** train_error is limited(", new_train_error, "). Use the current model for final classification.")
       k <- max_iter
     }
 
@@ -486,12 +485,13 @@ dropSplit <- function(counts, cell_score = 0.8, empty_score = 0.2, max_iter = 5,
     k <- k + 1
     j <- j + 1
   }
+  meta_info[,"dropSplitClass_pre"] <- NULL
 
   message("\n  ============= Final result =============  ")
 
   rescure <- which(meta_info[, "preDefinedClass"] %in% c("Uncertain", "Empty") & meta_info[, "dropSplitClass"] == "Cell")
   rescure_score <- meta_info[rescure, "dropSplitScore"]
-  er_rate <- train_error/cell_score*2
+  er_rate <- train_error / cell_score * 2
   drop <- floor(length(rescure) * er_rate)
   if (drop > 0) {
     drop_index <- rescure[order(rescure_score, decreasing = FALSE)[1:drop]]

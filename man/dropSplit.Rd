@@ -117,7 +117,7 @@ table(true_label, result$meta_info$dropSplitClass)
 
 # compare with the true labels
 result$meta_info$true_label <- true_label
-qc_true <- QCplot(result$meta_info,colorBy = "true_label")
+qc_true <- QCplot(result$meta_info, colorBy = "true_label")
 qc_true$CellEntropy$Merge
 
 # QC plot using all metrics
@@ -131,6 +131,4 @@ fp <- ImportancePlot(result$meta_info, result$train, result$importance_matrix, t
 fp$Importance
 fp$preDefinedClassExp
 fp$dropSplitClassExp
-
-
 }
