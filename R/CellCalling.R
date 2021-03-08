@@ -51,6 +51,7 @@ CellCalling <- function(counts, method = "dropSplit", seed = 0, ...) {
     ))
   }, error = function(e) {
     message(e)
+    stop("Stop CellCalling.")
   })
   if (class(out) != "list") {
     result <- list(meta_info = out)

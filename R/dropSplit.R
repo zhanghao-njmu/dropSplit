@@ -145,23 +145,6 @@ dropSplit <- function(counts, cell_score = 0.8, empty_score = 0.2, max_iter = 5,
 
   if (is.null(Cell_rank)) {
     Cell_rank <- max(meta_info$nCount_rank[meta_info$nCount > cell_count])
-    # inflection_left <- round(inflection - inflection * 0.3)
-    # inflection_right <- round(inflection + inflection * 0.2)
-    # pks <- find_peaks(-meta_info$RankMSE[inflection_left:inflection_right],
-    #   left_shoulder = inflection * 0.05,
-    #   right_shoulder = inflection_right - inflection_left
-    # )
-    # Cell_rank <- inflection_left + pks[length(pks)] - 1
-    # which.min(meta_info$RankMSE[inflection_left:inflection_right])[1] - 1
-    # peaks_rank <- valley_rank + find_peaks(-meta_info$RankMSE[(valley_rank + 1):inflection_right],
-    #   left_shoulder = valley_rank * est_rare_cell_prop * 0.4
-    # ) - 1
-    # peaks_rank <- peaks_rank[peaks_rank < (inflection_right - 1)]
-    # if (length(peaks_rank) > 0) {
-    #   Cell_rank <- max(peaks_rank[meta_info$RankMSE[peaks_rank] < median(meta_info$RankMSE[1:valley_rank])])
-    # } else {
-    #   Cell_rank <- valley_rank
-    # }
   }
   if (is.null(Uncertain_rank)) {
     Uncertain_rank <- Cell_rank + which.max(meta_info$RankMSE[Cell_rank:min(Cell_rank * 2, nrow(meta_info))])[1] - 1
@@ -456,7 +439,7 @@ dropSplit <- function(counts, cell_score = 0.8, empty_score = 0.2, max_iter = 5,
     )
     meta_info[meta_info$preDefinedClass == "Uncertain" & meta_info$dropSplitClass %in% c("Cell", "Empty") & meta_info$FDR >= Uncertain_downsample_FDR, "dropSplitClass"] <- "Uncertain"
     if (isTRUE(preEmpty_mask)) {
-      meta_info[meta_info$preDefinedClass == "Empty" & meta_info$dropSplitClass == "Cell"] <- "Uncertain"
+      meta_info[meta_info$preDefinedClass == "Empty" & meta_info$dropSplitClass == "Cell", "dropSplitClass"] <- "Uncertain"
     }
     meta_info[, "preDefinedClass"] <- factor(meta_info[, "preDefinedClass"], levels = c("Cell", "Uncertain", "Empty", "Discarded"))
     meta_info[, "dropSplitClass"] <- factor(meta_info[, "dropSplitClass"], levels = c("Cell", "Uncertain", "Empty", "Discarded"))
