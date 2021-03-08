@@ -6,16 +6,10 @@ It consists of three main steps:
 * Pre-define droplets as 'Cell', 'Uncertain', 'Empty' and 'Discarded' droplets according to the RankMSE curve.
 * Simulate 'Cell' and 'Uncertain' droplets under a depth of 'Empty' used for model construction and prediction.
 * Combine prediction score and other metrics to perform statistical tests, make the classification and control false positive rates.
-    
-<<<<<<< HEAD
+
 dropSplit provides some special droplet QC metrics such as CellEntropy or CellGini and plot function, which can help quickly check quality of the prediction.
     
 In general, user can use the predefined parameters in the XGBoost. It also provides a automatic XGBoost hyperparameters-tuning function to optimize the model.
-=======
-    dropSplit provides some special droplet QC metrics such as CellEntropy or CellGini and plot function, which can help quickly check quality of the prediction.
-    
-    In general, user can use the predefined parameters in the XGBoost. It also provides a automatic XGBoost hyperparameters-tuning function to optimize the model.
->>>>>>> 5dc84a4e074b56814443a58c618fefba4f06819b
 
 # Installation
 ```
