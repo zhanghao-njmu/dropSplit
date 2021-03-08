@@ -52,7 +52,7 @@ CellCalling <- function(counts, method = "dropSplit", seed = 0, ...) {
   }, error = function(e) {
     message(e)
   })
-  if (class(out) == "DFrame") {
+  if (class(out) != "list") {
     result <- list(meta_info = out)
   } else {
     result <- out

@@ -115,7 +115,7 @@ dropSplit <- function(counts, cell_score = 0.8, empty_score = 0.2, max_iter = 5,
       stop("'Gini_threshold' must be between 0 and 1.")
     }
   }
-  if (isTRUE(Uncertain_downsample) & Uncertain_downsample_times < 3) {
+  if (Uncertain_downsample_times < 3) {
     stop("'Uncertain_downsample_times' must be larger than 3.")
   }
   if (class(counts) == "matrix") {
@@ -386,7 +386,7 @@ dropSplit <- function(counts, cell_score = 0.8, empty_score = 0.2, max_iter = 5,
       message("*** train_error increased(", new_train_error, ">", train_error, "). Use the previous model for final classification.")
       break
     }
-    if (new_train_error > 0.5 * train_error | new_train_error < 0.001) {
+    if (train_error - new_train_error < 0.005 | new_train_error < 0.001) {
       message("*** train_error is limited(", new_train_error, "). Use the current model for final classification.")
       k <- max_iter
     }
