@@ -1,7 +1,13 @@
 #' Automatically identify cell-containing and empty droplets for droplet-based scRNAseq data using dropSplit.
 #'
 #' @description dropSplit is designed to identify true cells from droplet-based scRNAseq data.
-#' It consists of three parts: quality control, model construction and droplet classification, summarizing features.
+#' It consists of four main steps:
+#' \enumerate{
+#' \item Pre-define droplets as 'Cell', 'Uncertain', 'Empty' and 'Discarded' droplets according to the RankMSE curve.
+#' \item Simulate 'Cell' and 'Uncertain' droplets under a depth of 'Empty' used for model construction and prediction.
+#' \item Iteratively buid the model, classify 'Uncertain' droplets, and update the training set use newly predicted 'Empty'.
+#' \item Make classification with the optimal model.
+#' }
 #' dropSplit provides some special droplet QC metrics such as CellEntropy or CellGini which can help identification.
 #' In general, user can use the predefined parameters in the XGBoost and get the important features that help in cell identification.
 #' It also provides a automatic XGBoost hyperparameters-tuning function to optimize the model.
@@ -155,7 +161,7 @@ dropSplit <- function(counts, do_plot = TRUE, cell_score = 0.8, empty_score = 0.
     Uncertain_rank <- Cell_rank + which.max(meta_info$RankMSE[Cell_rank:min(Cell_rank * 2, nrow(meta_info))])[1] - 1
   }
   if (is.null(Empty_rank)) {
-    Empty_rank <- Uncertain_rank * 2 + which.min(meta_info$RankMSE[(Uncertain_rank * 2):min(Uncertain_rank * 10, nrow(meta_info))])[1] - 1
+    Empty_rank <- Uncertain_rank * 2 + which.min(meta_info$RankMSE[(Uncertain_rank * 2):min(Uncertain_rank * 20, nrow(meta_info))])[1] - 1
   }
   Cell_count <- meta_info$nCount[Cell_rank]
   Uncertain_count <- meta_info$nCount[Uncertain_rank]

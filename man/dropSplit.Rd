@@ -105,7 +105,13 @@ A list of six objects:
 }
 \description{
 dropSplit is designed to identify true cells from droplet-based scRNAseq data.
-It consists of three parts: quality control, model construction and droplet classification, summarizing features.
+It consists of four main steps:
+\enumerate{
+\item Pre-define droplets as 'Cell', 'Uncertain', 'Empty' and 'Discarded' droplets according to the RankMSE curve.
+\item Simulate 'Cell' and 'Uncertain' droplets under a depth of 'Empty' used for model construction and prediction.
+\item Iteratively buid the model, classify 'Uncertain' droplets, and update the training set use newly predicted 'Empty'.
+\item Make classification with the optimal model.
+}
 dropSplit provides some special droplet QC metrics such as CellEntropy or CellGini which can help identification.
 In general, user can use the predefined parameters in the XGBoost and get the important features that help in cell identification.
 It also provides a automatic XGBoost hyperparameters-tuning function to optimize the model.

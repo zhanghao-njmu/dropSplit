@@ -2,10 +2,11 @@
 
 dropSplit is designed to accurately identify 'Cell' droplets for the droplet-based scRNAseq data. 
 
-It consists of three main steps:
+It consists of four main steps:
 * Pre-define droplets as 'Cell', 'Uncertain', 'Empty' and 'Discarded' droplets according to the RankMSE curve.
 * Simulate 'Cell' and 'Uncertain' droplets under a depth of 'Empty' used for model construction and prediction.
-* Combine prediction score and other metrics to perform statistical tests, make the classification and control false positive rates.
+* Iteratively buid the model, classify 'Uncertain' droplets, and update the training set use newly predicted 'Empty'.
+* Make classification with the optimal model.
 
 dropSplit provides some special droplet QC metrics such as CellEntropy or CellGini and plot function, which can help quickly check quality of the prediction.
     
