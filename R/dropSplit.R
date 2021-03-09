@@ -527,7 +527,6 @@ dropSplit <- function(counts, do_plot = TRUE, cell_score = 0.8, empty_score = 0.
   if (drop > 0) {
     drop_index <- rescure[order(rescure_score, decreasing = FALSE)[1:drop]]
     drop_score <- round(mean(meta_info[drop_index, "dropSplitScore"]), digits = 3)
-    meta_info[drop_index, "dropSplitScore"] <- 0.5
     meta_info[drop_index, "dropSplitClass"] <- "Uncertain"
   } else {
     drop_score <- NA
@@ -538,7 +537,7 @@ dropSplit <- function(counts, do_plot = TRUE, cell_score = 0.8, empty_score = 0.
     "\n... Estimated error rate: ", round(er_rate, digits = 3),
     "\n... Estimated error number: ", drop,
     "\n... Estimated error droplets mean ", "dropSplitScore", ": ", drop_score,
-    "\n*** The dropSplitScore and dropSplitClass for these ", drop, " droplets are converted to 0.5 and 'Uncertain'"
+    "\n*** The dropSplitClass for these ", drop, " droplets are set to 'Uncertain'"
   )
 
   message(
