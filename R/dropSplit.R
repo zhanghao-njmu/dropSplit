@@ -503,9 +503,9 @@ dropSplit <- function(counts, do_plot = TRUE, cell_score = 0.8, empty_score = 0.
     }
     if (j == max_iter) {
       message(">>> Reached maximum number of iterations. Use the last model for final classification.")
-      meta_info[, "dropSplitClass_pre"] <- NULL
     }
   }
+  meta_info[, "dropSplitClass_pre"] <- NULL
   if (do_plot) {
     p <- CellEntropyPlot(meta_info, colorBy = "dropSplitScore", splitBy = NULL, cell_stat_by = "dropSplitClass") +
       labs(title = paste0("dropSplitScore(Final)"))
