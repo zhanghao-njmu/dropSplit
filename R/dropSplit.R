@@ -100,7 +100,6 @@ dropSplit <- function(counts, do_plot = TRUE, cell_score = 0.8, empty_score = 0.
                       preCell_mask = NULL, preEmpty_mask = TRUE,
                       xgb_params = NULL, xgb_nrounds = 20, xgb_thread = 8,
                       modelOpt = FALSE, seed = 0, ...) {
-  message("test")
   start <- Sys.time()
   if (!hasArg(counts)) {
     stop("Parameter 'counts' not found.")
