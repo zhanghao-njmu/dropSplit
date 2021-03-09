@@ -6,9 +6,10 @@
 #' In general, user can use the predefined parameters in the XGBoost and get the important features that help in cell identification.
 #' It also provides a automatic XGBoost hyperparameters-tuning function to optimize the model.
 #' @param counts A \code{matrix} object or a \code{dgCMatrix} object which columns represent droplets and rows represent features.
+#' @param do_plot Whether to plot during the cellcalling. Default is \code{TRUE}.
 #' @param cell_score A cutoff value of \code{dropSplitScore} to determine if a droplet is cell-containing. Range between 0.5 and 1. Default is 0.8.
 #' @param empty_score A cutoff value of \code{dropSplitScore} to determine if a droplet is empty. Range between 0 and 0.5. Note, a reasonable will also improve the accuracy for 'Cell' identification and this can be checked by \code{\link{QCplot}}. Default is 0.2.
-#' @param CE_ratio Ratio value between down-sampled 'Cells' and 'Empty' droplets. The actual value will be slightly higher. Default is 2.
+#' @param CE_ratio Ratio value between down-sampled 'Cells' and 'Empty' droplets. The actual value will be slightly higher than the set. \code{CE_ratio>1} can help with 'Cell' identification. Default is 2.
 #' @param max_iter An integer specifying the number of iterations to use to rebuild the model with new defined droplets. Default is 10.
 #' @param min_error The minimum train error value to be achieved by the model. Default is 0.002.
 #' @param min_improve Minimal improvement of the model. Default is 0.002.
@@ -90,7 +91,7 @@
 #' @importFrom S4Vectors DataFrame
 #' @importFrom ggplot2 ggplot aes geom_point geom_vline
 #' @export
-dropSplit <- function(counts, cell_score = 0.8, empty_score = 0.2, CE_ratio = 2,
+dropSplit <- function(counts, do_plot = TRUE, cell_score = 0.8, empty_score = 0.2, CE_ratio = 2,
                       smooth_num = 5, smooth_window = 100, tolerance = 0.5,
                       Gini_control = TRUE, Gini_threshold = NULL,
                       Cell_rank = NULL, Uncertain_rank = NULL, Empty_rank = NULL,
@@ -248,8 +249,10 @@ dropSplit <- function(counts, cell_score = 0.8, empty_score = 0.2, CE_ratio = 2,
     "\n... Number of Empty: ", ncol(Empty_counts), "  Minimum nCounts: ", Empty_count,
     "\n... Number of Discarded: ", ncol(counts) - ncol(Cell_counts) - ncol(Uncertain_counts) - ncol(Empty_counts), "  Minimum nCounts: ", min(meta_info$nCount)
   )
-  p <- RankMSEPlot(meta_info, colorBy = "preDefinedClass", splitBy = NULL, cell_stat_by = "preDefinedClass")
-  suppressWarnings(print(p))
+  if (do_plot) {
+    p <- RankMSEPlot(meta_info, colorBy = "preDefinedClass", splitBy = NULL, cell_stat_by = "preDefinedClass")
+    suppressWarnings(print(p))
+  }
 
   message(
     ">>> Downsample pre-defined 'Cell' droplets to a depth similar to the 'Empty' for training",
@@ -338,17 +341,23 @@ dropSplit <- function(counts, cell_score = 0.8, empty_score = 0.2, CE_ratio = 2,
   message(">>> Construct the XGBoost model with pre-defined classification...")
 
   train_error <- 1
-  k <- 1
-  j <- 1
-  while (k <= max_iter) {
+  k <- 0
+  j <- 0
+  if (max_iter == 1) {
+    message("max_iter=1 but at least 2 iteration needed. max_iter is set to 2.")
+    max_iter <- 2
+  }
+  while (k < max_iter) {
+    k <- k + 1
+    j <- j + 1
     message("\n  ============= Iteration: ", k, " =============  ")
     if (k == 1) {
       train <- ini_train
       train_label <- ini_train_label
     } else {
-      empty_drop <- rownames(meta_info)[meta_info$dropSplitClass == "Empty"]
-      raw_empty <- intersect(empty_drop, colnames(Empty_counts))
-      new_empty <- colnames(Sim_Uncertain_counts)[Sim_Uncertain_counts_rawname %in% empty_drop]
+      empty_current <- rownames(meta_info)[meta_info$dropSplitClass == "Empty"]
+      raw_empty <- colnames(Empty_counts)[colnames(Empty_counts) %in% empty_current]
+      new_empty <- colnames(Sim_Uncertain_counts)[Sim_Uncertain_counts_rawname %in% empty_current]
       empty_update <- c(new_empty, raw_empty)
       if (length(empty_update) > ncol(Empty_counts)) {
         message("*** Number of 'Empty' droplets is too large. Take the top ", ncol(Empty_counts), " by nCount for training.")
@@ -377,13 +386,17 @@ dropSplit <- function(counts, cell_score = 0.8, empty_score = 0.2, CE_ratio = 2,
     )
     new_train_error <- tail(xgb$evaluation_log$train_error, 1)
 
-    if (new_train_error > train_error) {
-      message("*** train_error increased(", new_train_error, ">", train_error, "). Use the previous model for final classification.")
-      break
-    }
-    if (train_error - new_train_error <= min_improve | new_train_error <= min_error) {
-      message("*** train_error is limited(", new_train_error, "). Use the current model for final classification.")
-      k <- max_iter
+    if (k >= 2) {
+      if (new_train_error > train_error) {
+        message("*** train_error increased(", new_train_error, ">", train_error, "). Use the previous model for final classification.")
+        break
+      }
+      if (train_error - new_train_error <= min_improve | new_train_error <= min_error) {
+        message("*** train_error is limited(", new_train_error, "). Use the current model for final classification.")
+        k <- max_iter
+      }
+    } else {
+      message("*** The first iteration is for rough classification, skipping error checking.")
     }
 
     train_error <- new_train_error
@@ -439,17 +452,29 @@ dropSplit <- function(counts, cell_score = 0.8, empty_score = 0.2, CE_ratio = 2,
     meta_info[, "FDR"] <- 1
     meta_info[rownames(stat_out), "pvalue"] <- stat_out[rownames(stat_out), "pvalue"]
     meta_info[colnames(Uncertain_counts), "FDR"] <- stat_out[colnames(Uncertain_counts), "FDR"]
-    if ("dropSplitClass" %in% colnames(meta_info)) {
-      meta_info[, "dropSplitClass_pre"] <- meta_info[, "dropSplitClass"]
-    } else {
+    meta_info[, paste0("dropSplitScore_iter", j)] <- 0.5
+    meta_info[c(colnames(Cell_counts), colnames(Uncertain_counts), colnames(Empty_counts)), paste0("dropSplitScore_iter", j)] <- multiscore
+
+    if (j == 1) {
       meta_info[, "dropSplitClass_pre"] <- meta_info[, "dropSplitClass"] <- meta_info[, "preDefinedClass"]
+      meta_info[, "dropSplitScore"] <- meta_info[, "dropSplitScore_iter1"]
+    } else {
+      ## consistent and improved
+      meta_info[, "dropSplitClass_pre"] <- meta_info[, "dropSplitClass"]
+      cons <- ifelse(meta_info[, "dropSplitScore_iter1"] <= 0.5, 1, -1) * ifelse(meta_info[, paste0("dropSplitScore_iter", j)] <= 0.5, 1, -1)
+      improved <- ifelse(abs(meta_info[, paste0("dropSplitScore_iter", j)] - 0.5) > abs(meta_info[, paste0("dropSplitScore_iter", j - 1)] - 0.5), 1, 0)
+      meta_info[, "dropSplitScore"] <- ifelse(cons * improved == 1, meta_info[, paste0("dropSplitScore_iter", j)], meta_info[, "dropSplitScore"])
     }
-    meta_info[, "dropSplitScore"] <- 0.5
-    meta_info[c(colnames(Cell_counts), colnames(Uncertain_counts), colnames(Empty_counts)), "dropSplitScore"] <- multiscore
-    meta_info[c(colnames(Cell_counts), colnames(Uncertain_counts), colnames(Empty_counts)), "dropSplitClass"] <- ifelse(
-      multiscore > cell_score, "Cell", ifelse(multiscore < empty_score, "Empty", "Uncertain")
+
+    ## make classification
+    meta_info[, "dropSplitClass"] <- ifelse(
+      meta_info[, "dropSplitScore"] > cell_score, "Cell", ifelse(meta_info[, "dropSplitScore"] < empty_score, "Empty", "Uncertain")
     )
+
+    ## control FDR for 'Cell' switched from 'Uncertain'
     meta_info[meta_info$preDefinedClass == "Uncertain" & meta_info$dropSplitClass == "Cell" & meta_info$FDR >= cell_score_FDR, "dropSplitClass"] <- "Uncertain"
+
+    ## mask 'Cell' switched from 'Empty'
     if (isTRUE(preEmpty_mask)) {
       meta_info[meta_info$preDefinedClass == "Empty" & meta_info$dropSplitClass == "Cell", "dropSplitClass"] <- "Uncertain"
     }
@@ -464,24 +489,28 @@ dropSplit <- function(counts, cell_score = 0.8, empty_score = 0.2, CE_ratio = 2,
       "\n>>> 'Cell' switch to 'Empty' or 'Uncertain': ", sum(meta_info$dropSplitClass_pre == "Cell" & meta_info$dropSplitClass != "Cell"),
       "\n... Mean XGBoostScore: ", round(mean(meta_info[meta_info$dropSplitClass_pre == "Cell" & meta_info$dropSplitClass != "Cell", "XGBoostScore"]), 3),
       "\n... Mean CellGiniScore: ", round(mean(meta_info[meta_info$dropSplitClass_pre == "Cell" & meta_info$dropSplitClass != "Cell", "CellGiniScore"]), 3),
-      "\n... Mean dropSplitScore: ", round(mean(meta_info[meta_info$dropSplitClass_pre == "Cell" & meta_info$dropSplitClass != "Cell", "dropSplitScore"]), 3),
+      "\n... Mean dropSplitScore: ", round(mean(meta_info[meta_info$dropSplitClass_pre == "Cell" & meta_info$dropSplitClass != "Cell", paste0("dropSplitScore_iter", j)]), 3),
       "\n>>> 'Uncertain' or 'Empty' switch to 'Cell': ", sum(meta_info$dropSplitClass_pre != "Cell" & meta_info$dropSplitClass == "Cell"),
       "\n... Mean XGBoostScore: ", round(mean(meta_info[meta_info$dropSplitClass_pre != "Cell" & meta_info$dropSplitClass == "Cell", "XGBoostScore"]), 3),
       "\n... Mean CellGiniScore: ", round(mean(meta_info[meta_info$dropSplitClass_pre != "Cell" & meta_info$dropSplitClass == "Cell", "CellGiniScore"]), 3),
-      "\n... Mean dropSplitScore: ", round(mean(meta_info[meta_info$dropSplitClass_pre != "Cell" & meta_info$dropSplitClass == "Cell", "dropSplitScore"]), 3)
+      "\n... Mean dropSplitScore: ", round(mean(meta_info[meta_info$dropSplitClass_pre != "Cell" & meta_info$dropSplitClass == "Cell", paste0("dropSplitScore_iter", j)]), 3)
     )
+
+    if (do_plot) {
+      p <- CellEntropyPlot(meta_info, colorBy = paste0("dropSplitScore_iter", j), splitBy = NULL, cell_stat_by = "dropSplitClass") +
+        labs(title = paste0("dropSplitScore(iteration=", j, ")"))
+      suppressWarnings(print(p))
+    }
+    if (j == max_iter) {
+      message(">>> Reached maximum number of iterations. Use the last model for final classification.")
+      meta_info[, "dropSplitClass_pre"] <- NULL
+    }
+  }
+  if (do_plot) {
     p <- CellEntropyPlot(meta_info, colorBy = "dropSplitScore", splitBy = NULL, cell_stat_by = "dropSplitClass") +
-      labs(title = paste0("dropSplitScore(iteration=", j, ")"))
+      labs(title = paste0("dropSplitScore(Final)"))
     suppressWarnings(print(p))
-
-    k <- k + 1
-    j <- j + 1
   }
-  if (j == max_iter) {
-    message(">>> Reached maximum number of iterations. Use the last model for final classification.")
-  }
-  meta_info[, "dropSplitClass_pre"] <- NULL
-
   message("\n  ============= Final result =============  ")
 
   rescure <- which(meta_info[, "preDefinedClass"] %in% c("Uncertain", "Empty") & meta_info[, "dropSplitClass"] == "Cell")
@@ -520,6 +549,11 @@ dropSplit <- function(counts, cell_score = 0.8, empty_score = 0.2, CE_ratio = 2,
     "\n... Mean CellGiniScore: ", round(mean(meta_info[meta_info$preDefinedClass != "Cell" & meta_info$dropSplitClass == "Cell", "CellGiniScore"]), 3),
     "\n... Mean dropSplitScore: ", round(mean(meta_info[meta_info$preDefinedClass != "Cell" & meta_info$dropSplitClass == "Cell", "dropSplitScore"]), 3)
   )
+  if (do_plot) {
+    p <- CellEntropyPlot(meta_info, colorBy = "dropSplitClass", splitBy = NULL, cell_stat_by = "dropSplitClass") +
+      labs(title = paste0("dropSplitClass(Final)"))
+    suppressWarnings(print(p))
+  }
 
   importance_matrix <- as.data.frame(xgb.importance(model = model_use))
   result <- list(

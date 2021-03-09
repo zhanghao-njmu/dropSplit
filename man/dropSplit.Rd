@@ -6,6 +6,7 @@
 \usage{
 dropSplit(
   counts,
+  do_plot = TRUE,
   cell_score = 0.8,
   empty_score = 0.2,
   CE_ratio = 2,
@@ -35,11 +36,13 @@ dropSplit(
 \arguments{
 \item{counts}{A \code{matrix} object or a \code{dgCMatrix} object which columns represent droplets and rows represent features.}
 
+\item{do_plot}{Whether to plot during the cellcalling. Default is \code{TRUE}.}
+
 \item{cell_score}{A cutoff value of \code{dropSplitScore} to determine if a droplet is cell-containing. Range between 0.5 and 1. Default is 0.8.}
 
 \item{empty_score}{A cutoff value of \code{dropSplitScore} to determine if a droplet is empty. Range between 0 and 0.5. Note, a reasonable will also improve the accuracy for 'Cell' identification and this can be checked by \code{\link{QCplot}}. Default is 0.2.}
 
-\item{CE_ratio}{Ratio value between down-sampled 'Cells' and 'Empty' droplets. The actual value will be slightly higher. Default is 2.}
+\item{CE_ratio}{Ratio value between down-sampled 'Cells' and 'Empty' droplets. The actual value will be slightly higher than the set. \code{CE_ratio>1} can help with 'Cell' identification. Default is 2.}
 
 \item{smooth_num}{Number of times to smooth(take a mean value within a window length \code{smooth_window}) the squared error. Default is 5.}
 
