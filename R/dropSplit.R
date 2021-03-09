@@ -174,12 +174,6 @@ dropSplit <- function(counts, do_plot = TRUE, cell_score = 0.8, empty_score = 0.
   if (ncol(Empty_counts) < ncol(Uncertain_counts) | ncol(Empty_counts) < ncol(Cell_counts)) {
     stop("'Empty' droplets is fewer than 'Cell' or 'Uncertain'. Please check the RankMSE curve with the pre-defined droplet cutoff. You may set custom cutoff values in the parameters manually.")
   }
-  if (ncol(Empty_counts) > 30000) {
-    warning("Too many 'Empty' droplets. Only take the top 30000 'Empty' droplets by nCount in the following steps.",
-      immediate. = TRUE
-    )
-    Empty_counts <- Empty_counts[, 1:30000]
-  }
 
   message(">>> Calculate various cell metrics for the droplets...")
   final_counts <- cbind(Cell_counts, Uncertain_counts, Empty_counts)
@@ -232,6 +226,14 @@ dropSplit <- function(counts, do_plot = TRUE, cell_score = 0.8, empty_score = 0.
     Cell_counts <- Cell_counts[, cell_use]
     Uncertain_counts <- cbind(as(Drop_counts, "dgCMatrix"), Uncertain_counts)
   }
+
+  if (ncol(Empty_counts) > 30000) {
+    warning("Too many 'Empty' droplets. Only take the top 30000 'Empty' droplets by nCount in the following steps.",
+            immediate. = TRUE
+    )
+    Empty_counts <- Empty_counts[, 1:30000]
+  }
+
   Cell_nCount <- Matrix::colSums(Cell_counts)
   Uncertain_nCount <- Matrix::colSums(Uncertain_counts)
   Empty_nCount <- Matrix::colSums(Empty_counts)
@@ -240,7 +242,6 @@ dropSplit <- function(counts, do_plot = TRUE, cell_score = 0.8, empty_score = 0.
   meta_info[colnames(Cell_counts), "preDefinedClass"] <- "Cell"
   meta_info[colnames(Uncertain_counts), "preDefinedClass"] <- "Uncertain"
   meta_info[colnames(Empty_counts), "preDefinedClass"] <- "Empty"
-
   message(
     ">>> Summary of pre-defined droplets",
     "\n... Number of Cell: ", ncol(Cell_counts), "  Minimum nCounts: ", Cell_count,
