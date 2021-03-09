@@ -470,7 +470,8 @@ dropSplit <- function(counts, do_plot = TRUE, cell_score = 0.8, empty_score = 0.
       cons <- ifelse(meta_info[, "dropSplitScore_iter1"] <= 0.5, 1, -1) * ifelse(meta_info[, paste0("dropSplitScore_iter", j)] <= 0.5, 1, -1)
       improved <- ifelse(abs(meta_info[, paste0("dropSplitScore_iter", j)] - 0.5) > abs(meta_info[, paste0("dropSplitScore_iter", j - 1)] - 0.5), 1, 0)
       meta_info[, "dropSplitScore"] <- ifelse(cons * improved == 1, meta_info[, paste0("dropSplitScore_iter", j)], meta_info[, "dropSplitScore"])
-    }
+      meta_info[colnames(Empty_counts), "dropSplitScore"] <- meta_info[colnames(Empty_counts), "dropSplitScore_iter1"]
+      }
 
     ## make classification
     meta_info[, "dropSplitClass"] <- ifelse(
