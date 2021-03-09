@@ -86,6 +86,7 @@
 #' fp$Importance
 #' fp$preDefinedClassExp
 #' fp$dropSplitClassExp
+#' @importFrom inflection uik
 #' @importFrom TTR runMean
 #' @importFrom DropletUtils downsampleMatrix
 #' @importFrom xgboost xgboost xgb.DMatrix xgb.create.features xgb.importance xgb.dump
@@ -98,9 +99,9 @@
 #' @importFrom ggplot2 ggplot aes geom_point geom_vline
 #' @export
 dropSplit <- function(counts, do_plot = TRUE, cell_score = 0.8, empty_score = 0.2, CE_ratio = 2,
-                      smooth_num = 5, smooth_window = 100, tolerance = 0.5,
-                      Gini_control = TRUE, Gini_threshold = NULL,
+                      fill_RankMSE = FALSE, smooth_num = 3, smooth_window = 100, tolerance = 0.5,
                       Cell_rank = NULL, Uncertain_rank = NULL, Empty_rank = NULL,
+                      Gini_control = TRUE, Gini_threshold = NULL,
                       Uncertain_downsample_times = 10, cell_score_FDR = 0.05,
                       max_iter = 10, min_error = 0.002, min_improve = 0.002,
                       preCell_mask = NULL, preEmpty_mask = TRUE,
@@ -149,19 +150,21 @@ dropSplit <- function(counts, do_plot = TRUE, cell_score = 0.8, empty_score = 0.
   meta_info <- meta_info[order(meta_info$nCount_rank, decreasing = FALSE), ]
   counts <- counts[, rownames(meta_info)]
 
-  out <- RankMSE(meta_info = meta_info, smooth_num = smooth_num, smooth_window = smooth_window, find_cell_count = TRUE, tolerance = tolerance)
+  out <- RankMSE(meta_info = meta_info, fill_RankMSE = fill_RankMSE, smooth_num = smooth_num, smooth_window = smooth_window, find_cell_count = TRUE, tolerance = tolerance)
   meta_info <- out$meta_info
   cell_count <- out$cell_count
-  # qplot(meta_info$nCount_rank,log(meta_info$RankMSE))+xlim(1,20000)+geom_vline(xintercept = (Cell_rank))
+  inflection <- out$inflection
 
   if (is.null(Cell_rank)) {
     Cell_rank <- max(meta_info$nCount_rank[meta_info$nCount > cell_count])
+    # qplot(log10(meta_info$nCount_rank),log10(meta_info$RankMSE))+geom_vline(xintercept = log10(Cell_rank))
   }
   if (is.null(Uncertain_rank)) {
-    Uncertain_rank <- Cell_rank + which.max(meta_info$RankMSE[Cell_rank:min(Cell_rank * 2, nrow(meta_info))])[1] - 1
+    Uncertain_rank <- min(2 * Cell_rank, floor(nrow(meta_info) / 2))
   }
   if (is.null(Empty_rank)) {
-    Empty_rank <- Uncertain_rank * 2 + which.min(meta_info$RankMSE[(Uncertain_rank * 2):min(Uncertain_rank * 20, nrow(meta_info))])[1] - 1
+    eprk <- Uncertain_rank * 2 + which.min(meta_info$RankMSE[(Uncertain_rank * 2):min(Uncertain_rank * 20, nrow(meta_info))])[1]
+    Empty_rank <- min(eprk, nrow(meta_info))
   }
   Cell_count <- meta_info$nCount[Cell_rank]
   Uncertain_count <- meta_info$nCount[Uncertain_rank]
@@ -177,13 +180,13 @@ dropSplit <- function(counts, do_plot = TRUE, cell_score = 0.8, empty_score = 0.
   if (ncol(Empty_counts) == 0) {
     stop("No 'Empty' droplets detected. Please check the RankMSE curve with the pre-defined droplet cutoff. You may set custom cutoff values in the parameters manually.")
   }
-  if (ncol(Empty_counts) < ncol(Uncertain_counts) | ncol(Empty_counts) < ncol(Cell_counts)) {
-    stop("'Empty' droplets is fewer than 'Cell' or 'Uncertain'. Please check the RankMSE curve with the pre-defined droplet cutoff. You may set custom cutoff values in the parameters manually.")
-  }
+  # if (ncol(Empty_counts) < ncol(Uncertain_counts) | ncol(Empty_counts) < ncol(Cell_counts)) {
+  #   stop("'Empty' droplets is fewer than 'Cell' or 'Uncertain'. Please check the RankMSE curve with the pre-defined droplet cutoff. You may set custom cutoff values in the parameters manually.")
+  # }
 
   message(">>> Calculate various cell metrics for the droplets...")
-  final_counts <- cbind(Cell_counts, Uncertain_counts, Empty_counts)
-  final_Gini <- CellGini(final_counts, normalize = TRUE)
+  primary_counts <- cbind(Cell_counts, Uncertain_counts, Empty_counts)
+  final_Gini <- CellGini(primary_counts, normalize = TRUE)
   if (is.null(Gini_threshold)) {
     Gini_threshold <- (quantile(final_Gini[colnames(Cell_counts)], 0.1) + (1 - 2 * cell_score) * quantile(final_Gini[colnames(Cell_counts)], 0.9)) / (2 - 2 * cell_score)
     Gini_threshold <- ifelse(Gini_threshold < 0.95, 0.95, ifelse(Gini_threshold > 0.99, 0.99, Gini_threshold))
@@ -191,31 +194,11 @@ dropSplit <- function(counts, do_plot = TRUE, cell_score = 0.8, empty_score = 0.
   message("*** Gini_threshold was set to: ", round(Gini_threshold, 3))
   final_CellGiniScore <- Score(
     x = final_Gini, threshold = Gini_threshold,
-    group = c(
-      rep("1", ncol(Cell_counts)),
-      rep("2", ncol(Uncertain_counts)),
-      rep("3", ncol(Empty_counts))
-    )
+    group = rep("all", length(final_Gini)),
+    upper = list(all = quantile(final_Gini[colnames(Cell_counts)], 0.9))
+    # group = c(rep("1", ncol(Cell_counts)),rep("2", ncol(Uncertain_counts)),rep("3", ncol(Empty_counts)))
   )
-  final_CellEntropy <- CellEntropy(final_counts)
-  final_maxCellEntropy <- maxCellEntropy(final_counts)
-  final_CellEfficiency <- final_CellEntropy / final_maxCellEntropy
-  final_CellEfficiency[is.na(final_CellEfficiency)] <- 1
-  final_CellRedundancy <- 1 - final_CellEfficiency
-  final_CellRedundancy[final_CellRedundancy < 0] <- 0
-  dat_metrics <- cbind(
-    CellEntropy = final_CellEntropy,
-    CellEfficiency = final_CellEfficiency,
-    CellRedundancy = final_CellRedundancy,
-    CellGini = final_Gini,
-    CellGiniScore = final_CellGiniScore
-  )
-  rownames(dat_metrics) <- colnames(final_counts)
-  meta_info[
-    c(colnames(Cell_counts), colnames(Uncertain_counts), colnames(Empty_counts)),
-    colnames(dat_metrics)
-  ] <- dat_metrics[c(colnames(Cell_counts), colnames(Uncertain_counts), colnames(Empty_counts)), ]
-
+  names(final_CellGiniScore) <- names(final_Gini)
   cell_Gini <- final_Gini[colnames(Cell_counts)]
   cell_drop <- names(cell_Gini)[cell_Gini < Gini_threshold]
   cell_use <- names(cell_Gini)[cell_Gini >= Gini_threshold]
@@ -235,10 +218,31 @@ dropSplit <- function(counts, do_plot = TRUE, cell_score = 0.8, empty_score = 0.
 
   if (ncol(Empty_counts) > 50000) {
     warning("Too many 'Empty' droplets. Only take the top 50000 'Empty' droplets by nCount in the following steps.",
-            immediate. = TRUE
+      immediate. = TRUE
     )
     Empty_counts <- Empty_counts[, 1:50000]
   }
+
+  final_counts <- cbind(Cell_counts, Uncertain_counts, Empty_counts)
+  final_CellEntropy <- CellEntropy(final_counts)
+  final_maxCellEntropy <- maxCellEntropy(final_counts)
+  final_CellEfficiency <- final_CellEntropy / final_maxCellEntropy
+  final_CellEfficiency[is.na(final_CellEfficiency)] <- 1
+  final_CellRedundancy <- 1 - final_CellEfficiency
+  final_CellRedundancy[final_CellRedundancy < 0] <- 0
+  dat_metrics <- cbind(
+    CellEntropy = final_CellEntropy,
+    CellEfficiency = final_CellEfficiency,
+    CellRedundancy = final_CellRedundancy,
+    CellGini = final_Gini[colnames(final_counts)],
+    CellGiniScore = final_CellGiniScore[colnames(final_counts)]
+  )
+  rownames(dat_metrics) <- colnames(final_counts)
+  meta_info[
+    c(colnames(Cell_counts), colnames(Uncertain_counts), colnames(Empty_counts)),
+    colnames(dat_metrics)
+  ] <- dat_metrics[c(colnames(Cell_counts), colnames(Uncertain_counts), colnames(Empty_counts)), ]
+
 
   Cell_nCount <- Matrix::colSums(Cell_counts)
   Uncertain_nCount <- Matrix::colSums(Uncertain_counts)
@@ -265,13 +269,6 @@ dropSplit <- function(counts, do_plot = TRUE, cell_score = 0.8, empty_score = 0.
     "\n... nCount in 'Cell' droplets: Min=", min(Cell_nCount), " Median=", median(Cell_nCount), " Max=", max(Cell_nCount),
     "\n... nCount in 'Empty' droplets: Min=", min(Empty_nCount), " Median=", median(Empty_nCount), " Max=", max(Empty_nCount)
   )
-  # a <- as.data.frame(Cell_nCount)
-  # a$Cell <- rownames(a)
-  # b <- as.data.frame(table(Cell_nCount))
-  # c <- merge(x = a, y = b, by = "Cell_nCount")
-  # rownames(c) <- c$Cell
-  # c$Rank <- meta_info[c$Cell, "nCount_rank"]
-  # c$prop <- c$Freq / sum(c$Freq)
 
   Cell_downsample_times <- ceiling(ncol(Empty_counts) / ncol(Cell_counts) * CE_ratio)
   Sim_Cell_counts <- Cell_counts[, rep(1:ncol(Cell_counts), Cell_downsample_times)]
@@ -313,7 +310,8 @@ dropSplit <- function(counts, do_plot = TRUE, cell_score = 0.8, empty_score = 0.
   dat <- cbind(Matrix::t(norm_counts), dat_Features[, colnames(dat_Features)])
   ini_train <- dat[c(colnames(Cell_counts), colnames(Sim_Cell_counts), colnames(Empty_counts)), ]
   ini_train_label <- c(rep(1, ncol(Cell_counts) + ncol(Sim_Cell_counts)), rep(0, ncol(Empty_counts)))
-  to_predict <- dat[c(colnames(Cell_counts), colnames(Sim_Cell_counts), colnames(Sim_Uncertain_counts), colnames(Empty_counts)), ]
+  ini_to_predict <- dat[c(colnames(Cell_counts), colnames(Sim_Cell_counts), colnames(Sim_Uncertain_counts), colnames(Empty_counts)), ]
+  Sim_Cell_counts_rawname <- gsub(x = colnames(Sim_Cell_counts), pattern = "Sim\\d+-", replacement = "")
   Sim_Uncertain_counts_rawname <- gsub(x = colnames(Sim_Uncertain_counts), pattern = "Sim\\d+-", replacement = "")
 
   if (isTRUE(modelOpt)) {
@@ -358,8 +356,10 @@ dropSplit <- function(counts, do_plot = TRUE, cell_score = 0.8, empty_score = 0.
     j <- j + 1
     message("\n  ============= Iteration: ", k, " =============  ")
     if (k == 1) {
+      dat_use <- dat
       train <- ini_train
       train_label <- ini_train_label
+      to_predict <- ini_to_predict
     } else {
       empty_current <- rownames(meta_info)[meta_info$dropSplitClass == "Empty"]
       raw_empty <- colnames(Empty_counts)[colnames(Empty_counts) %in% empty_current]
@@ -372,16 +372,27 @@ dropSplit <- function(counts, do_plot = TRUE, cell_score = 0.8, empty_score = 0.
         empty_update <- empty_update[empty_update_order[1:ncol(Empty_counts)]]
       }
       if (length(empty_update) < ncol(Cell_counts)) {
-        message("*** Number of 'Empty' droplets is too small. Use the previous model for final classification.")
+        message("*** Number of 'Empty' droplets is too small(", length(empty_update), "). Use the previous model for final classification.")
         break
       }
+      # cell_current <- rownames(meta_info)[meta_info$dropSplitClass == "Cell"]
+      # raw_cell <- c(
+      #   colnames(Cell_counts)[colnames(Cell_counts) %in% cell_current],
+      #   colnames(Sim_Cell_counts)[Sim_Cell_counts_rawname %in% cell_current]
+      # )
+      # new_cell <- colnames(Sim_Uncertain_counts)[Sim_Uncertain_counts_rawname %in% cell_current]
+      # cell_update <- c(raw_cell,new_cell)
+
+      train <- dat[c(colnames(Cell_counts), colnames(Sim_Cell_counts), empty_update), ]
+      train_label <- c(rep(1, ncol(Cell_counts) + ncol(Sim_Cell_counts)), rep(0, length(empty_update)))
+      # train <- dat[c(cell_update, empty_update), ]
+      # train_label <- c(rep(1, length(cell_update)), rep(0, length(empty_update)))
+
       message(
         "... Number of removed pre-defined 'Empty' droplets: ", ncol(Empty_counts) - length(raw_empty),
         "\n... Number of newly added 'Empty' droplets from 'Uncertain'(including the simulated): ", length(new_empty),
         "\n... Number of total 'Empty' droplets used for taining (including the simulated): ", length(empty_update)
       )
-      train <- dat[c(colnames(Cell_counts), colnames(Sim_Cell_counts), empty_update), ]
-      train_label <- c(rep(1, ncol(Cell_counts) + ncol(Sim_Cell_counts)), rep(0, length(empty_update)))
     }
 
     message(">>> Train data: 'Cell'=", sum(train_label == 1), "; 'Empty'=", sum(train_label == 0), "; 'C/E' Ratio=", round(sum(train_label == 1) / sum(train_label == 0), 3))
@@ -398,7 +409,7 @@ dropSplit <- function(counts, do_plot = TRUE, cell_score = 0.8, empty_score = 0.
         break
       }
       if (train_error - new_train_error <= min_improve | new_train_error <= min_error) {
-        message("*** train_error is limited(", new_train_error, "). Use the current model for final classification.")
+        message("*** train_error is limited(reduced error:", round(train_error - new_train_error, 6), "). Use the current model for final classification.")
         k <- max_iter
       }
     } else {
@@ -465,13 +476,13 @@ dropSplit <- function(counts, do_plot = TRUE, cell_score = 0.8, empty_score = 0.
       meta_info[, "dropSplitClass_pre"] <- meta_info[, "dropSplitClass"] <- meta_info[, "preDefinedClass"]
       meta_info[, "dropSplitScore"] <- meta_info[, "dropSplitScore_iter1"]
     } else {
-      ## consistent and improved
+      ## is improved
       meta_info[, "dropSplitClass_pre"] <- meta_info[, "dropSplitClass"]
-      cons <- ifelse(meta_info[, "dropSplitScore_iter1"] <= 0.5, 1, -1) * ifelse(meta_info[, paste0("dropSplitScore_iter", j)] <= 0.5, 1, -1)
       improved <- ifelse(abs(meta_info[, paste0("dropSplitScore_iter", j)] - 0.5) > abs(meta_info[, paste0("dropSplitScore_iter", j - 1)] - 0.5), 1, 0)
-      meta_info[, "dropSplitScore"] <- ifelse(cons * improved == 1, meta_info[, paste0("dropSplitScore_iter", j)], meta_info[, "dropSplitScore"])
+      meta_info[, "dropSplitScore"] <- ifelse(improved == 1, meta_info[, paste0("dropSplitScore_iter", j)], meta_info[, "dropSplitScore"])
       meta_info[colnames(Empty_counts), "dropSplitScore"] <- meta_info[colnames(Empty_counts), "dropSplitScore_iter1"]
-      }
+      # meta_info[, "dropSplitScore"] <- meta_info[, paste0("dropSplitScore_iter",j)]
+    }
 
     ## make classification
     meta_info[, "dropSplitClass"] <- ifelse(
@@ -522,7 +533,7 @@ dropSplit <- function(counts, do_plot = TRUE, cell_score = 0.8, empty_score = 0.
 
   rescure <- which(meta_info[, "preDefinedClass"] %in% c("Uncertain", "Empty") & meta_info[, "dropSplitClass"] == "Cell")
   rescure_score <- meta_info[rescure, "dropSplitScore"]
-  er_rate <- train_error / cell_score * 2
+  er_rate <- train_error / cell_score
   drop <- floor(length(rescure) * er_rate)
   if (drop > 0) {
     drop_index <- rescure[order(rescure_score, decreasing = FALSE)[1:drop]]
@@ -581,13 +592,16 @@ dropSplit <- function(counts, do_plot = TRUE, cell_score = 0.8, empty_score = 0.
 
 #' Calculate Mean Squared Error for nCount/nFeature Rank.
 #' @param meta_info A \code{data.frame} or \code{DataFrame}. Must contain the 'nCount' and 'nFeature' columns.
-#' @param smooth_num Number of times to smooth(take a mean value within a window length \code{smooth_window}) the squared error. Default is 5.
+#' @param fill_RankMSE Whether to fill the RankMSE by nCount. Default is \code{TRUE}.
+#' @param smooth_num Number of times to smooth(take a mean value within a window length \code{smooth_window}) the squared error. Default is 3.
 #' @param smooth_window Window length used to smooth the squared error. Default is 100.
 #' @param find_cell_count Whether to find RankMSE valleys ('Cell' count cutoff). Default is FALSE.
 #' @param tolerance A value indicated the tolerance when finding RankMSE valleys. A value greater than 1 indicates relaxed and will find more valleys; lower than 1 indicates strict and will find less valleys. Default is 0.5.
 #'
 #' @return A list include \code{meta_info} and \code{cell_rank_count}
-RankMSE <- function(meta_info, smooth_num = 5, smooth_window = 100, find_cell_count = FALSE, tolerance = 0.5) {
+#' @importFrom inflection uik
+#' @importFrom TTR runMean
+RankMSE <- function(meta_info, fill_RankMSE = FALSE, smooth_num = 3, smooth_window = 100, find_cell_count = FALSE, tolerance = 0.5) {
   meta_info <- as.data.frame(meta_info)
   meta_info$nCount_rank <- rank(-(meta_info$nCount))
   meta_info$nFeature_rank <- rank(-(meta_info$nFeature))
@@ -596,57 +610,79 @@ RankMSE <- function(meta_info, smooth_num = 5, smooth_window = 100, find_cell_co
     stop("Find 'nCount'<=0. Stop run.")
   }
   meta_info <- meta_info[order(meta_info$nCount_rank, decreasing = FALSE), ]
+  nCount_inflection <- uik(x = meta_info$nCount_rank, y = meta_info$nCount)
+  nFeature_inflection <- uik(x = meta_info$nFeature_rank, y = meta_info$nFeature)
+  inflection <- min(nCount_inflection, nFeature_inflection)
+  inflection_left <- round(inflection - inflection * 0.3)
+  inflection_right <- round(inflection + inflection * 0.3)
 
   meta_info$RankSE <- (meta_info$nCount_rank - meta_info$nFeature_rank)^2
-  x0 <- meta_info$RankSE
-  x0_nCount <- meta_info$nCount
-  x0_cell <- rownames(meta_info)
-  x1 <- rep(x0[-length(x0)], -diff(x0_nCount))
-  x1_nCount <- rep(x0_nCount[-length(x0_nCount)], -diff(x0_nCount))
-  x1_cell <- rep(x0_cell[-length(x0_cell)], -diff(x0_nCount))
-  x1_cell <- paste0("Sim-", seq_len(length(x1_cell)), "@Raw-", x1_cell)
-  filled_df <- rbind(
-    data.frame(RankMSE = x0, nCount = x0_nCount, cell = x0_cell),
-    data.frame(RankMSE = x1, nCount = x1_nCount, cell = x1_cell)
-  )
-  filled_df <- filled_df[order(filled_df[, "nCount"], decreasing = TRUE), ]
+  if (isTRUE(fill_RankMSE)) {
+    x0 <- meta_info$RankSE
+    x0_nCount <- meta_info$nCount
+    x0_cell <- rownames(meta_info)
+    x1 <- rep(x0[-length(x0)], -diff(x0_nCount))
+    x1_nCount <- rep(x0_nCount[-length(x0_nCount)], -diff(x0_nCount))
+    x1_cell <- rep(x0_cell[-length(x0_cell)], -diff(x0_nCount))
+    x1_cell <- paste0("Sim-", seq_len(length(x1_cell)), "@Raw-", x1_cell)
+    df <- rbind(
+      data.frame(RankMSE = x0, nCount = x0_nCount, cell = x0_cell),
+      data.frame(RankMSE = x1, nCount = x1_nCount, cell = x1_cell)
+    )
+    df <- df[order(df[, "nCount"], decreasing = TRUE), ]
 
-  for (t in seq_len(smooth_num)) {
-    filled_df[, "RankMSE"] <- runMean(filled_df[, "RankMSE"], n = smooth_window)
-    filled_df[, "RankMSE"][is.na(filled_df[, "RankMSE"])] <- na.omit(filled_df[, "RankMSE"])[1]
-    filled_df[, "RankMSE"][filled_df[, "RankMSE"] < 0] <- 0
+    for (t in seq_len(smooth_num)) {
+      df[, "RankMSE"] <- runMean(df[, "RankMSE"], n = smooth_window)
+      df[, "RankMSE"][is.na(df[, "RankMSE"])] <- na.omit(df[, "RankMSE"])[1]
+      df[, "RankMSE"][df[, "RankMSE"] < 0] <- 0
+    }
+    df[, "logRankMSE"] <- log(df[, "RankMSE"] + 1)
+  } else {
+    df <- meta_info
+    df[, "droplets"] <- rownames(meta_info)
+    df[, "RankMSE"] <- df[, "RankSE"]
+    for (t in seq_len(smooth_num)) {
+      df[, "RankMSE"] <- runMean(df[, "RankMSE"], n = smooth_window)
+      df[, "RankMSE"][is.na(df[, "RankMSE"])] <- na.omit(df[, "RankMSE"])[1]
+      df[, "RankMSE"][df[, "RankMSE"] < 0] <- 0
+    }
+    df[, "logRankMSE"] <- log(df[, "RankMSE"] + 1)
   }
-  filled_df[, "logRankMSE"] <- log(filled_df[, "RankMSE"])
+  # qplot(log10(1:length(df$RankMSE)), log(df$RankMSE))
 
   if (isTRUE(find_cell_count)) {
-    nCount_inflection <- tail(find_inflection(meta_info$nCount)$index, 1)
-    nFeature_inflection <- tail(find_inflection(meta_info$nFeature)$index, 1)
-    inflection <- max(nCount_inflection, nFeature_inflection)
-    inflection_left <- round(inflection - inflection * 0.3)
-    inflection_right <- round(inflection + inflection * 0.3)
-    inflection_left <- head(which(filled_df[, "nCount"] <= meta_info$nCount[inflection_left]), 1)
-    inflection_right <- tail(which(filled_df[, "nCount"] >= meta_info$nCount[inflection_right]), 1)
-    pks <- inflection_left + find_peaks(-filled_df$RankMSE[inflection_left:inflection_right],
-      left_shoulder = inflection_left * 0.05,
-      right_shoulder = inflection_right
+    df_inflection <- head(which(df[, "nCount"] <= meta_info$nCount[inflection]), 1)
+    df_inflection_left <- head(which(df[, "nCount"] <= meta_info$nCount[inflection_left]), 1)
+    df_inflection_right <- tail(which(df[, "nCount"] >= meta_info$nCount[inflection_right]), 1)
+    pks <- df_inflection_left + find_peaks(-df$RankMSE[df_inflection_left:df_inflection_right],
+      left_shoulder = df_inflection * 0.05,
+      right_shoulder = df_inflection_right
     ) - 1
-    # qplot((1:length(filled_df$RankMSE)), log(filled_df$RankMSE)) + xlim(1, inflection_right*1.2) + geom_vline(xintercept = c(pks))
+    # qplot(log10(1:length(df$RankMSE)), log(df$RankMSE))+geom_vline(xintercept = log10(pks))+ xlim(1, log10(df_inflection_right*1.2))
+    # qplot((1:length(df$RankMSE)), log(df$RankMSE)) + xlim(1, df_inflection_right*1.2) + geom_vline(xintercept = c(pks))
 
     iter <- 1
-    cell_max <- quantile(filled_df[1:(pks[1] - 1), "logRankMSE"], 0.99)
+    cell_max <- quantile(df[1:(pks[1] - 1), "logRankMSE"], 0.99)
     while (length(pks) > 1) {
       message("... ", length(pks), " peaks found. Perform automatic selection(iter=", iter, ")...")
-      if (all(filled_df[pks, "logRankSE"] < 0)) {
+      if (all(df[pks, "logRankMSE"] < 0)) {
         pks <- pks[length(pks)]
       }
       if (length(pks) > 1) {
-        pks_diff_MSE <- diff(filled_df[pks, "logRankMSE"])
+        pks_diff_MSE <- diff(df[pks, "logRankMSE"])
         pks_max_MSE <- sapply(1:(length(pks) - 1), function(i) {
-          quantile(filled_df[pks[i]:pks[i + 1], "logRankMSE"], 0.99) - filled_df[pks[i + 1], "logRankMSE"]
+          quantile(df[pks[i]:pks[i + 1], "logRankMSE"], 0.99) - df[pks[i + 1], "logRankMSE"]
         })
         j <- which(pks_diff_MSE <= pks_max_MSE * tolerance | pks_max_MSE >= 0.5 * cell_max) + 1
-        if (length(j) == 0) {
-          j <- 1
+        if (length(j) == 1) {
+          j <- c(1, j)
+          pks_diff_MSE <- diff(df[pks[j], "logRankMSE"])
+          pks_max_MSE <- quantile(df[pks[1]:pks[2], "logRankMSE"], 0.99) - df[pks[2], "logRankMSE"]
+
+          j <- which(pks_diff_MSE <= pks_max_MSE * tolerance | pks_max_MSE >= 0.5 * cell_max) + 1
+          if (length(j) == 0) {
+            j <- 1
+          }
         }
         pks <- pks[j]
         iter <- iter + 1
@@ -657,16 +693,16 @@ RankMSE <- function(meta_info, smooth_num = 5, smooth_window = 100, find_cell_co
         message("... ", length(pks), " apples left. Go to the next loop.")
       }
     }
-    cell_count <- filled_df[pks, "nCount"]
+    cell_count <- df[pks, "nCount"]
   } else {
     cell_count <- NULL
   }
 
-  raw_df <- unique(filled_df[, c("cell", "RankMSE")])
-  rownames(raw_df) <- raw_df$cell
+  raw_df <- unique(df[, c("droplets", "RankMSE")])
+  rownames(raw_df) <- raw_df$droplets
   meta_info$RankMSE <- raw_df[rownames(meta_info), "RankMSE"]
 
-  return(list(meta_info = meta_info, cell_count = cell_count))
+  return(list(meta_info = meta_info, cell_count = cell_count, inflection = inflection))
 }
 
 CalldropSplit <- function(counts, ...) {

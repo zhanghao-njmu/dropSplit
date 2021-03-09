@@ -6,7 +6,8 @@
 \usage{
 RankMSE(
   meta_info,
-  smooth_num = 5,
+  fill_RankMSE = FALSE,
+  smooth_num = 3,
   smooth_window = 100,
   find_cell_count = FALSE,
   tolerance = 0.5
@@ -15,7 +16,9 @@ RankMSE(
 \arguments{
 \item{meta_info}{A \code{data.frame} or \code{DataFrame}. Must contain the 'nCount' and 'nFeature' columns.}
 
-\item{smooth_num}{Number of times to smooth(take a mean value within a window length \code{smooth_window}) the squared error. Default is 5.}
+\item{fill_RankMSE}{Whether to fill the RankMSE by nCount. Default is \code{TRUE}.}
+
+\item{smooth_num}{Number of times to smooth(take a mean value within a window length \code{smooth_window}) the squared error. Default is 3.}
 
 \item{smooth_window}{Window length used to smooth the squared error. Default is 100.}
 

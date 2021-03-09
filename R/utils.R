@@ -71,11 +71,7 @@ find_inflection <- function(x, df = 20) {
   fitted_x <- 10^fitted$x
   fitted_y <- 10^fitted$y
   curvature <- curvatureCalcluate(fitted_y, fitted_x)$curvature
-  if (min(curvature) < 0 & which.min(curvature) < length(x) * 0.5) {
-    inflection_y <- fitted_y[which(curvature == max(curvature[which.min(curvature):length(curvature)]))]
-  } else {
-    inflection_y <- fitted_y[which.max(curvature)]
-  }
+  inflection_y <- fitted_y[which.max(curvature)]
   value <- max(r[r < inflection_y])
   index <- which(r == value)
   return(list(index = index, value = value))
@@ -141,7 +137,7 @@ Score <- function(x, threshold, group = NULL, upper = NULL, lower = NULL, higher
       if (!g %in% (names(upper))) {
         maxi <- quantile(ilarge, 0.9)
       } else {
-        maxi <- upper[g] - threshold
+        maxi <- upper[[g]] - threshold
       }
       score[j[which(i >= 0)]] <- ifelse(maxi == 0 & ilarge != 0, 1, ifelse(maxi == 0 & ilarge == 0, 0, ilarge / maxi))
     }
@@ -151,7 +147,7 @@ Score <- function(x, threshold, group = NULL, upper = NULL, lower = NULL, higher
       if (!g %in% (names(lower))) {
         mini <- quantile(ilow, 0.1)
       } else {
-        mini <- threshold - lower[g]
+        mini <- threshold - lower[[g]]
       }
       score[j][which(i < 0)] <- ifelse(mini == 0 & ilow != 0, -1, ifelse(mini == 0 & ilow == 0, 0, -ilow / mini))
     }

@@ -10,14 +10,15 @@ dropSplit(
   cell_score = 0.8,
   empty_score = 0.2,
   CE_ratio = 2,
-  smooth_num = 5,
+  fill_RankMSE = FALSE,
+  smooth_num = 3,
   smooth_window = 100,
   tolerance = 0.5,
-  Gini_control = TRUE,
-  Gini_threshold = NULL,
   Cell_rank = NULL,
   Uncertain_rank = NULL,
   Empty_rank = NULL,
+  Gini_control = TRUE,
+  Gini_threshold = NULL,
   Uncertain_downsample_times = 10,
   cell_score_FDR = 0.05,
   max_iter = 10,
@@ -44,17 +45,19 @@ dropSplit(
 
 \item{CE_ratio}{Ratio value between down-sampled 'Cells' and 'Empty' droplets. The actual value will be slightly higher than the set. \code{CE_ratio>1} can help with 'Cell' identification. Default is 2.}
 
-\item{smooth_num}{Number of times to smooth(take a mean value within a window length \code{smooth_window}) the squared error. Default is 5.}
+\item{fill_RankMSE}{Whether to fill the RankMSE by nCount. Default is \code{TRUE}.}
+
+\item{smooth_num}{Number of times to smooth(take a mean value within a window length \code{smooth_window}) the squared error. Default is 3.}
 
 \item{smooth_window}{Window length used to smooth the squared error. Default is 100.}
 
 \item{tolerance}{A value indicated the tolerance when finding RankMSE valleys. A value greater than 1 indicates relaxed and will find more valleys; lower than 1 indicates strict and will find less valleys. Default is 0.5.}
 
+\item{Cell_rank, Uncertain_rank, Empty_rank}{Custom Rank value to mark the droplets as Cell, Uncertain and Empty labels for the data to be trained. Default is automatic. But useful when the default value is considered to be wrong from the RankMSE plot.}
+
 \item{Gini_control}{Whether to control cell quality by CellGini. Default is \code{TRUE}.}
 
 \item{Gini_threshold}{A value used in \code{\link{Score}} function for CellGini metric. The higher, the more conservative and will get a lower number of cells. Default is automatic.}
-
-\item{Cell_rank, Uncertain_rank, Empty_rank}{Custom Rank value to mark the droplets as Cell, Uncertain and Empty labels for the data to be trained. Default is automatic. But useful when the default value is considered to be wrong from the RankMSE plot.}
 
 \item{Uncertain_downsample_times}{Number of downsample times for each Uncertain droplet. \code{XGBoostScore} of down-sampled droplets from the same Uncertain droplet will be averaged and perform \code{\link[stats]{t.test}} with \code{cell_score}. Default is 10.}
 

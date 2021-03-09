@@ -4,7 +4,7 @@
 \alias{find_inflection}
 \title{Find the index of inflection in a numeric vector.}
 \usage{
-find_inflection(x, df = 20)
+find_inflection(x, df = 10)
 }
 \arguments{
 \item{x}{A numeric vector.}
