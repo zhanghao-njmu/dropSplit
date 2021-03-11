@@ -100,7 +100,7 @@
 #' @importFrom ggplot2 ggplot aes geom_point geom_vline
 #' @export
 dropSplit <- function(counts, do_plot = TRUE, cell_score = 0.9, empty_score = 0.2, CE_ratio = 2,
-                      fill_RankMSE = FALSE, smooth_num = 3, smooth_window = 100, tolerance = 0.5,
+                      fill_RankMSE = FALSE, smooth_num = 3, smooth_window = 100, tolerance = 0.2,
                       Cell_rank = NULL, Uncertain_rank = NULL, Empty_rank = NULL,
                       Gini_control = TRUE, Gini_threshold = NULL,
                       Uncertain_downsample_times = 6, cell_score_FDR = 0.05,
