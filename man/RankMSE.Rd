@@ -10,7 +10,7 @@ RankMSE(
   smooth_num = 3,
   smooth_window = 100,
   find_cell_count = FALSE,
-  tolerance = 0.5
+  tolerance = 0.2
 )
 }
 \arguments{
@@ -24,7 +24,7 @@ RankMSE(
 
 \item{find_cell_count}{Whether to find RankMSE valleys ('Cell' count cutoff). Default is FALSE.}
 
-\item{tolerance}{A value indicated the tolerance when finding RankMSE valleys. A value greater than 1 indicates relaxed and will find more valleys; lower than 1 indicates strict and will find less valleys. Default is 0.5.}
+\item{tolerance}{A value indicated the tolerance when finding RankMSE valleys. A value greater than 1 indicates relaxed and will find more valleys; lower than 1 indicates strict and will find less valleys. Default is 0.2.}
 }
 \value{
 A list include \code{meta_info} and \code{cell_rank_count}

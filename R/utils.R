@@ -59,8 +59,10 @@ find_peaks <- function(x, left_shoulder = 10000, right_shoulder = 10000) {
 #' inflection <- find_inflection(Matrix::colSums(x))
 #' inflection
 #' @importFrom stats smooth.spline predict
+#' @importFrom inflection uik
+#' @importFrom utils head tail
 #' @export
-find_inflection <- function(x, df = 20) {
+find_inflection <- function(x, df = 10) {
   r <- x
   x <- x[x > 0]
   x <- sort(x, decreasing = TRUE)
@@ -70,11 +72,23 @@ find_inflection <- function(x, df = 20) {
   fitted <- predict(sp_fit1)
   fitted_x <- 10^fitted$x
   fitted_y <- 10^fitted$y
-  curvature <- curvatureCalcluate(fitted_y, fitted_x)$curvature
-  inflection_y <- fitted_y[which.max(curvature)]
+
+  ## uik
+  # inflection_x <- uik(x = fitted_x, y = fitted_y)
+  # inflection_y <- fitted_y[fitted_x==inflection_x][1]
+  # value <- max(r[r < inflection_y])
+  # index <- which.max(r == value)
+  # qplot(fitted_x,fitted_y)+xlim(0,100000)+geom_vline(xintercept = inflection_x)
+
+  ## curvature
+  curvature <- curvatureCalcluate(fitted_x, fitted_y)$curvature
+  pks <- find_peaks(curvature[fitted_x < 0.3 * max(fitted_x)], left_shoulder = 100, right_shoulder = length(curvature))
+  inflection_x <- fitted_x[pks[tail(which(curvature[pks] > 0.05 * max(curvature[pks])), 1)]]
+  # qplot(fitted_x, curvature) + xlim(0, 100000) + geom_vline(xintercept = fitted_x[pks])+geom_vline(xintercept = inflection_x,color="red")
+  inflection_y <- fitted_y[which(fitted_x == inflection_x)[1]]
   value <- max(r[r < inflection_y])
   index <- which(r == value)
-  return(list(index = index, value = value))
+  return(list(value = value, index = index))
 }
 
 #' Calculate curvature from the given x and y.
@@ -163,4 +177,3 @@ Score <- function(x, threshold, group = NULL, upper = NULL, lower = NULL, higher
   }
   return(score)
 }
-

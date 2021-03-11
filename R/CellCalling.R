@@ -198,6 +198,7 @@ CallCellRangerV3 <- function(counts, recovered_cells = 3000, recovered_cells_qua
     meta_info[cr3$barcode, "CellRangerV3Class"] <- ifelse(cr3$is_nonambient, "Cell", "Empty")
   }
   meta_info <- DataFrame(meta_info)
+  message("An additional ", sum(cr3$is_nonambien), " cells were identified.")
 
   message("\n>>> CellRangerV3 identified ", sum(meta_info$CellRangerV3Class == "Cell"), " cell-containing droplets.")
   return(meta_info)
@@ -329,7 +330,7 @@ find_nonambient_barcodes <- function(matrix, orig_cell_bcs,
   # tail(umis_per_bc_mask[order(umis_per_bc_mask)[1:n_unmasked_bcs]],100)
   eval_bcs <- order(umis_per_bc_mask)[1:n_unmasked_bcs]
   names(eval_bcs) <- names(umis_per_bc_mask)[order(umis_per_bc_mask)[1:n_unmasked_bcs]]
-  eval_bcs <- eval_bcs[max(length(eval_bcs) - n_candidate_barcodes, 1):length(eval_bcs)]
+  eval_bcs <- eval_bcs[max(length(eval_bcs) - n_candidate_barcodes + 1, 1):length(eval_bcs)]
 
   message("Number of candidate droplets used for prediction: ", length(eval_bcs))
   message("Range candidate droplets UMIs: ", min(umis_per_bc[eval_bcs]), ",", max(umis_per_bc[eval_bcs]))
@@ -359,14 +360,15 @@ find_nonambient_barcodes <- function(matrix, orig_cell_bcs,
   pvalues_adj <- p.adjust(pvalues, method = "BH")
   is_nonambient <- pvalues_adj <= max_adj_pvalue
 
-  return(data.frame(
+  result <- data.frame(
     barcode = colnames(matrix)[eval_bcs],
     eval_bcs = eval_bcs,
     log_likelihood = obs_loglk,
     pvalues = pvalues,
     pvalues_adj = pvalues_adj,
     is_nonambient = is_nonambient
-  ))
+  )
+  return(result)
 }
 
 

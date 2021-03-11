@@ -297,7 +297,7 @@ RankPlot <- function(meta_info, colorBy = "dropSplitClass", splitBy = "dropSplit
     ) +
     annotation_logticks() +
     labs(
-      title = "Mean Squared Error of nCount/nFeature Rank within a window",
+      title = "Smoothed RankMSE",
       subtitle = paste("#Cell:", sum(meta_info[, cell_stat_by] == "Cell")), x = "nCount_rank", y = "RankMSE"
     ) +
     theme_classic() +
@@ -479,7 +479,7 @@ CellEntropyPlot <- function(meta_info, colorBy = "dropSplitClass", splitBy = "dr
     ) +
     annotation_logticks(sides = "b") +
     labs(
-      title = "Cell Entropy Rate",
+      title = "Cell Redundancy",
       subtitle = paste0("#Cell: ", sum(meta_info[, cell_stat_by] == "Cell")),
       x = "nCount", y = "CellRedundancy"
     ) +

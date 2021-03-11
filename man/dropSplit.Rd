@@ -7,7 +7,7 @@
 dropSplit(
   counts,
   do_plot = TRUE,
-  cell_score = 0.8,
+  cell_score = 0.9,
   empty_score = 0.2,
   CE_ratio = 2,
   fill_RankMSE = FALSE,
@@ -30,6 +30,7 @@ dropSplit(
   xgb_nrounds = 20,
   xgb_thread = 8,
   modelOpt = FALSE,
+  verbose = 1,
   seed = 0,
   ...
 )
@@ -51,7 +52,7 @@ dropSplit(
 
 \item{smooth_window}{Window length used to smooth the squared error. Default is 100.}
 
-\item{tolerance}{A value indicated the tolerance when finding RankMSE valleys. A value greater than 1 indicates relaxed and will find more valleys; lower than 1 indicates strict and will find less valleys. Default is 0.5.}
+\item{tolerance}{A value indicated the tolerance when finding RankMSE valleys. A value greater than 1 indicates relaxed and will find more valleys; lower than 1 indicates strict and will find less valleys. Default is 0.2.}
 
 \item{Cell_rank, Uncertain_rank, Empty_rank}{Custom Rank value to mark the droplets as Cell, Uncertain and Empty labels for the data to be trained. Default is automatic. But useful when the default value is considered to be wrong from the RankMSE plot.}
 
@@ -80,6 +81,8 @@ dropSplit(
 \item{xgb_thread}{Number of thread used in \code{\link[xgboost]{xgb.cv}}.}
 
 \item{modelOpt}{Whether to optimize the model using \code{\link{xgbOptimization}}. Will take long time for large datasets. If \code{TRUE}, will overwrite the parameters list in \code{xgb_params}. The following parameters are only used in \code{\link{xgbOptimization}}.}
+
+\item{verbose}{If 0, xgboost will stay silent. If 1, it will print information about performance. If 2, some additional information will be printed out. Note that setting verbose > 0 automatically engages the cb.print.evaluation(period=1) callback function.}
 
 \item{seed}{Random seed used in simulation. Default is 0.}
 
