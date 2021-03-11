@@ -104,7 +104,7 @@ dropSplit <- function(counts, do_plot = TRUE, cell_score = 0.9, empty_score = 0.
                       Cell_rank = NULL, Uncertain_rank = NULL, Empty_rank = NULL,
                       Gini_control = TRUE, Gini_threshold = NULL,
                       Uncertain_downsample_times = 6, cell_score_FDR = 0.05,
-                      max_iter = 10, min_error = 0.002, min_improve = 0.001,
+                      max_iter = 10, min_error = 0.002, min_improve = 0,
                       preCell_mask = NULL, preEmpty_mask = TRUE,
                       xgb_params = NULL, xgb_nrounds = 20, xgb_thread = 8,
                       modelOpt = FALSE, verbose = 1, seed = 0, ...) {
@@ -358,7 +358,7 @@ dropSplit <- function(counts, do_plot = TRUE, cell_score = 0.9, empty_score = 0.
       to_predict <- ini_to_predict
     } else {
       empty_current <- rownames(meta_info)[meta_info$dropSplitClass == "Empty"]
-      raw_empty <- colnames(Empty_counts) # [colnames(Empty_counts) %in% empty_current]
+      raw_empty <- colnames(Empty_counts)[colnames(Empty_counts) %in% empty_current]
       new_empty <- colnames(Sim_Uncertain_counts)[Sim_Uncertain_counts_rawname %in% empty_current]
       empty_update <- c(new_empty, raw_empty)
       # if (length(empty_update) > ncol(Empty_counts)) {
