@@ -31,7 +31,7 @@ utils::globalVariables(c(".x", "Exp", "Feature", "Gain", "RankMSE", "nCount", "n
     if (colorBy %in% c("preDefinedClass", "dropSplitClass")) {
       p <- p + geom_histogram(
         aes(color = meta_info[, colorBy], fill = meta_info[, colorBy]),
-        bins = 50, alpha = 0.1, position = position_identity()
+        bins = 50, alpha = 0.5, position = position_identity()
       ) +
         scale_color_manual(
           name = colorBy,
@@ -45,7 +45,7 @@ utils::globalVariables(c(".x", "Exp", "Feature", "Gain", "RankMSE", "nCount", "n
       meta_info[, colorBy] <- factor(meta_info[, colorBy], levels = unique(meta_info[, colorBy]))
       p <- p + geom_histogram(
         aes(color = meta_info[, colorBy], fill = meta_info[, colorBy]),
-        bins = 50, alpha = 0.1, position = position_identity()
+        bins = 50, alpha = 0.5, position = position_identity()
       ) +
         scale_color_brewer(
           name = colorBy,
@@ -121,7 +121,7 @@ nCountPlot <- function(meta_info, colorBy = "dropSplitClass", splitBy = "dropSpl
     if (colorBy %in% c("preDefinedClass", "dropSplitClass")) {
       p <- p + geom_histogram(
         aes(color = meta_info[, colorBy], fill = meta_info[, colorBy]),
-        bins = 50, alpha = 0.1, position = position_identity()
+        bins = 50, alpha = 0.5, position = position_identity()
       ) +
         scale_color_manual(
           name = colorBy,
@@ -135,7 +135,7 @@ nCountPlot <- function(meta_info, colorBy = "dropSplitClass", splitBy = "dropSpl
       meta_info[, colorBy] <- factor(meta_info[, colorBy], levels = unique(meta_info[, colorBy]))
       p <- p + geom_histogram(
         aes(color = meta_info[, colorBy], fill = meta_info[, colorBy]),
-        bins = 50, alpha = 0.1, position = position_identity()
+        bins = 50, alpha = 0.5, position = position_identity()
       ) +
         scale_color_brewer(
           name = colorBy,
