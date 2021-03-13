@@ -42,6 +42,7 @@ utils::globalVariables(c(".x", "Exp", "Feature", "Gain", "RankMSE", "nCount", "n
           values = color
         )
     } else {
+      meta_info[, colorBy] <- factor(meta_info[, colorBy], levels = unique(meta_info[, colorBy]))
       p <- p + geom_histogram(
         aes(color = meta_info[, colorBy], fill = meta_info[, colorBy]),
         bins = 50, alpha = 0.1, position = position_identity()
@@ -131,6 +132,7 @@ nCountPlot <- function(meta_info, colorBy = "dropSplitClass", splitBy = "dropSpl
           values = color
         )
     } else {
+      meta_info[, colorBy] <- factor(meta_info[, colorBy], levels = unique(meta_info[, colorBy]))
       p <- p + geom_histogram(
         aes(color = meta_info[, colorBy], fill = meta_info[, colorBy]),
         bins = 50, alpha = 0.1, position = position_identity()
@@ -229,6 +231,7 @@ nFeaturePlot <- function(meta_info, colorBy = "dropSplitClass", splitBy = "dropS
         ) +
         guides(colour = guide_legend(override.aes = list(alpha = 1, size = 2)))
     } else {
+      meta_info[, colorBy] <- factor(meta_info[, colorBy], levels = unique(meta_info[, colorBy]))
       p <- p + geom_point(
         aes(color = meta_info[, colorBy]),
         alpha = 0.5, shape = 16
@@ -285,7 +288,7 @@ RankPlot <- function(meta_info, colorBy = "dropSplitClass", splitBy = "dropSplit
   color <- c("red3", "forestgreen", "steelblue", "grey80")
   names(color) <- c("Cell", "Uncertain", "Empty", "Discarded")
 
-  out <- RankMSE(meta_info = meta_info,find_cell_count = FALSE, ...)
+  out <- RankMSE(meta_info = meta_info, find_cell_count = FALSE, ...)
   meta_info <- out$meta_info
 
   p <- ggplot(meta_info, aes(x = nCount_rank, y = RankMSE)) +
@@ -328,6 +331,7 @@ RankPlot <- function(meta_info, colorBy = "dropSplitClass", splitBy = "dropSplit
         ) +
         guides(colour = guide_legend(override.aes = list(alpha = 1, size = 2)))
     } else {
+      meta_info[, colorBy] <- factor(meta_info[, colorBy], levels = unique(meta_info[, colorBy]))
       p <- p + geom_point(
         aes(color = meta_info[, colorBy]),
         alpha = 0.5, shape = 16
@@ -353,7 +357,7 @@ RankMSEPlot <- function(meta_info, colorBy = "dropSplitClass", splitBy = "dropSp
       levels = c("Cell", "Uncertain", "Empty", "Discarded")
     )
   }
-  p <- .RankMSEPlot(meta_info, colorBy, cell_stat_by,...)
+  p <- .RankMSEPlot(meta_info, colorBy, cell_stat_by, ...)
   if ("preDefinedClass" %in% colnames(meta_info)) {
     p <- p + geom_vline(
       xintercept = c(
@@ -419,6 +423,7 @@ RankMSEPlot <- function(meta_info, colorBy = "dropSplitClass", splitBy = "dropSp
         ) +
         guides(colour = guide_legend(override.aes = list(alpha = 1, size = 2)))
     } else {
+      meta_info[, colorBy] <- factor(meta_info[, colorBy], levels = unique(meta_info[, colorBy]))
       p <- p + geom_point(
         aes(color = meta_info[, colorBy]),
         alpha = 0.5, shape = 16
@@ -508,6 +513,7 @@ CellEntropyPlot <- function(meta_info, colorBy = "dropSplitClass", splitBy = "dr
         ) +
         guides(colour = guide_legend(override.aes = list(alpha = 1, size = 2)))
     } else {
+      meta_info[, colorBy] <- factor(meta_info[, colorBy], levels = unique(meta_info[, colorBy]))
       p <- p + geom_point(
         aes(color = meta_info[, colorBy]),
         alpha = 0.5, shape = 16
@@ -597,6 +603,7 @@ CellRedundancyPlot <- function(meta_info, colorBy = "dropSplitClass", splitBy = 
         ) +
         guides(colour = guide_legend(override.aes = list(alpha = 1, size = 2)))
     } else {
+      meta_info[, colorBy] <- factor(meta_info[, colorBy], levels = unique(meta_info[, colorBy]))
       p <- p + geom_point(
         aes(color = meta_info[, colorBy]),
         alpha = 0.5, shape = 16
@@ -674,7 +681,6 @@ CellGiniPlot <- function(meta_info, colorBy = "dropSplitClass", splitBy = "dropS
 #' @export
 QCplot <- function(meta_info, colorBy = "dropSplitClass", splitBy = "dropSplitClass", cell_stat_by = "dropSplitClass",
                    metrics = c("nCount", "nFeature", "Rank", "RankMSE", "CellEntropy", "CellRedundancy", "CellGini"), ...) {
-
   if (any(!metrics %in% c("nCount", "nFeature", "Rank", "RankMSE", "CellEntropy", "CellRedundancy", "CellGini"))) {
     stop("'metrics' must be in the options: 'nCount','nFeature','Rank','RankMSE','CellEntropy','CellRedundancy','CellGini'")
   }

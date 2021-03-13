@@ -36,3 +36,8 @@ A list including:
 \description{
 Uses the approximation from Lun et al. ( https://www.biorxiv.org/content/biorxiv/early/2018/04/04/234872.full.pdf )
 }
+\examples{
+profile_p <- c(.1, .2, .3, .1, .1, .2)
+umis_per_bc <- c(100, 100, 200, 300)
+simulate_multinomial_loglikelihoods(profile_p, umis_per_bc)
+}

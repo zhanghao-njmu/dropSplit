@@ -10,6 +10,9 @@ dropSplit(
   cell_score = 0.9,
   empty_score = 0.2,
   CE_ratio = 2,
+  nEmpty = 50000,
+  Empty_filter = TRUE,
+  Empty_overflow = TRUE,
   fill_RankMSE = FALSE,
   smooth_num = 3,
   smooth_window = 100,
@@ -44,6 +47,12 @@ dropSplit(
 \item{empty_score}{A cutoff value of \code{dropSplitScore} to determine if a droplet is empty. Range between 0 and 0.5. Note, a reasonable will also improve the accuracy for 'Cell' identification and this can be checked by \code{\link{QCplot}}. Default is 0.2.}
 
 \item{CE_ratio}{Ratio value between down-sampled 'Cells' and 'Empty' droplets. The actual value will be slightly higher than the set. Default is 1.}
+
+\item{nEmpty}{Number of pre-defined 'Empty' droplets. Default is 50000.}
+
+\item{Empty_filter}{Whether to filter pre-defined 'Empty' droplets when iterating. Default is \code{TRUE}.}
+
+\item{Empty_overflow}{Whether allow the number of 'Empty' droplets overflow after training in the iteration. Default is \code{TRUE}.}
 
 \item{fill_RankMSE}{Whether to fill the RankMSE by nCount. Default is \code{TRUE}.}
 
