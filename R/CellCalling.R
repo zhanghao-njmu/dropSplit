@@ -395,6 +395,7 @@ eval_multinomial_loglikelihoods <- function(matrix, profile_p) {
   }
   return(loglk)
 }
+# sp_stats.multinomial.logpmf(data, n=data.sum(1), p=[0.4, 0.6])
 
 #' Simulate draws from a multinomial distribution for various values of N.
 #' @description    Uses the approximation from Lun et al. ( https://www.biorxiv.org/content/biorxiv/early/2018/04/04/234872.full.pdf )
@@ -412,6 +413,10 @@ eval_multinomial_loglikelihoods <- function(matrix, profile_p) {
 #' }
 #' @importFrom stats rmultinom dmultinom
 #'
+#' @examples
+#' profile_p <- c(.1, .2, .3, .1, .1, .2)
+#' umis_per_bc <- c(100, 100, 200, 300)
+#' simulate_multinomial_loglikelihoods(profile_p, umis_per_bc)
 simulate_multinomial_loglikelihoods <- function(profile_p, umis_per_bc,
                                                 num_sims = 1000, jump = 1000,
                                                 n_sample_feature_block = 1000000, verbose = FALSE) {
@@ -419,9 +424,10 @@ simulate_multinomial_loglikelihoods <- function(profile_p, umis_per_bc,
   loglk <- matrix(rep(0, length(distinct_n) * num_sims), ncol = num_sims)
   num_all_n <- max(distinct_n) - min(distinct_n)
   if (verbose) {
-    message("Number of distinct N supplied: ", length(distinct_n))
-    message("Range of N: ", num_all_n)
-    message("Number of features: ", length(profile_p))
+    message("Simulate draws from a multinomial distribution")
+    message("... Number of distinct N supplied: ", length(distinct_n))
+    message("... Range of N: ", num_all_n)
+    message("... Number of features: ", length(profile_p))
   }
   sampled_features <- sample(length(profile_p), size = n_sample_feature_block, prob = profile_p, replace = TRUE)
   k <- 1
@@ -449,9 +455,9 @@ simulate_multinomial_loglikelihoods <- function(profile_p, umis_per_bc,
             # Amortize this operation
             sampled_features <- sample(length(profile_p), size = n_sample_feature_block, prob = profile_p, replace = TRUE)
             k <- 1
-            curr_counts[j] <- curr_counts[j] + 1
-            curr_loglk <- curr_loglk + log_profile_p[j] + log(n / curr_counts[j])
           }
+          curr_counts[j] <- curr_counts[j] + 1
+          curr_loglk <- curr_loglk + log_profile_p[j] + log(n / curr_counts[j])
         }
       }
       loglk[i, sim_idx] <- curr_loglk
@@ -657,7 +663,10 @@ sgt_proportions <- function(frequencies) {
 }
 
 
-# frequencies <- use_freqs <- xr <- c(1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 12, 14, 15, 16, 17, 19, 20, 21, 23, 24, 25, 26, 27, 28, 31, 32, 33, 34, 36, 41, 43, 45, 46, 47, 50, 71, 84, 101, 105, 121, 124, 146, 162, 193, 199, 224, 226, 254, 257, 339, 421, 456, 481, 483, 1140, 1256, 1322, 1530, 2131, 2395, 6925, 7846)
+# xr <- c(1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 12, 14, 15, 16, 17, 19, 20, 21, 23, 24, 25, 26, 27, 28, 31, 32, 33, 34, 36, 41, 43, 45, 46, 47, 50, 71, 84, 101, 105, 121, 124, 146, 162, 193, 199, 224, 226, 254, 257, 339, 421, 456, 481, 483, 1140, 1256, 1322, 1530, 2131, 2395, 6925, 7846)
 # xnr <- c(120, 40, 24, 13, 15, 5, 11, 2, 2, 1, 3, 2, 1, 1, 3, 1, 3, 2, 3, 3, 3, 2, 2, 1, 2, 2, 1, 2, 2, 3, 1, 3, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1)
+# frequencies <- rep(xr,xnr)
 
+# simple_good_turing(xr, xnr)
 # reticulate::repl_python()
+# frequencies=np.repeat(xr,xnr)

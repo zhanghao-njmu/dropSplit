@@ -16,6 +16,9 @@
 #' @param cell_score A cutoff value of \code{dropSplitScore} to determine if a droplet is cell-containing. Range between 0.5 and 1. Default is 0.8.
 #' @param empty_score A cutoff value of \code{dropSplitScore} to determine if a droplet is empty. Range between 0 and 0.5. Note, a reasonable will also improve the accuracy for 'Cell' identification and this can be checked by \code{\link{QCplot}}. Default is 0.2.
 #' @param CE_ratio Ratio value between down-sampled 'Cells' and 'Empty' droplets. The actual value will be slightly higher than the set. Default is 1.
+#' @param nEmpty Number of pre-defined 'Empty' droplets. Default is 50000.
+#' @param Empty_filter Whether to filter pre-defined 'Empty' droplets when iterating. Default is \code{TRUE}.
+#' @param Empty_overflow Whether allow the number of 'Empty' droplets overflow after training in the iteration. Default is \code{TRUE}.
 #' @param max_iter An integer specifying the number of iterations to use to rebuild the model with new defined droplets. Default is 10.
 #' @param min_error The minimum train error value to be achieved by the model. Default is 2e-3.
 #' @param min_improve Minimal improvement of the model. Default is 1e-3.
@@ -99,6 +102,7 @@
 #' @importFrom ggplot2 ggplot aes geom_point geom_vline
 #' @export
 dropSplit <- function(counts, do_plot = TRUE, cell_score = 0.9, empty_score = 0.2, CE_ratio = 2,
+                      nEmpty = 50000, Empty_filter = TRUE, Empty_overflow = TRUE,
                       fill_RankMSE = FALSE, smooth_num = 3, smooth_window = 100, tolerance = 0.2,
                       Cell_rank = NULL, Uncertain_rank = NULL, Empty_rank = NULL,
                       Gini_control = TRUE, Gini_threshold = NULL,
@@ -160,7 +164,7 @@ dropSplit <- function(counts, do_plot = TRUE, cell_score = 0.9, empty_score = 0.
     Uncertain_rank <- min(2 * Cell_rank, Cell_rank + which.max(meta_info$RankMSE[Cell_rank:(Cell_rank * 2)]) - 1)
   }
   if (is.null(Empty_rank)) {
-    Empty_rank <- Uncertain_rank + min(50000, nrow(meta_info) - Uncertain_rank)
+    Empty_rank <- Uncertain_rank + min(nEmpty, nrow(meta_info) - Uncertain_rank)
   }
   message("... Cell_rank=", Cell_rank, "\n... Uncertain_rank=", Uncertain_rank, "\n... Empty_rank=", Empty_rank)
   Cell_count <- meta_info$nCount[Cell_rank]
@@ -315,8 +319,8 @@ dropSplit <- function(counts, do_plot = TRUE, cell_score = 0.9, empty_score = 0.
   norm_counts <- Matrix::t(Matrix::t(comb_counts) / Matrix::colSums(comb_counts))
   dat <- cbind(Matrix::t(norm_counts), dat_Features[, colnames(dat_Features)])
   ini_train <- dat[c(colnames(Sim_Cell_counts), colnames(Empty_counts)), ]
-  ini_train_label <- c(rep(1,ncol(Sim_Cell_counts)), rep(0, ncol(Empty_counts)))
-  ini_to_predict <- dat[c( colnames(Sim_Cell_counts),colnames(Sim_Uncertain_counts), colnames(Empty_counts)), ]
+  ini_train_label <- c(rep(1, ncol(Sim_Cell_counts)), rep(0, ncol(Empty_counts)))
+  ini_to_predict <- dat[c(colnames(Sim_Cell_counts), colnames(Sim_Uncertain_counts), colnames(Empty_counts)), ]
   Sim_Cell_counts_rawname <- gsub(x = colnames(Sim_Cell_counts), pattern = "Sim\\d+-", replacement = "")
   Sim_Uncertain_counts_rawname <- gsub(x = colnames(Sim_Uncertain_counts), pattern = "Sim\\d+-", replacement = "")
 
@@ -368,19 +372,24 @@ dropSplit <- function(counts, do_plot = TRUE, cell_score = 0.9, empty_score = 0.
       to_predict <- ini_to_predict
     } else {
       empty_current <- rownames(meta_info)[meta_info$dropSplitClass == "Empty"]
-      raw_empty <- colnames(Empty_counts)[colnames(Empty_counts) %in% empty_current]
-      new_empty <- c(
-        # colnames(Uncertain_counts)[colnames(Uncertain_counts) %in% empty_current],
-        colnames(Sim_Uncertain_counts)[Sim_Uncertain_counts_rawname %in% empty_current]
-      )
+      if (isTRUE(Empty_filter)) {
+        raw_empty <- colnames(Empty_counts)[colnames(Empty_counts) %in% empty_current]
+      } else {
+        raw_empty <- colnames(Empty_counts)
+      }
+      new_empty <- colnames(Sim_Uncertain_counts)[Sim_Uncertain_counts_rawname %in% empty_current]
+
       empty_update <- c(new_empty, raw_empty)
-      ### retain all empty
-      # if (length(empty_update) > ncol(Empty_counts)) {
-      #   message("*** Number of 'Empty' droplets is too large. Take the top ", ncol(Empty_counts), " by nCount for training.")
-      #   empty_update_nCount <- c(Sim_Uncertain_nCount[new_empty], Empty_nCount[raw_empty])
-      #   empty_update_order <- order(empty_update_nCount, decreasing = TRUE)
-      #   empty_update <- empty_update[empty_update_order[1:ncol(Empty_counts)]]
-      # }
+      ### remove overflowing empty
+      if (!isTRUE(Empty_overflow)) {
+        if (length(empty_update) > ncol(Empty_counts)) {
+          message("*** Number of 'Empty' droplets is too large. Take the top ", ncol(Empty_counts), " by nCount for training.")
+          empty_update_nCount <- c(Sim_Uncertain_nCount[new_empty], Empty_nCount[raw_empty])
+          empty_update_order <- order(empty_update_nCount, decreasing = TRUE)
+          empty_update <- empty_update[empty_update_order[1:ncol(Empty_counts)]]
+        }
+      }
+
       if (length(empty_update) < ncol(Cell_counts)) {
         message("*** Number of 'Empty' droplets is too small(", length(empty_update), "). Use the previous model for final classification.")
         break
@@ -454,7 +463,7 @@ dropSplit <- function(counts, do_plot = TRUE, cell_score = 0.9, empty_score = 0.
     names(XGBoostScore) <- c(colnames(Cell_counts), colnames(Uncertain_counts), colnames(Empty_counts))
 
     if (is.null(preCell_mask)) {
-      preCell_mask <- train_error > 0.01
+      preCell_mask <- train_error > 0.002
     }
     if (isTRUE(preCell_mask)) {
       XGBoostScore[colnames(Cell_counts)] <- 1
@@ -491,6 +500,7 @@ dropSplit <- function(counts, do_plot = TRUE, cell_score = 0.9, empty_score = 0.
     meta_info[, "dropSplitClass"] <- ifelse(
       meta_info[, "dropSplitScore"] > cell_score, "Cell", ifelse(meta_info[, "dropSplitScore"] < empty_score, "Empty", "Uncertain")
     )
+    meta_info[meta_info$preDefinedClass == "Discarded", "dropSplitClass"] <- "Discarded"
 
     ## control FDR for 'Cell' switched from 'Uncertain'
     meta_info[meta_info$preDefinedClass == "Uncertain" & meta_info$dropSplitClass == "Cell" & meta_info$FDR >= cell_score_FDR, "dropSplitClass"] <- "Uncertain"
