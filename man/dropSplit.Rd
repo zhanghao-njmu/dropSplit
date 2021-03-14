@@ -8,7 +8,7 @@ dropSplit(
   counts,
   do_plot = TRUE,
   Cell_score = 0.9,
-  Empty_score = 0.2,
+  Empty_score = 0.1,
   CE_ratio = 2,
   Empty_num = 50000,
   Empty_filter = TRUE,
@@ -44,7 +44,7 @@ dropSplit(
 
 \item{Cell_score}{A cutoff value of \code{dropSplitScore} to determine if a droplet is cell-containing. Range between 0.5 and 1. Default is 0.8.}
 
-\item{Empty_score}{A cutoff value of \code{dropSplitScore} to determine if a droplet is empty. Range between 0 and 0.5. Note, a reasonable will also improve the accuracy for 'Cell' identification and this can be checked by \code{\link{QCplot}}. Default is 0.2.}
+\item{Empty_score}{A cutoff value of \code{dropSplitScore} to determine if a droplet is empty. Range between 0 and 0.5. Default is 0.1.}
 
 \item{CE_ratio}{Ratio value between down-sampled 'Cells' and 'Empty' droplets. The actual value will be slightly higher than the set. Default is 1.}
 
