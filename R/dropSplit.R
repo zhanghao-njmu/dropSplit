@@ -13,10 +13,10 @@
 #' It also provides a automatic XGBoost hyperparameters-tuning function to optimize the model.
 #' @param counts A \code{matrix} object or a \code{dgCMatrix} object which columns represent droplets and rows represent features.
 #' @param do_plot Whether to plot during the cellcalling. Default is \code{TRUE}.
-#' @param cell_score A cutoff value of \code{dropSplitScore} to determine if a droplet is cell-containing. Range between 0.5 and 1. Default is 0.8.
-#' @param empty_score A cutoff value of \code{dropSplitScore} to determine if a droplet is empty. Range between 0 and 0.5. Note, a reasonable will also improve the accuracy for 'Cell' identification and this can be checked by \code{\link{QCplot}}. Default is 0.2.
+#' @param Cell_score A cutoff value of \code{dropSplitScore} to determine if a droplet is cell-containing. Range between 0.5 and 1. Default is 0.8.
+#' @param Empty_score A cutoff value of \code{dropSplitScore} to determine if a droplet is empty. Range between 0 and 0.5. Default is 0.1.
 #' @param CE_ratio Ratio value between down-sampled 'Cells' and 'Empty' droplets. The actual value will be slightly higher than the set. Default is 1.
-#' @param nEmpty Number of pre-defined 'Empty' droplets. Default is 50000.
+#' @param Empty_num Number of pre-defined 'Empty' droplets. Default is 50000.
 #' @param Empty_filter Whether to filter pre-defined 'Empty' droplets when iterating. Default is \code{TRUE}.
 #' @param Empty_overflow Whether allow the number of 'Empty' droplets overflow after training in the iteration. Default is \code{TRUE}.
 #' @param max_iter An integer specifying the number of iterations to use to rebuild the model with new defined droplets. Default is 10.
@@ -26,8 +26,8 @@
 #' @param Gini_control Whether to control cell quality by CellGini. Default is \code{TRUE}.
 #' @param Gini_threshold A value used in \code{\link{Score}} function for CellGini metric. The higher, the more conservative and will get a lower number of cells. Default is automatic.
 #' @param Cell_rank,Uncertain_rank,Empty_rank Custom Rank value to mark the droplets as Cell, Uncertain and Empty labels for the data to be trained. Default is automatic. But useful when the default value is considered to be wrong from the RankMSE plot.
-#' @param cell_score_FDR FDR cutoff for droplets that predicted as 'Cell' from pre-defined 'Uncertain' or pre-defined 'Cell' droplets. Note, statistic tests and the FDR control only performed on the difference between averaged \code{XGBoostScore} and cell_score. It is not a false 'Cell' rate. Default is 0.05.
-#' @param preCell_mask logical; Whether to mask pre-defined 'Cell' droplets when prediction. If \code{TRUE}, XGBoostScore for all droplets pre-defined as 'Cell' will be set to 1; Default is automatic.
+#' @param Cell_score_FDR FDR cutoff for droplets that predicted as 'Cell' from pre-defined 'Uncertain' or pre-defined 'Cell' droplets. Note, statistic tests and the FDR control only performed on the difference between averaged \code{XGBoostScore} and Cell_score. It is not a false 'Cell' rate. Default is 0.05.
+#' @param preCell_mask logical; Whether to mask pre-defined 'Cell' droplets when prediction. If \code{TRUE}, XGBoostScore for all droplets pre-defined as 'Cell' will be set to 1; Default is \code{TRUE}.
 #' @param preEmpty_mask logical; Whether to mask pre-defined 'Empty' droplets when prediction. There is a little different with parameter \code{preCell_mask}. If \code{TRUE}, XGBoostScore will not change, but the final classification will not be 'Cell' in any case. Default is \code{TRUE}.
 #' @param xgb_params The \code{list} of XGBoost parameters.
 #' @param modelOpt Whether to optimize the model using \code{\link{xgbOptimization}}. Will take long time for large datasets. If \code{TRUE}, will overwrite the parameters list in \code{xgb_params}. The following parameters are only used in \code{\link{xgbOptimization}}.
@@ -101,14 +101,14 @@
 #' @importFrom S4Vectors DataFrame
 #' @importFrom ggplot2 ggplot aes geom_point geom_vline
 #' @export
-dropSplit <- function(counts, do_plot = TRUE, cell_score = 0.9, empty_score = 0.2, CE_ratio = 2,
-                      nEmpty = 50000, Empty_filter = TRUE, Empty_overflow = TRUE,
+dropSplit <- function(counts, do_plot = TRUE, Cell_score = 0.9, Empty_score = 0.1, CE_ratio = 2,
+                      Empty_num = 50000, Empty_filter = TRUE, Empty_overflow = TRUE,
                       fill_RankMSE = FALSE, smooth_num = 3, smooth_window = 100, tolerance = 0.2,
                       Cell_rank = NULL, Uncertain_rank = NULL, Empty_rank = NULL,
                       Gini_control = TRUE, Gini_threshold = NULL,
-                      cell_score_FDR = 0.05,
+                      Cell_score_FDR = 0.05,
                       max_iter = 10, min_error = 2e-3, min_improve = 1e-3,
-                      preCell_mask = NULL, preEmpty_mask = TRUE,
+                      preCell_mask = TRUE, preEmpty_mask = TRUE,
                       xgb_params = NULL, xgb_nrounds = 20, xgb_thread = 8,
                       modelOpt = FALSE, verbose = 1, seed = 0, ...) {
   start <- Sys.time()
@@ -121,9 +121,9 @@ dropSplit <- function(counts, do_plot = TRUE, cell_score = 0.9, empty_score = 0.
   if (length(colnames(counts)) != ncol(counts) | length(rownames(counts)) != nrow(counts)) {
     stop("'counts' matrix must have both row(feature) names and column(cell) names.")
   }
-  if (!is.null(cell_score)) {
-    if (cell_score < 0.5 | cell_score > 1) {
-      stop("'cell_score' must be between 0.5 and 1.")
+  if (!is.null(Cell_score)) {
+    if (Cell_score < 0.5 | Cell_score > 1) {
+      stop("'Cell_score' must be between 0.5 and 1.")
     }
   }
   if (!is.null(Gini_threshold)) {
@@ -155,16 +155,17 @@ dropSplit <- function(counts, do_plot = TRUE, cell_score = 0.9, empty_score = 0.
   meta_info <- out$meta_info
   cell_count <- out$cell_count
   inflection <- out$inflection
+  message("... The inflection point is detected at ", inflection)
 
   if (is.null(Cell_rank)) {
     Cell_rank <- max(meta_info$nCount_rank[meta_info$nCount > cell_count])
     # qplot(log10(meta_info$nCount_rank),log10(meta_info$RankMSE))+geom_vline(xintercept = log10(Cell_rank))
   }
   if (is.null(Uncertain_rank)) {
-    Uncertain_rank <- min(2 * Cell_rank, Cell_rank + which.max(meta_info$RankMSE[Cell_rank:(Cell_rank * 2)]) - 1)
+    Uncertain_rank <- Cell_rank + which.max(meta_info$RankMSE[Cell_rank:min(Cell_rank * 5, nrow(meta_info))]) - 1
   }
   if (is.null(Empty_rank)) {
-    Empty_rank <- Uncertain_rank + min(nEmpty, nrow(meta_info) - Uncertain_rank)
+    Empty_rank <- Uncertain_rank + min(Empty_num, nrow(meta_info) - Uncertain_rank)
   }
   message("... Cell_rank=", Cell_rank, "\n... Uncertain_rank=", Uncertain_rank, "\n... Empty_rank=", Empty_rank)
   Cell_count <- meta_info$nCount[Cell_rank]
@@ -189,7 +190,7 @@ dropSplit <- function(counts, do_plot = TRUE, cell_score = 0.9, empty_score = 0.
   primary_counts <- cbind(Cell_counts, Uncertain_counts, Empty_counts)
   final_Gini <- CellGini(primary_counts, normalize = TRUE)
   if (is.null(Gini_threshold)) {
-    Gini_threshold <- (quantile(final_Gini[colnames(Cell_counts)], 0.1) + (1 - 2 * cell_score) * quantile(final_Gini[colnames(Cell_counts)], 0.9)) / (2 - 2 * cell_score)
+    Gini_threshold <- (quantile(final_Gini[colnames(Cell_counts)], 0.1) + (1 - 2 * Cell_score) * quantile(final_Gini[colnames(Cell_counts)], 0.9)) / (2 - 2 * Cell_score)
     Gini_threshold <- ifelse(Gini_threshold < 0.95, 0.95, ifelse(Gini_threshold > 0.99, 0.99, Gini_threshold))
   }
   message("*** Gini_threshold was set to: ", round(Gini_threshold, 3))
@@ -226,13 +227,6 @@ dropSplit <- function(counts, do_plot = TRUE, cell_score = 0.9, empty_score = 0.
     Uncertain_counts <- cbind(as(Drop_counts, "dgCMatrix"), Uncertain_counts)
   }
 
-  # if (ncol(Empty_counts) > 50000) {
-  #   warning("Too many 'Empty' droplets. Only take the top 50000 'Empty' droplets by nCount in the following steps.",
-  #     immediate. = TRUE
-  #   )
-  #   Empty_counts <- Empty_counts[, 1:50000]
-  # }
-
   Cell_nCount <- Matrix::colSums(Cell_counts)
   Uncertain_nCount <- Matrix::colSums(Uncertain_counts)
   Empty_nCount <- Matrix::colSums(Empty_counts)
@@ -249,7 +243,7 @@ dropSplit <- function(counts, do_plot = TRUE, cell_score = 0.9, empty_score = 0.
     "\n... Number of Discarded: ", ncol(counts) - ncol(Cell_counts) - ncol(Uncertain_counts) - ncol(Empty_counts), "  Minimum nCounts: ", min(meta_info$nCount)
   )
   if (do_plot) {
-    p <- RankMSEPlot(meta_info, colorBy = "preDefinedClass", splitBy = NULL, cell_stat_by = "preDefinedClass")
+    p <- RankMSEPlot(meta_info, colorBy = "preDefinedClass", splitBy = NULL, cell_stat_by = "preDefinedClass") + geom_vline(xintercept = inflection)
     suppressWarnings(print(p))
   }
 
@@ -306,21 +300,16 @@ dropSplit <- function(counts, do_plot = TRUE, cell_score = 0.9, empty_score = 0.
     colnames(dat_Features)
   ] <- dat_Features[c(colnames(Cell_counts), colnames(Uncertain_counts), colnames(Empty_counts)), ]
 
-  # message(">>> Merge new features into train data...")
-  # norm_counts <- Matrix::t(Matrix::t(comb_counts) / Matrix::colSums(comb_counts))
-  # dat <- cbind(Matrix::t(norm_counts), dat_Features[, colnames(dat_Features)])
-  # ini_train <- dat[c(colnames(Cell_counts), colnames(Sim_Cell_counts), colnames(Empty_counts)), ]
-  # ini_train_label <- c(rep(1, ncol(Cell_counts) + ncol(Sim_Cell_counts)), rep(0, ncol(Empty_counts)))
-  # ini_to_predict <- dat[c(colnames(Cell_counts), colnames(Sim_Cell_counts), colnames(Uncertain_counts), colnames(Sim_Uncertain_counts), colnames(Empty_counts)), ]
-  # Sim_Cell_counts_rawname <- gsub(x = colnames(Sim_Cell_counts), pattern = "Sim\\d+-", replacement = "")
-  # Sim_Uncertain_counts_rawname <- gsub(x = colnames(Sim_Uncertain_counts), pattern = "Sim\\d+-", replacement = "")
-
   message(">>> Merge new features into train data...")
   norm_counts <- Matrix::t(Matrix::t(comb_counts) / Matrix::colSums(comb_counts))
   dat <- cbind(Matrix::t(norm_counts), dat_Features[, colnames(dat_Features)])
-  ini_train <- dat[c(colnames(Sim_Cell_counts), colnames(Empty_counts)), ]
-  ini_train_label <- c(rep(1, ncol(Sim_Cell_counts)), rep(0, ncol(Empty_counts)))
-  ini_to_predict <- dat[c(colnames(Sim_Cell_counts), colnames(Sim_Uncertain_counts), colnames(Empty_counts)), ]
+  ini_train <- dat[c(colnames(Cell_counts), colnames(Sim_Cell_counts), colnames(Empty_counts)), ]
+  ini_train_label <- c(rep(1, ncol(Cell_counts) + ncol(Sim_Cell_counts)), rep(0, ncol(Empty_counts)))
+  ini_to_predict <- dat[c(
+    colnames(Cell_counts), colnames(Sim_Cell_counts),
+    colnames(Uncertain_counts), colnames(Sim_Uncertain_counts),
+    colnames(Empty_counts)
+  ), ]
   Sim_Cell_counts_rawname <- gsub(x = colnames(Sim_Cell_counts), pattern = "Sim\\d+-", replacement = "")
   Sim_Uncertain_counts_rawname <- gsub(x = colnames(Sim_Uncertain_counts), pattern = "Sim\\d+-", replacement = "")
 
@@ -435,11 +424,11 @@ dropSplit <- function(counts, do_plot = TRUE, cell_score = 0.9, empty_score = 0.
     XGBoostScore <- predict(model_use, to_predict)
     names(XGBoostScore) <- rownames(to_predict)
 
-    Cell_XGBoostScore <- matrix(XGBoostScore[c(colnames(Sim_Cell_counts))], ncol = Cell_downsample_times)
+    Cell_XGBoostScore <- matrix(XGBoostScore[c(colnames(Cell_counts), colnames(Sim_Cell_counts))], ncol = Cell_downsample_times + 1)
     rownames(Cell_XGBoostScore) <- colnames(Cell_counts)
-    Uncertain_XGBoostScore <- matrix(XGBoostScore[c(colnames(Sim_Uncertain_counts))], ncol = Uncertain_downsample_times)
+    Uncertain_XGBoostScore <- matrix(XGBoostScore[c(colnames(Uncertain_counts), colnames(Sim_Uncertain_counts))], ncol = Uncertain_downsample_times + 1)
     rownames(Uncertain_XGBoostScore) <- colnames(Uncertain_counts)
-    mu <- abs(cell_score - 0.5)
+    mu <- abs(Cell_score - 0.5)
     stat_list <- lapply(list(Cell_XGBoostScore, Uncertain_XGBoostScore), function(m) {
       pvalue <- apply(m, 1, function(x) {
         if (length(unique(x)) == 1) {
@@ -462,9 +451,6 @@ dropSplit <- function(counts, do_plot = TRUE, cell_score = 0.9, empty_score = 0.
     )
     names(XGBoostScore) <- c(colnames(Cell_counts), colnames(Uncertain_counts), colnames(Empty_counts))
 
-    if (is.null(preCell_mask)) {
-      preCell_mask <- train_error > 0.002
-    }
     if (isTRUE(preCell_mask)) {
       XGBoostScore[colnames(Cell_counts)] <- 1
     }
@@ -498,12 +484,12 @@ dropSplit <- function(counts, do_plot = TRUE, cell_score = 0.9, empty_score = 0.
 
     ## make classification
     meta_info[, "dropSplitClass"] <- ifelse(
-      meta_info[, "dropSplitScore"] > cell_score, "Cell", ifelse(meta_info[, "dropSplitScore"] < empty_score, "Empty", "Uncertain")
+      meta_info[, "dropSplitScore"] > Cell_score, "Cell", ifelse(meta_info[, "dropSplitScore"] < Empty_score, "Empty", "Uncertain")
     )
     meta_info[meta_info$preDefinedClass == "Discarded", "dropSplitClass"] <- "Discarded"
 
     ## control FDR for 'Cell' switched from 'Uncertain'
-    meta_info[meta_info$preDefinedClass == "Uncertain" & meta_info$dropSplitClass == "Cell" & meta_info$FDR >= cell_score_FDR, "dropSplitClass"] <- "Uncertain"
+    meta_info[meta_info$preDefinedClass == "Uncertain" & meta_info$dropSplitClass == "Cell" & meta_info$FDR >= Cell_score_FDR, "dropSplitClass"] <- "Uncertain"
 
     ## mask 'Cell' switched from 'Empty'
     if (isTRUE(preEmpty_mask)) {
@@ -555,7 +541,7 @@ dropSplit <- function(counts, do_plot = TRUE, cell_score = 0.9, empty_score = 0.
 
   rescure <- which(meta_info[, "preDefinedClass"] %in% c("Uncertain", "Empty") & meta_info[, "dropSplitClass"] == "Cell")
   rescure_score <- meta_info[rescure, "dropSplitScore"]
-  er_rate <- train_error / cell_score
+  er_rate <- train_error / Cell_score
   drop <- floor(length(rescure) * er_rate)
   if (drop > 0) {
     drop_index <- rescure[order(rescure_score, decreasing = FALSE)[1:drop]]

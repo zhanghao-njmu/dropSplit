@@ -413,10 +413,10 @@ eval_multinomial_loglikelihoods <- function(matrix, profile_p) {
 #' }
 #' @importFrom stats rmultinom dmultinom
 #'
-#' @examples
-#' profile_p <- c(.1, .2, .3, .1, .1, .2)
-#' umis_per_bc <- c(100, 100, 200, 300)
-#' simulate_multinomial_loglikelihoods(profile_p, umis_per_bc)
+#'
+# profile_p <- c(.1, .2, .3, .1, .1, .2)
+# umis_per_bc <- c(100, 100, 200, 300)
+# simulate_multinomial_loglikelihoods(profile_p, umis_per_bc)
 simulate_multinomial_loglikelihoods <- function(profile_p, umis_per_bc,
                                                 num_sims = 1000, jump = 1000,
                                                 n_sample_feature_block = 1000000, verbose = FALSE) {

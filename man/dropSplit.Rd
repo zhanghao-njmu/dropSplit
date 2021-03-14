@@ -7,10 +7,10 @@
 dropSplit(
   counts,
   do_plot = TRUE,
-  cell_score = 0.9,
-  empty_score = 0.2,
+  Cell_score = 0.9,
+  Empty_score = 0.2,
   CE_ratio = 2,
-  nEmpty = 50000,
+  Empty_num = 50000,
   Empty_filter = TRUE,
   Empty_overflow = TRUE,
   fill_RankMSE = FALSE,
@@ -22,11 +22,11 @@ dropSplit(
   Empty_rank = NULL,
   Gini_control = TRUE,
   Gini_threshold = NULL,
-  cell_score_FDR = 0.05,
+  Cell_score_FDR = 0.05,
   max_iter = 10,
   min_error = 0.002,
   min_improve = 0.001,
-  preCell_mask = NULL,
+  preCell_mask = TRUE,
   preEmpty_mask = TRUE,
   xgb_params = NULL,
   xgb_nrounds = 20,
@@ -42,13 +42,13 @@ dropSplit(
 
 \item{do_plot}{Whether to plot during the cellcalling. Default is \code{TRUE}.}
 
-\item{cell_score}{A cutoff value of \code{dropSplitScore} to determine if a droplet is cell-containing. Range between 0.5 and 1. Default is 0.8.}
+\item{Cell_score}{A cutoff value of \code{dropSplitScore} to determine if a droplet is cell-containing. Range between 0.5 and 1. Default is 0.8.}
 
-\item{empty_score}{A cutoff value of \code{dropSplitScore} to determine if a droplet is empty. Range between 0 and 0.5. Note, a reasonable will also improve the accuracy for 'Cell' identification and this can be checked by \code{\link{QCplot}}. Default is 0.2.}
+\item{Empty_score}{A cutoff value of \code{dropSplitScore} to determine if a droplet is empty. Range between 0 and 0.5. Note, a reasonable will also improve the accuracy for 'Cell' identification and this can be checked by \code{\link{QCplot}}. Default is 0.2.}
 
 \item{CE_ratio}{Ratio value between down-sampled 'Cells' and 'Empty' droplets. The actual value will be slightly higher than the set. Default is 1.}
 
-\item{nEmpty}{Number of pre-defined 'Empty' droplets. Default is 50000.}
+\item{Empty_num}{Number of pre-defined 'Empty' droplets. Default is 50000.}
 
 \item{Empty_filter}{Whether to filter pre-defined 'Empty' droplets when iterating. Default is \code{TRUE}.}
 
@@ -68,7 +68,7 @@ dropSplit(
 
 \item{Gini_threshold}{A value used in \code{\link{Score}} function for CellGini metric. The higher, the more conservative and will get a lower number of cells. Default is automatic.}
 
-\item{cell_score_FDR}{FDR cutoff for droplets that predicted as 'Cell' from pre-defined 'Uncertain' or pre-defined 'Cell' droplets. Note, statistic tests and the FDR control only performed on the difference between averaged \code{XGBoostScore} and cell_score. It is not a false 'Cell' rate. Default is 0.05.}
+\item{Cell_score_FDR}{FDR cutoff for droplets that predicted as 'Cell' from pre-defined 'Uncertain' or pre-defined 'Cell' droplets. Note, statistic tests and the FDR control only performed on the difference between averaged \code{XGBoostScore} and Cell_score. It is not a false 'Cell' rate. Default is 0.05.}
 
 \item{max_iter}{An integer specifying the number of iterations to use to rebuild the model with new defined droplets. Default is 10.}
 
@@ -76,7 +76,7 @@ dropSplit(
 
 \item{min_improve}{Minimal improvement of the model. Default is 1e-3.}
 
-\item{preCell_mask}{logical; Whether to mask pre-defined 'Cell' droplets when prediction. If \code{TRUE}, XGBoostScore for all droplets pre-defined as 'Cell' will be set to 1; Default is automatic.}
+\item{preCell_mask}{logical; Whether to mask pre-defined 'Cell' droplets when prediction. If \code{TRUE}, XGBoostScore for all droplets pre-defined as 'Cell' will be set to 1; Default is \code{TRUE}.}
 
 \item{preEmpty_mask}{logical; Whether to mask pre-defined 'Empty' droplets when prediction. There is a little different with parameter \code{preCell_mask}. If \code{TRUE}, XGBoostScore will not change, but the final classification will not be 'Cell' in any case. Default is \code{TRUE}.}
 
