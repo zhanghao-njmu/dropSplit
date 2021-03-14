@@ -103,7 +103,7 @@
 #' @export
 dropSplit <- function(counts, do_plot = TRUE, Cell_score = 0.9, Empty_score = 0.1, CE_ratio = 2,
                       Empty_num = 50000, Empty_filter = TRUE, Empty_overflow = TRUE,
-                      fill_RankMSE = FALSE, smooth_num = 3, smooth_window = 100, tolerance = 0.2,
+                      fill_RankMSE = FALSE, smooth_num = 2, smooth_window = 100, tolerance = 0.2,
                       Cell_rank = NULL, Uncertain_rank = NULL, Empty_rank = NULL,
                       Gini_control = TRUE, Gini_threshold = NULL,
                       Cell_score_FDR = 0.05,
@@ -190,7 +190,7 @@ dropSplit <- function(counts, do_plot = TRUE, Cell_score = 0.9, Empty_score = 0.
   primary_counts <- cbind(Cell_counts, Uncertain_counts, Empty_counts)
   final_Gini <- CellGini(primary_counts, normalize = TRUE)
   if (is.null(Gini_threshold)) {
-    Gini_threshold <- (quantile(final_Gini[colnames(Cell_counts)], 0.1) + (1 - 2 * Cell_score) * quantile(final_Gini[colnames(Cell_counts)], 0.9)) / (2 - 2 * Cell_score)
+    Gini_threshold <- (quantile(final_Gini[colnames(Cell_counts)], 0.05) + (1 - 2 * Cell_score) * quantile(final_Gini[colnames(Cell_counts)], 0.9)) / (2 - 2 * Cell_score)
     Gini_threshold <- ifelse(Gini_threshold < 0.95, 0.95, ifelse(Gini_threshold > 0.99, 0.99, Gini_threshold))
   }
   message("*** Gini_threshold was set to: ", round(Gini_threshold, 3))
@@ -601,7 +601,7 @@ dropSplit <- function(counts, do_plot = TRUE, Cell_score = 0.9, Empty_score = 0.
 #' Calculate Mean Squared Error for nCount/nFeature Rank.
 #' @param meta_info A \code{data.frame} or \code{DataFrame}. Must contain the 'nCount' and 'nFeature' columns.
 #' @param fill_RankMSE Whether to fill the RankMSE by nCount. Default is \code{TRUE}.
-#' @param smooth_num Number of times to smooth(take a mean value within a window length \code{smooth_window}) the squared error. Default is 3.
+#' @param smooth_num Number of times to smooth(take a mean value within a window length \code{smooth_window}) the squared error. Default is 2.
 #' @param smooth_window Window length used to smooth the squared error. Default is 100.
 #' @param find_cell_count Whether to find RankMSE valleys ('Cell' count cutoff). Default is FALSE.
 #' @param tolerance A value indicated the tolerance when finding RankMSE valleys. A value greater than 1 indicates relaxed and will find more valleys; lower than 1 indicates strict and will find less valleys. Default is 0.2.
@@ -609,7 +609,7 @@ dropSplit <- function(counts, do_plot = TRUE, Cell_score = 0.9, Empty_score = 0.
 #' @return A list include \code{meta_info} and \code{cell_rank_count}
 #' @importFrom inflection uik
 #' @importFrom TTR runMean
-RankMSE <- function(meta_info, fill_RankMSE = FALSE, smooth_num = 3, smooth_window = 100, find_cell_count = FALSE, tolerance = 0.2) {
+RankMSE <- function(meta_info, fill_RankMSE = FALSE, smooth_num = 2, smooth_window = 100, find_cell_count = FALSE, tolerance = 0.2) {
   meta_info <- as.data.frame(meta_info)
   meta_info$nCount_rank <- rank(-(meta_info$nCount))
   meta_info$nFeature_rank <- rank(-(meta_info$nFeature))

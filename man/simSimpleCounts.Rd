@@ -17,7 +17,7 @@ simSimpleCounts(
   large_shape = 5,
   large_scale = 1000,
   small_prof = NULL,
-  small_ngene_rate = 0.3,
+  small_ngene_rate = 0.5,
   small_shape = 3,
   small_scale = 500,
   remove_zero_drop = TRUE,
