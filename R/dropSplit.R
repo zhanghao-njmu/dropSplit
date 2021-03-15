@@ -26,7 +26,7 @@
 #' @param Gini_control Whether to control cell quality by CellGini. Default is \code{TRUE}.
 #' @param Gini_threshold A value used in \code{\link{Score}} function for CellGini metric. The higher, the more conservative and will get a lower number of cells. Default is automatic.
 #' @param Cell_rank,Uncertain_rank,Empty_rank Custom Rank value to mark the droplets as Cell, Uncertain and Empty labels for the data to be trained. Default is automatic. But useful when the default value is considered to be wrong from the RankMSE plot.
-#' @param Cell_score_FDR FDR cutoff for droplets that predicted as 'Cell' from pre-defined 'Uncertain' or pre-defined 'Cell' droplets. Note, statistic tests and the FDR control only performed on the difference between averaged \code{XGBoostScore} and Cell_score. It is not a false 'Cell' rate. Default is 0.05.
+#' @param FDR FDR cutoff for droplets that predicted as 'Cell' or 'Empty' from pre-defined 'Uncertain'. Note, statistic tests and the FDR control only performed on the difference between averaged \code{XGBoostScore} and 0.5. Default is 0.05.
 #' @param preCell_mask logical; Whether to mask pre-defined 'Cell' droplets when prediction. If \code{TRUE}, XGBoostScore for all droplets pre-defined as 'Cell' will be set to 1; Default is \code{TRUE}.
 #' @param preEmpty_mask logical; Whether to mask pre-defined 'Empty' droplets when prediction. There is a little different with parameter \code{preCell_mask}. If \code{TRUE}, XGBoostScore will not change, but the final classification will not be 'Cell' in any case. Default is \code{TRUE}.
 #' @param xgb_params The \code{list} of XGBoost parameters.
@@ -106,7 +106,7 @@ dropSplit <- function(counts, do_plot = TRUE, Cell_score = 0.9, Empty_score = 0.
                       fill_RankMSE = FALSE, smooth_num = 2, smooth_window = 100, tolerance = 0.2,
                       Cell_rank = NULL, Uncertain_rank = NULL, Empty_rank = NULL,
                       Gini_control = TRUE, Gini_threshold = NULL,
-                      Cell_score_FDR = 0.05,
+                      FDR = 0.05,
                       max_iter = 10, min_error = 2e-3, min_improve = 1e-3,
                       preCell_mask = TRUE, preEmpty_mask = TRUE,
                       xgb_params = NULL, xgb_nrounds = 20, xgb_thread = 8,
@@ -428,7 +428,8 @@ dropSplit <- function(counts, do_plot = TRUE, Cell_score = 0.9, Empty_score = 0.
     rownames(Cell_XGBoostScore) <- colnames(Cell_counts)
     Uncertain_XGBoostScore <- matrix(XGBoostScore[c(colnames(Uncertain_counts), colnames(Sim_Uncertain_counts))], ncol = Uncertain_downsample_times + 1)
     rownames(Uncertain_XGBoostScore) <- colnames(Uncertain_counts)
-    mu <- abs(Cell_score - 0.5)
+    # mu <- abs(Cell_score - 0.5)
+    mu <- 0
     stat_list <- lapply(list(Cell_XGBoostScore, Uncertain_XGBoostScore), function(m) {
       pvalue <- apply(m, 1, function(x) {
         if (length(unique(x)) == 1) {
@@ -489,7 +490,12 @@ dropSplit <- function(counts, do_plot = TRUE, Cell_score = 0.9, Empty_score = 0.
     meta_info[meta_info$preDefinedClass == "Discarded", "dropSplitClass"] <- "Discarded"
 
     ## control FDR for 'Cell' switched from 'Uncertain'
-    meta_info[meta_info$preDefinedClass == "Uncertain" & meta_info$dropSplitClass == "Cell" & meta_info$FDR >= Cell_score_FDR, "dropSplitClass"] <- "Uncertain"
+    FDR_filter1 <- rownames(meta_info)[meta_info$preDefinedClass == "Uncertain" & meta_info$dropSplitClass == "Cell" & meta_info$FDR >= FDR]
+    message(">>> Filter out ",length(FDR_filter1)," potential 'Cell' droplets by FDR control","\n... mean FDR: ",round(mean(meta_info[FDR_filter1,"FDR"]),3))
+    meta_info[FDR_filter1, "dropSplitClass"] <- "Uncertain"
+    FDR_filter2 <- rownames(meta_info)[meta_info$preDefinedClass == "Uncertain" & meta_info$dropSplitClass == "Empty" & meta_info$FDR >= FDR]
+    message(">>> Filter out ",length(FDR_filter2)," potential 'Empty' droplets by FDR control","\n... mean FDR: ",round(mean(meta_info[FDR_filter2,"FDR"]),3))
+    meta_info[FDR_filter2, "dropSplitClass"] <- "Uncertain"
 
     ## mask 'Cell' switched from 'Empty'
     if (isTRUE(preEmpty_mask)) {

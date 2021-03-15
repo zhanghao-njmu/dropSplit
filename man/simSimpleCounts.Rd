@@ -13,7 +13,7 @@ simSimpleCounts(
   empty_ngene_rate = 0.05,
   empty_mean_count = 100,
   large_prof = NULL,
-  large_ngene_rate = 0.5,
+  large_ngene_rate = 0.7,
   large_shape = 5,
   large_scale = 1000,
   small_prof = NULL,

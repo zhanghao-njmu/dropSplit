@@ -22,7 +22,7 @@ dropSplit(
   Empty_rank = NULL,
   Gini_control = TRUE,
   Gini_threshold = NULL,
-  Cell_score_FDR = 0.05,
+  FDR = 0.05,
   max_iter = 10,
   min_error = 0.002,
   min_improve = 0.001,
@@ -68,7 +68,7 @@ dropSplit(
 
 \item{Gini_threshold}{A value used in \code{\link{Score}} function for CellGini metric. The higher, the more conservative and will get a lower number of cells. Default is automatic.}
 
-\item{Cell_score_FDR}{FDR cutoff for droplets that predicted as 'Cell' from pre-defined 'Uncertain' or pre-defined 'Cell' droplets. Note, statistic tests and the FDR control only performed on the difference between averaged \code{XGBoostScore} and Cell_score. It is not a false 'Cell' rate. Default is 0.05.}
+\item{FDR}{FDR cutoff for droplets that predicted as 'Cell' or 'Empty' from pre-defined 'Uncertain'. Note, statistic tests and the FDR control only performed on the difference between averaged \code{XGBoostScore} and 0.5. Default is 0.05.}
 
 \item{max_iter}{An integer specifying the number of iterations to use to rebuild the model with new defined droplets. Default is 10.}
 
