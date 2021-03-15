@@ -191,7 +191,7 @@ dropSplit <- function(counts, do_plot = TRUE, Cell_score = 0.9, Empty_score = 0.
   final_Gini <- CellGini(primary_counts, normalize = TRUE)
   if (is.null(Gini_threshold)) {
     Gini_threshold <- (quantile(final_Gini[colnames(Cell_counts)], 0.05) + (1 - 2 * Cell_score) * quantile(final_Gini[colnames(Cell_counts)], 0.9)) / (2 - 2 * Cell_score)
-    Gini_threshold <- ifelse(Gini_threshold < 0.95, 0.95, ifelse(Gini_threshold > 0.99, 0.99, Gini_threshold))
+    Gini_threshold <- ifelse(Gini_threshold < 0.9, 0.9, ifelse(Gini_threshold > 0.99, 0.99, Gini_threshold))
   }
   message("*** Gini_threshold was set to: ", round(Gini_threshold, 3))
   final_CellGiniScore <- Score(
