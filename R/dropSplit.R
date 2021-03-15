@@ -182,8 +182,8 @@ dropSplit <- function(counts, do_plot = TRUE, Cell_score = 0.9, Empty_score = 0.
   if (ncol(Empty_counts) == 0) {
     stop("No 'Empty' droplets detected. Please check the RankMSE curve with the pre-defined droplet cutoff. You may set custom cutoff values in the parameters manually.")
   }
-  if (ncol(Empty_counts) < ncol(Uncertain_counts) | ncol(Empty_counts) < ncol(Cell_counts)) {
-    stop("'Empty' droplets is fewer than 'Cell' or 'Uncertain'. Please check the RankMSE curve with the pre-defined droplet cutoff. You may set custom cutoff values in the parameters manually.")
+  if (ncol(Empty_counts) <  ncol(Cell_counts)) {
+    stop("Pre-defined 'Empty' droplets is fewer than 'Cell'. You may set custom rank values in the parameters manually.")
   }
 
   message(">>> Calculate CellGiniScore for the droplets...")
