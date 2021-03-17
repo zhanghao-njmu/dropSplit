@@ -12,7 +12,7 @@
 #' @export
 simSimpleCounts <- function(total_gene = 30000,
                             nempty = 20000, nlarge = 2000, nsmall = 200,
-                            empty_prof = NULL, empty_ngene_rate = 0.05, empty_rate = 100,
+                            empty_prof = NULL, empty_ngene_rate = 0.05, empty_rate = 1/100,
                             large_prof = NULL, large_ngene_rate = 0.7, large_shape = 5, large_scale = 1000,
                             small_prof = NULL, small_ngene_rate = 0.5, small_shape = 3, small_scale = 500,
                             remove_zero_drop = TRUE, remove_zero_feature = TRUE, seed = 0) {
@@ -87,7 +87,7 @@ simSimpleCounts <- function(total_gene = 30000,
 simComplexCounts <- function(total_gene = 30000, disturbance = 0.2,
                              nempty = 20000, nlarge = 5000, nsmall = 500,
                              empty_type = 5, large_type = 10, small_type = 2,
-                             empty_prof = NULL, empty_ngene_rate = 0.05, empty_rate = 100,
+                             empty_prof = NULL, empty_ngene_rate = 0.05, empty_rate = 1/100,
                              large_prof = NULL, large_ngene_rate = 0.7, large_shape = 5, large_scale = 1000,
                              small_prof = NULL, small_ngene_rate = 0.5, small_shape = 4, small_scale = 500,
                              large_frag = TRUE, large_frag_gene = 1:50, large_frag_prop = 0.5,
@@ -163,7 +163,7 @@ simComplexCounts <- function(total_gene = 30000, disturbance = 0.2,
     empty_prof <- empty_prof / sum(empty_prof)
   }
   empty_rates <- rnorm(n = empty_type, mean = empty_rate, sd = disturbance * empty_rate)
-  empty_rates[empty_rates < 10] <- 10
+  empty_rates[empty_rates < 1/10] <- 1/10
   empty_ngene_rates <- rnorm(n = empty_type, mean = empty_ngene_rate, sd = disturbance * empty_ngene_rate)
   empty_ngene_rates[empty_ngene_rates < 0] <- 0.1
   empty_ngene_rates[empty_ngene_rates > 1] <- 1
@@ -201,7 +201,7 @@ simComplexCounts <- function(total_gene = 30000, disturbance = 0.2,
   return(out)
 }
 
-simEmpty <- function(total_gene = 10000, nempty = 20000, empty_rate = 50,
+simEmpty <- function(total_gene = 10000, nempty = 20000, empty_rate = 1/50,
                      empty_prof = NULL, empty_ngene_rate = 0.01) {
   if (is.null(empty_prof)) {
     n <- round(total_gene * empty_ngene_rate, digits = 0)
@@ -215,7 +215,7 @@ simEmpty <- function(total_gene = 10000, nempty = 20000, empty_rate = 50,
   }
   empty_prof <- empty_prof / sum(empty_prof)
 
-  total_count <- rexp(nempty, rate = 1 / empty_rate)
+  total_count <- rexp(nempty, rate = empty_rate)
   empty_counts <- matrix(rpois(total_gene * nempty, lambda = outer(
     empty_prof,
     total_count
