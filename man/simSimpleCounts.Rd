@@ -11,7 +11,7 @@ simSimpleCounts(
   nsmall = 200,
   empty_prof = NULL,
   empty_ngene_rate = 0.05,
-  empty_mean_count = 100,
+  empty_rate = 1/100,
   large_prof = NULL,
   large_ngene_rate = 0.7,
   large_shape = 5,
@@ -38,7 +38,7 @@ simSimpleCounts(
 
 \item{empty_ngene_rate}{Rate of total genes expressed in each type of droplets.}
 
-\item{empty_mean_count}{Mean counts for empty droplets.}
+\item{empty_rate}{Rate parameter of exponential distribution for 'Empty'.}
 
 \item{large_prof}{The overall gene expression profile distribution. If provided, must be the same length with \code{total_gene}.}
 

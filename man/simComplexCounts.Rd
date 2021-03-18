@@ -15,7 +15,7 @@ simComplexCounts(
   small_type = 2,
   empty_prof = NULL,
   empty_ngene_rate = 0.05,
-  empty_mean_count = 100,
+  empty_rate = 1/100,
   large_prof = NULL,
   large_ngene_rate = 0.7,
   large_shape = 5,
@@ -48,7 +48,7 @@ simComplexCounts(
 
 \item{empty_ngene_rate, large_ngene_rate, small_ngene_rate}{Rate of total genes expressed in each type of droplets.}
 
-\item{empty_mean_count}{Mean counts for empty droplets.}
+\item{empty_rate}{Rate parameter of exponential distribution for 'Empty'.}
 
 \item{large_shape, small_shape}{shape parameters in the \code{\link[stats]{GammaDist}}. \code{shape*scale} control the expected mean value of counts in large or small cells.}
 
