@@ -163,7 +163,7 @@ simComplexCounts <- function(total_gene = 30000, disturbance = 0.2,
     empty_prof <- empty_prof / sum(empty_prof)
   }
   empty_rates <- rnorm(n = empty_type, mean = empty_rate, sd = disturbance * empty_rate)
-  empty_rates[empty_rates < 1/10] <- 1/10
+  empty_rates[empty_rates > 1/20] <- 1/20
   empty_ngene_rates <- rnorm(n = empty_type, mean = empty_ngene_rate, sd = disturbance * empty_ngene_rate)
   empty_ngene_rates[empty_ngene_rates < 0] <- 0.1
   empty_ngene_rates[empty_ngene_rates > 1] <- 1
@@ -260,9 +260,9 @@ simCell <- function(total_gene = 10000, ncell = 5000,
     nfrag_each_prop <- ceiling(nfrag / 20)
     raw_prop <- sum(cell_prof[frag_gene])
     if (raw_prop > 0 & raw_prop < frag_gene_prop) {
-      for (i in seq(raw_prop + (frag_gene_prop - raw_prop) / 2, frag_gene_prop, length.out = 10)) {
-        w1 <- frag_gene_prop / raw_prop
-        w2 <- (1 - frag_gene_prop) / (1 - raw_prop)
+      for (f in seq(raw_prop + (frag_gene_prop - raw_prop) / 2, frag_gene_prop, length.out = 10)) {
+        w1 <- f / raw_prop
+        w2 <- (1 - f) / (1 - raw_prop)
         frag_prof <- cell_prof
         frag_prof[frag_gene] <- frag_prof[frag_gene] * w1
         frag_prof[-frag_gene] <- frag_prof[-frag_gene] * w2
