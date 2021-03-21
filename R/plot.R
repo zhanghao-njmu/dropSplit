@@ -147,16 +147,6 @@ nCountPlot <- function(meta_info, colorBy = "dropSplitClass", splitBy = "dropSpl
         )
     }
   }
-  preDefinedClass <- unique(meta_info$preDefinedClass)
-  p <- p + geom_vline(
-    xintercept = c(
-      sapply(preDefinedClass, function(x) {
-        min(meta_info$nFeature[meta_info$preDefinedClass == x])
-      })
-    ),
-    color = color[preDefinedClass],
-    linetype = 2
-  )
 }
 nFeaturePlot <- function(meta_info, colorBy = "dropSplitClass", splitBy = "dropSplitClass", cell_stat_by = "dropSplitClass") {
   meta_info <- as.data.frame(meta_info)
