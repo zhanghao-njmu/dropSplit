@@ -21,7 +21,7 @@
 #' @param Empty_overflow Whether allow the number of 'Empty' droplets overflow after training in the iteration. Default is \code{TRUE}.
 #' @param max_iter An integer specifying the number of iterations to use to rebuild the model with new defined droplets. Default is 10.
 #' @param min_error The minimum train error value to be achieved by the model. Default is 2e-3.
-#' @param min_improve Minimal improvement of the model. Default is 1e-3.
+#' @param min_improve Minimal improvement of the model. If \code{-Inf}, the early stopping is not triggered. Default is 1e-3.
 #' @inheritParams RankMSE
 #' @param Gini_control Whether to control cell quality by CellGini. Default is \code{TRUE}.
 #' @param Gini_threshold A value used in \code{\link{Score}} function for CellGini metric. The higher, the more conservative and will get a lower number of cells. Default is automatic.
@@ -313,6 +313,26 @@ dropSplit <- function(counts, do_plot = TRUE, Cell_score = 0.9, Empty_score = 0.
   Sim_Cell_counts_rawname <- gsub(x = colnames(Sim_Cell_counts), pattern = "Sim\\d+-", replacement = "")
   Sim_Uncertain_counts_rawname <- gsub(x = colnames(Sim_Uncertain_counts), pattern = "Sim\\d+-", replacement = "")
 
+  xgb_base_params <- list(
+    eta = 0.3,
+    gamma = 1,
+    max_depth = 20,
+    min_child_weight = 7,
+    subsample = 0.7,
+    max_delta_step = 1,
+    alpha = 5,
+    lambda = 10,
+    eval_metric = "error",
+    eval_metric = "aucpr",
+    objective = "binary:logistic",
+    nthread = xgb_thread
+  )
+  if (!is.null(xgb_params)) {
+    for (nm in names(xgb_params)) {
+      xgb_base_params[[nm]] <- xgb_params[[nm]]
+    }
+  }
+  xgb_params <- xgb_base_params
 
   if (isTRUE(modelOpt)) {
     opt <- xgbOptimization(
@@ -320,26 +340,10 @@ dropSplit <- function(counts, do_plot = TRUE, Cell_score = 0.9, Empty_score = 0.
       xgb_nrounds = xgb_nrounds, xgb_thread = xgb_thread, ...
     )
     xgb_params <- c(opt$BestPars,
-      eval_metric = "error",
-      eval_metric = "auc",
-      objective = "binary:logistic",
-      nthread = xgb_thread
-    )
-  }
-  if (is.null(xgb_params)) {
-    xgb_params <- list(
-      eta = 0.3,
-      gamma = 1,
-      max_depth = 20,
-      min_child_weight = 7,
-      subsample = 0.7,
-      max_delta_step = 1,
-      alpha = 5,
-      lambda = 10,
-      eval_metric = "error",
-      eval_metric = "auc",
-      objective = "binary:logistic",
-      nthread = xgb_thread
+                    eval_metric = "error",
+                    eval_metric = "auc",
+                    objective = "binary:logistic",
+                    nthread = xgb_thread
     )
   }
   message(">>> Construct the XGBoost model with pre-defined classification...")
@@ -404,7 +408,7 @@ dropSplit <- function(counts, do_plot = TRUE, Cell_score = 0.9, Empty_score = 0.
     new_train_error <- tail(xgb$evaluation_log$train_error, 1)
 
     if (k >= 2) {
-      if (new_train_error > train_error) {
+      if (new_train_error > train_error & train_error - new_train_error <= min_improve) {
         message("*** train_error increased(", new_train_error, ">", train_error, "). Use the previous model for final classification.")
         break
       }

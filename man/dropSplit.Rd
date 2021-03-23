@@ -74,7 +74,7 @@ dropSplit(
 
 \item{min_error}{The minimum train error value to be achieved by the model. Default is 2e-3.}
 
-\item{min_improve}{Minimal improvement of the model. Default is 1e-3.}
+\item{min_improve}{Minimal improvement of the model. If \code{-Inf}, the early stopping is not triggered. Default is 1e-3.}
 
 \item{preCell_mask}{logical; Whether to mask pre-defined 'Cell' droplets when prediction. If \code{TRUE}, XGBoostScore for all droplets pre-defined as 'Cell' will be set to 1; Default is \code{TRUE}.}
 
