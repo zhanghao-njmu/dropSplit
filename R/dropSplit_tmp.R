@@ -344,10 +344,10 @@ dropSplit <- function(counts, do_plot = TRUE, Cell_score = 0.9, Empty_score = 0.
       xgb_nrounds = xgb_nrounds, xgb_thread = xgb_thread, ...
     )
     xgb_params <- c(opt$BestPars,
-                    eval_metric = "error",
-                    eval_metric = "auc",
-                    objective = "binary:logistic",
-                    nthread = xgb_thread
+      eval_metric = "error",
+      eval_metric = "auc",
+      objective = "binary:logistic",
+      nthread = xgb_thread
     )
   }
   message(">>> Construct the XGBoost model with pre-defined classification...")
@@ -677,8 +677,8 @@ RankMSE <- function(meta_info, fill_RankMSE = FALSE, smooth_num = 2, smooth_wind
     df_inflection_left <- head(which(df[, "nCount"] <= meta_info$nCount[inflection_left]), 1)
     df_inflection_right <- tail(which(df[, "nCount"] >= meta_info$nCount[inflection_right]), 1)
     pks <- df_inflection_left + find_peaks(-df$RankMSE[df_inflection_left:df_inflection_right],
-                                           left_shoulder = df_inflection * 0.05,
-                                           right_shoulder = df_inflection_right
+      left_shoulder = df_inflection * 0.05,
+      right_shoulder = df_inflection_right
     ) - 1
     # qplot(log10(1:length(df$RankMSE)), log(df$RankMSE))+geom_vline(xintercept = log10(pks))+ xlim(1, log10(df_inflection_right*1.2))
     # qplot((1:length(df$RankMSE)), log(df$RankMSE)) + xlim(1, df_inflection_right*1.2) + geom_vline(xintercept = c(pks))

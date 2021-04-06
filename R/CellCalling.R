@@ -79,7 +79,7 @@ CellCalling <- function(counts, method = "dropSplit", seed = 0, ...) {
 #' @importFrom DropletUtils emptyDrops
 #' @importFrom S4Vectors DataFrame
 #' @export
-CallEmptyDrops <- function(counts, FDR = 0.01, lower = 100, niters = 10000, ...) {
+CallEmptyDrops <- function(counts, lower = 100, niters = 10000, FDR = 0.01, ...) {
   meta_info <- emptyDrops(counts, lower = lower, niters = niters, ...)
   EmptyDropsClass <- ifelse(meta_info$FDR <= FDR, "Cell", "Empty")
   EmptyDropsClass[is.na(EmptyDropsClass)] <- "Empty"
