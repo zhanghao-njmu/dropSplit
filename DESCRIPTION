@@ -1,7 +1,7 @@
 Package: dropSplit
 Type: Package
 Title: Automatically identify cell-containing and empty droplets for droplet-based scRNAseq data using dropSplit
-Version: 1.0.1
+Version: 1.1.0
 Author: Hao Zhang
 Maintainer: Hao Zhang <542370159@qq.com>
 Description: Automatically and accurately split droplets into 'Cell' and 'Empty' for droplet-based scRNAseq data using dropSplit.
