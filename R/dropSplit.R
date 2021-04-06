@@ -753,7 +753,7 @@ RankMSE <- function(meta_info, fill_RankMSE = FALSE, smooth_num = 2, smooth_wind
 
     ## 'Empty' RankMSE valley
     maxrk <- max(which(df$nCount >= 10))
-    minrk <- crk*5
+    minrk <- crk * 5
     erk <- minrk + which.min(df[(minrk + 1):maxrk, "RankMSE"])
     empty_count <- df[erk, "nCount"]
     Empty_rank <- max(meta_info$nCount_rank[meta_info$nCount > empty_count])
