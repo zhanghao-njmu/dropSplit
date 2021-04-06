@@ -14,7 +14,7 @@
 #' @param counts A \code{matrix} object or a \code{dgCMatrix} object which columns represent droplets and rows represent features.
 #' @param do_plot Whether to plot during the cellcalling. Default is \code{TRUE}.
 #' @param Cell_score A cutoff value of \code{dropSplitScore} to determine if a droplet is cell-containing. Range between 0.5 and 1. Default is 0.8.
-#' @param Empty_score A cutoff value of \code{dropSplitScore} to determine if a droplet is empty. Range between 0 and 0.5. Default is 0.1.
+#' @param Empty_score A cutoff value of \code{dropSplitScore} to determine if a droplet is empty. Range between 0 and 0.5. Default is 0.25.
 #' @param CE_ratio Ratio value between down-sampled 'Cells' and 'Empty' droplets. The actual value will be slightly higher than the set. Default is 1.
 #' @param Empty_num Number of pre-defined 'Empty' droplets. Default is 50000.
 #' @param Empty_filter Whether to filter pre-defined 'Empty' droplets when iterating. Default is \code{TRUE}.
@@ -22,14 +22,14 @@
 #' @param max_iter An integer specifying the number of iterations to use to rebuild the model with new defined droplets. Default is 6.
 #' @param min_error The minimum train error value to be achieved by the model. Default is 2e-3.
 #' @param min_improve Minimal improvement of the model. If \code{-Inf}, the early stopping is not triggered. Default is 1e-3.
-#' @param iter_by_nCount Whether to divides the 'Uncertain' droplets into intervals by \code{nCount} and add new defined 'Empty' droplets from them incrementally in each iteration. Default is \code{FALSE}.
+#' @param iter_by_nCount Whether to divides the 'Uncertain' droplets into intervals by \code{nCount} and add new defined 'Empty' droplets from them incrementally in each iteration. Default is \code{TRUE}.
 #' @inheritParams RankMSE
 #' @param Gini_control Whether to control cell quality by CellGini. Default is \code{TRUE}.
 #' @param Gini_threshold A value used in \code{\link{Score}} function for CellGini metric. The higher, the more conservative and will get a lower number of cells. Default is automatic.
 #' @param Cell_rank,Uncertain_rank,Empty_rank Custom Rank value to mark the droplets as Cell, Uncertain and Empty labels for the data to be trained. Default is automatic. But useful when the default value is considered to be wrong from the RankMSE plot.
-#' @param FDR FDR cutoff for droplets that predicted as 'Cell' or 'Empty' from pre-defined 'Uncertain'. Note, statistic tests and the FDR control only performed on the difference between averaged \code{XGBoostScore} and 0.5. Default is 0.05.
 #' @param preCell_mask logical; Whether to mask pre-defined 'Cell' droplets when prediction. If \code{TRUE}, XGBoostScore for all droplets pre-defined as 'Cell' will be set to 1; Default is \code{TRUE}.
 #' @param preEmpty_mask logical; Whether to mask pre-defined 'Empty' droplets when prediction. There is a little different with parameter \code{preCell_mask}. If \code{TRUE}, XGBoostScore will not change, but the final classification will not be 'Cell' in any case. Default is \code{TRUE}.
+#' @param FDR FDR cutoff for droplets that predicted as 'Cell' or 'Empty' from pre-defined 'Uncertain'. Note, statistic tests and the FDR control only performed on the difference between averaged \code{XGBoostScore} and 0.5. Default is 0.05.
 #' @param xgb_params The \code{list} of XGBoost parameters.
 #' @param modelOpt Whether to optimize the model using \code{\link{xgbOptimization}}. Will take long time for large datasets. If \code{TRUE}, will overwrite the parameters list in \code{xgb_params}. The following parameters are only used in \code{\link{xgbOptimization}}.
 #' @inheritParams xgbOptimization
@@ -102,12 +102,12 @@
 #' @importFrom S4Vectors DataFrame
 #' @importFrom ggplot2 ggplot aes geom_point geom_vline
 #' @export
-dropSplit <- function(counts, do_plot = TRUE, Cell_score = 0.9, Empty_score = 0.1, CE_ratio = 2,
+dropSplit <- function(counts, do_plot = TRUE, Cell_score = 0.9, Empty_score = 0.25, CE_ratio = 2,
                       fill_RankMSE = FALSE, smooth_num = 2, smooth_window = 100, tolerance = 0.2,
                       Cell_rank = NULL, Uncertain_rank = NULL, Empty_rank = NULL,
                       Empty_num = 50000, Empty_filter = TRUE, Empty_overflow = TRUE,
                       Gini_control = TRUE, Gini_threshold = NULL,
-                      max_iter = 6, min_error = 2e-3, min_improve = 1e-3, iter_by_nCount = FALSE,
+                      max_iter = 6, min_error = 2e-3, min_improve = 1e-3, iter_by_nCount = TRUE,
                       preCell_mask = TRUE, preEmpty_mask = TRUE, FDR = 0.05,
                       xgb_params = NULL, xgb_nrounds = 20, xgb_thread = 8,
                       modelOpt = FALSE, verbose = 1, seed = 0, ...) {
@@ -151,30 +151,52 @@ dropSplit <- function(counts, do_plot = TRUE, Cell_score = 0.9, Empty_score = 0.
   meta_info <- meta_info[order(meta_info$nCount_rank, decreasing = FALSE), ]
   counts <- counts[, rownames(meta_info)]
 
-  out <- RankMSE(meta_info = meta_info, fill_RankMSE = fill_RankMSE, smooth_num = smooth_num, smooth_window = smooth_window, find_cell_count = TRUE, tolerance = tolerance)
+  out <- RankMSE(
+    meta_info = meta_info, fill_RankMSE = fill_RankMSE, smooth_num = smooth_num, smooth_window = smooth_window,
+    find_rank = TRUE, tolerance = tolerance
+  )
   meta_info <- out$meta_info
-  cell_count <- out$cell_count
   inflection <- out$inflection
-  message("... The inflection point is detected at ", inflection)
+  Cell_rank <- out$Cell_rank
+  Uncertain_rank <- out$Uncertain_rank
+  Empty_rank <- out$Empty_rank
 
-  if (is.null(Cell_rank)) {
-    Cell_rank <- max(meta_info$nCount_rank[meta_info$nCount > cell_count])
-    # qplot(log10(meta_info$nCount_rank),log10(meta_info$RankMSE))+geom_vline(xintercept = log10(Cell_rank))
-  }
-  if (is.null(Uncertain_rank)) {
-    Uncertain_rank <- Cell_rank + which.max(meta_info$RankMSE[(Cell_rank + 1):min(Cell_rank * 10, nrow(meta_info))])
-  }
-  if (is.null(Empty_rank)) {
-    Empty_rank <- Uncertain_rank + min(Empty_num, which.min(meta_info$RankMSE[(Uncertain_rank + 1):min(Uncertain_rank + Empty_num, nrow(meta_info))]))
-  }
-  message("... Cell_rank=", Cell_rank, "\n... Uncertain_rank=", Uncertain_rank, "\n... Empty_rank=", Empty_rank)
+  # if (is.null(Cell_rank)) {
+  #   Cell_rank <- max(meta_info$nCount_rank[meta_info$nCount > cell_count])
+  #   # qplot(log10(meta_info$nCount_rank),log10(meta_info$RankMSE))+geom_vline(xintercept = log10(Cell_rank))
+  # }
+  # if (is.null(Uncertain_rank)) {
+  #   Uncertain_rank <- Cell_rank + which.max(meta_info$RankMSE[(Cell_rank + 1):min(Cell_rank * 10, nrow(meta_info))])
+  # }
+  # if (is.null(Empty_rank)) {
+  #   Empty_rank <- Uncertain_rank + min(Empty_num, which.min(meta_info$RankMSE[(Uncertain_rank + 1):min(Uncertain_rank + Empty_num, nrow(meta_info))]))
+  # }
+  message(
+    "... The inflection point is detected at ", inflection,
+    "\n... Cell_rank=", Cell_rank,
+    "\n... Uncertain_rank=", Uncertain_rank,
+    "\n... Empty_rank=", Empty_rank
+  )
   Cell_count <- meta_info$nCount[Cell_rank]
+  Empty_count <- meta_info$nCount[Empty_rank]
   Uncertain_count <- meta_info$nCount[Uncertain_rank]
-  Empty_count <- max(meta_info$nCount[Empty_rank], 10)
 
   Cell_counts <- counts[, meta_info$nCount >= Cell_count]
-  Uncertain_counts <- counts[, meta_info$nCount < Cell_count & meta_info$nCount >= Uncertain_count]
   Empty_counts <- counts[, meta_info$nCount < Uncertain_count & meta_info$nCount >= Empty_count]
+  Uncertain_counts <- counts[, meta_info$nCount < Cell_count & meta_info$nCount >= Uncertain_count]
+
+  if (do_plot) {
+    p <- RankMSEPlot(meta_info, colorBy = "nFeature", splitBy = NULL, cell_stat_by = NULL) +
+      geom_vline(
+        xintercept = c(inflection),
+        color = c("black")
+      ) +
+      geom_vline(
+        xintercept = c(Cell_rank, Uncertain_rank, Empty_rank),
+        color = c("red3", "forestgreen", "steelblue"), linetype = 2
+      )
+    suppressWarnings(print(p))
+  }
 
   if (ncol(Uncertain_counts) == 0) {
     stop("No 'Uncertain' droplets detected. Please check the RankMSE curve with the pre-defined droplet cutoff. You may set custom cutoff values in the parameters manually.")
@@ -184,6 +206,11 @@ dropSplit <- function(counts, do_plot = TRUE, Cell_score = 0.9, Empty_score = 0.
   }
   if (ncol(Empty_counts) < ncol(Cell_counts)) {
     stop("Pre-defined 'Empty' droplets is fewer than 'Cell'. You may set custom rank values in the parameters manually.")
+  }
+  if (ncol(Empty_counts) > Empty_num) {
+    warning("The number of 'Empty' droplets exceeds the specified. Converting the excess 'Empty' droplets to 'Uncertain' droplets.")
+    Uncertain_counts <- cbind(Uncertain_counts, Empty_counts[, 1:(ncol(Empty_counts) - Empty_num)])
+    Empty_counts <- Empty_counts[, (ncol(Empty_counts) - Empty_num + 1):ncol(Empty_counts)]
   }
 
   message(">>> Calculate CellGiniScore for the droplets...")
@@ -301,7 +328,7 @@ dropSplit <- function(counts, do_plot = TRUE, Cell_score = 0.9, Empty_score = 0.
   ] <- dat_Features[c(colnames(Cell_counts), colnames(Uncertain_counts), colnames(Empty_counts)), ]
   meta_info[, "nCount_Bin"] <- 0
   if (isTRUE(iter_by_nCount)) {
-    meta_info[colnames(Uncertain_counts), "nCount_Bin"] <- rep(1:max_iter, each = ceiling(ncol(Uncertain_counts) / max_iter))[1:ncol(Uncertain_counts)]
+    meta_info[colnames(Uncertain_counts), "nCount_Bin"] <- rep(max_iter:1, each = ceiling(ncol(Uncertain_counts) / max_iter))[1:ncol(Uncertain_counts)]
   }
 
   message(">>> Merge new features into train data...")
@@ -410,10 +437,15 @@ dropSplit <- function(counts, do_plot = TRUE, Cell_score = 0.9, Empty_score = 0.
       verbose = verbose
     )
     new_train_error <- tail(xgb$evaluation_log$train_error, 1)
+    new_train_aucpr <- tail(xgb$evaluation_log$train_aucpr, 1)
 
     if (k >= 2) {
       if (new_train_error > train_error & train_error - new_train_error <= min_improve) {
         message("*** train_error increased(", new_train_error, ">", train_error, "). Use the previous model for final classification.")
+        break
+      }
+      if (new_train_aucpr < train_aucpr ) {
+        message("*** train_aucpr decreased(", new_train_aucpr, "<", train_aucpr, "). Use the previous model for final classification.")
         break
       }
       if (train_error - new_train_error <= min_improve | new_train_error <= min_error) {
@@ -425,6 +457,7 @@ dropSplit <- function(counts, do_plot = TRUE, Cell_score = 0.9, Empty_score = 0.
     }
 
     train_error <- new_train_error
+    train_aucpr <- new_train_aucpr
     model_use <- xgb
     train_use <- train
     train_label_use <- train_label
@@ -617,13 +650,14 @@ dropSplit <- function(counts, do_plot = TRUE, Cell_score = 0.9, Empty_score = 0.
 #' @param fill_RankMSE Whether to fill the RankMSE by nCount. Default is \code{TRUE}.
 #' @param smooth_num Number of times to smooth(take a mean value within a window length \code{smooth_window}) the squared error. Default is 2.
 #' @param smooth_window Window length used to smooth the squared error. Default is 100.
-#' @param find_cell_count Whether to find RankMSE valleys ('Cell' count cutoff). Default is FALSE.
+#' @param find_rank Whether to find the 'Cell' RankMSE valley, the 'Uncertain' RankMSE peak and the 'Empty' RankMSE valley. Default is FALSE.
 #' @param tolerance A value indicated the tolerance when finding RankMSE valleys. A value greater than 1 indicates relaxed and will find more valleys; lower than 1 indicates strict and will find less valleys. Default is 0.2.
 #'
 #' @return A list include \code{meta_info} and \code{cell_rank_count}
 #' @importFrom inflection uik
 #' @importFrom TTR runMean
-RankMSE <- function(meta_info, fill_RankMSE = FALSE, smooth_num = 2, smooth_window = 100, find_cell_count = FALSE, tolerance = 0.2) {
+RankMSE <- function(meta_info, fill_RankMSE = FALSE, smooth_num = 2, smooth_window = 100,
+                    find_rank = FALSE, tolerance = 0.2) {
   meta_info <- as.data.frame(meta_info)
   meta_info$nCount_rank <- rank(-(meta_info$nCount))
   meta_info$nFeature_rank <- rank(-(meta_info$nFeature))
@@ -672,7 +706,11 @@ RankMSE <- function(meta_info, fill_RankMSE = FALSE, smooth_num = 2, smooth_wind
   }
   # qplot(log10(1:length(df$RankMSE)), log(df$RankMSE))
 
-  if (isTRUE(find_cell_count)) {
+  Cell_rank <- NULL
+  Uncertain_rank <- NULL
+  Empty_rank <- NULL
+  if (isTRUE(find_rank)) {
+    ## 'Cell' RankMSE valley
     df_inflection <- head(which(df[, "nCount"] <= meta_info$nCount[inflection]), 1)
     df_inflection_left <- head(which(df[, "nCount"] <= meta_info$nCount[inflection_left]), 1)
     df_inflection_right <- tail(which(df[, "nCount"] >= meta_info$nCount[inflection_right]), 1)
@@ -686,7 +724,7 @@ RankMSE <- function(meta_info, fill_RankMSE = FALSE, smooth_num = 2, smooth_wind
     iter <- 1
     cell_max <- quantile(df[1:(pks[1] - 1), "logRankMSE"], 0.99)
     while (length(pks) > 1) {
-      message("... ", length(pks), " peaks found. Perform automatic selection(iter=", iter, ")...")
+      message("... ", length(pks), " 'Cell' valleys found. Perform automatic selection(iter=", iter, ")...")
       if (all(df[pks, "logRankMSE"] < 0)) {
         pks <- pks[length(pks)]
       }
@@ -716,21 +754,37 @@ RankMSE <- function(meta_info, fill_RankMSE = FALSE, smooth_num = 2, smooth_wind
     }
     # qplot(log10(1:length(df$RankMSE)), log(df$RankMSE))+geom_vline(xintercept = log10(pks))+ xlim(1, log10(df_inflection_right*1.2))
     cell_count <- df[pks, "nCount"]
-  } else {
-    cell_count <- NULL
+    crk <- max(which(df[, "nCount"] > cell_count))
+    Cell_rank <- max(meta_info$nCount_rank[meta_info$nCount > cell_count])
+
+    ## 'Empty' RankMSE valley
+    df[, "RankVSE"] <- df[, "RankSE"]
+    for (t in seq_len(smooth_num)) {
+      df[, "RankVSE"] <- runVar(df[, "RankSE"], n = smooth_window)
+      df[, "RankVSE"][is.na(df[, "RankVSE"])] <- na.omit(df[, "RankVSE"])[1]
+    }
+    df[, "RankMV"] <- (df[, "RankMSE"]^2) / df[, "RankVSE"]
+    erk <- crk + which.min(df[(crk + 1):max(which(df$nCount >= 10)), "RankMV"])
+    empty_count <- df[erk, "nCount"]
+    Empty_rank <- max(meta_info$nCount_rank[meta_info$nCount > empty_count])
+
+    ## 'Uncertain' RankMSE peak
+    urk <- crk + which.max(df[(crk + 1):erk, "RankMSE"])
+    uncertain_count <- df[urk, "nCount"]
+    Uncertain_rank <- max(meta_info$nCount_rank[meta_info$nCount > uncertain_count])
   }
 
   raw_df <- unique(df[, c("droplets", "RankMSE")])
   rownames(raw_df) <- raw_df$droplets
   meta_info$RankMSE <- raw_df[rownames(meta_info), "RankMSE"]
+  # qplot(log10(1:length(meta_info$RankMSE)), log10(meta_info$RankMSE))+geom_vline(xintercept = log10(c(Cell_rank,Empty_rank,Uncertain_rank)))
 
   return(list(
     meta_info = meta_info,
-    cell_count = cell_count,
     inflection = inflection,
-    fill_RankMSE = fill_RankMSE,
-    smooth_num = smooth_num,
-    smooth_window = smooth_window
+    Cell_rank = Cell_rank,
+    Uncertain_rank = Uncertain_rank,
+    Empty_rank = Empty_rank
   ))
 }
 

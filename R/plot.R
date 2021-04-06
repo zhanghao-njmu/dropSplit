@@ -24,10 +24,10 @@ utils::globalVariables(c(".x", "Exp", "Feature", "Gain", "RankMSE", "nCount", "n
     theme(
       aspect.ratio = 0.5,
     )
-  if (class(meta_info[, colorBy]) == "numeric") {
+  if (is.numeric(meta_info[, colorBy])) {
     colorBy <- "dropSplitClass"
   }
-  if (class(meta_info[, colorBy]) != "numeric") {
+  if (!is.numeric(meta_info[, colorBy])) {
     if (colorBy %in% c("preDefinedClass", "dropSplitClass")) {
       p <- p + geom_histogram(
         aes(color = meta_info[, colorBy], fill = meta_info[, colorBy]),
@@ -114,10 +114,10 @@ nCountPlot <- function(meta_info, colorBy = "dropSplitClass", splitBy = "dropSpl
     theme(
       aspect.ratio = 0.5,
     )
-  if (class(meta_info[, colorBy]) == "numeric") {
+  if (is.numeric(meta_info[, colorBy])) {
     colorBy <- "dropSplitClass"
   }
-  if (class(meta_info[, colorBy]) != "numeric") {
+  if (!is.numeric(meta_info[, colorBy])) {
     if (colorBy %in% c("preDefinedClass", "dropSplitClass")) {
       p <- p + geom_histogram(
         aes(color = meta_info[, colorBy], fill = meta_info[, colorBy]),
@@ -200,7 +200,7 @@ nFeaturePlot <- function(meta_info, colorBy = "dropSplitClass", splitBy = "dropS
     theme(
       aspect.ratio = 1,
     )
-  if (class(meta_info[, colorBy]) == "numeric") {
+  if (is.numeric(meta_info[, colorBy])) {
     p <- p + geom_point(
       aes(color = meta_info[, colorBy]),
       alpha = 0.5, shape = 16
@@ -209,7 +209,7 @@ nFeaturePlot <- function(meta_info, colorBy = "dropSplitClass", splitBy = "dropS
         name = colorBy
       )
   }
-  if (class(meta_info[, colorBy]) != "numeric") {
+  if (!is.numeric(meta_info[, colorBy])) {
     if (colorBy %in% c("preDefinedClass", "dropSplitClass")) {
       p <- p + geom_point(
         aes(color = meta_info[, colorBy]),
@@ -278,7 +278,7 @@ RankPlot <- function(meta_info, colorBy = "dropSplitClass", splitBy = "dropSplit
   color <- c("red3", "forestgreen", "steelblue", "grey80")
   names(color) <- c("Cell", "Uncertain", "Empty", "Discarded")
 
-  out <- RankMSE(meta_info = meta_info, find_cell_count = FALSE, ...)
+  out <- RankMSE(meta_info = meta_info, ...)
   meta_info <- out$meta_info
 
   p <- ggplot(meta_info, aes(x = nCount_rank, y = RankMSE)) +
@@ -297,7 +297,7 @@ RankPlot <- function(meta_info, colorBy = "dropSplitClass", splitBy = "dropSplit
     theme(
       aspect.ratio = 1,
     )
-  if (class(meta_info[, colorBy]) == "numeric") {
+  if (is.numeric(meta_info[, colorBy])) {
     p <- p + geom_point(
       aes(color = meta_info[, colorBy]),
       alpha = 0.5, shape = 16
@@ -306,7 +306,7 @@ RankPlot <- function(meta_info, colorBy = "dropSplitClass", splitBy = "dropSplit
         name = colorBy
       )
   }
-  if (class(meta_info[, colorBy]) != "numeric") {
+  if (!is.numeric(meta_info[, colorBy])) {
     if (colorBy %in% c("preDefinedClass", "dropSplitClass")) {
       p <- p + geom_point(
         aes(color = meta_info[, colorBy]),
@@ -392,7 +392,7 @@ RankMSEPlot <- function(meta_info, colorBy = "dropSplitClass", splitBy = "dropSp
     theme(
       aspect.ratio = 1,
     )
-  if (class(meta_info[, colorBy]) == "numeric") {
+  if (is.numeric(meta_info[, colorBy])) {
     p <- p + geom_point(
       aes(color = meta_info[, colorBy]),
       alpha = 0.5, shape = 16
@@ -401,7 +401,7 @@ RankMSEPlot <- function(meta_info, colorBy = "dropSplitClass", splitBy = "dropSp
         name = colorBy
       )
   }
-  if (class(meta_info[, colorBy]) != "numeric") {
+  if (!is.numeric(meta_info[, colorBy])) {
     if (colorBy %in% c("preDefinedClass", "dropSplitClass")) {
       p <- p + geom_point(
         aes(color = meta_info[, colorBy]),
@@ -482,7 +482,7 @@ CellEntropyPlot <- function(meta_info, colorBy = "dropSplitClass", splitBy = "dr
     theme(
       aspect.ratio = 1,
     )
-  if (class(meta_info[, colorBy]) == "numeric") {
+  if (is.numeric(meta_info[, colorBy])) {
     p <- p + geom_point(
       aes(color = meta_info[, colorBy]),
       alpha = 0.5, shape = 16
@@ -491,7 +491,7 @@ CellEntropyPlot <- function(meta_info, colorBy = "dropSplitClass", splitBy = "dr
         name = colorBy
       )
   }
-  if (class(meta_info[, colorBy]) != "numeric") {
+  if (!is.numeric(meta_info[, colorBy])) {
     if (colorBy %in% c("preDefinedClass", "dropSplitClass")) {
       p <- p + geom_point(
         aes(color = meta_info[, colorBy]),
@@ -572,7 +572,7 @@ CellRedundancyPlot <- function(meta_info, colorBy = "dropSplitClass", splitBy = 
     theme(
       aspect.ratio = 1,
     )
-  if (class(meta_info[, colorBy]) == "numeric") {
+  if (is.numeric(meta_info[, colorBy])) {
     p <- p + geom_point(
       aes(color = meta_info[, colorBy]),
       alpha = 0.5, shape = 16
@@ -581,7 +581,7 @@ CellRedundancyPlot <- function(meta_info, colorBy = "dropSplitClass", splitBy = 
         name = colorBy
       )
   }
-  if (class(meta_info[, colorBy]) != "numeric") {
+  if (!is.numeric(meta_info[, colorBy])) {
     if (colorBy %in% c("preDefinedClass", "dropSplitClass")) {
       p <- p + geom_point(
         aes(color = meta_info[, colorBy]),

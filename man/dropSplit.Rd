@@ -8,7 +8,7 @@ dropSplit(
   counts,
   do_plot = TRUE,
   Cell_score = 0.9,
-  Empty_score = 0.1,
+  Empty_score = 0.25,
   CE_ratio = 2,
   fill_RankMSE = FALSE,
   smooth_num = 2,
@@ -25,7 +25,7 @@ dropSplit(
   max_iter = 6,
   min_error = 0.002,
   min_improve = 0.001,
-  iter_by_nCount = FALSE,
+  iter_by_nCount = TRUE,
   preCell_mask = TRUE,
   preEmpty_mask = TRUE,
   FDR = 0.05,
@@ -42,7 +42,7 @@ dropSplit(
   counts,
   do_plot = TRUE,
   Cell_score = 0.9,
-  Empty_score = 0.1,
+  Empty_score = 0.25,
   CE_ratio = 2,
   fill_RankMSE = FALSE,
   smooth_num = 2,
@@ -59,7 +59,7 @@ dropSplit(
   max_iter = 6,
   min_error = 0.002,
   min_improve = 0.001,
-  iter_by_nCount = FALSE,
+  iter_by_nCount = TRUE,
   preCell_mask = TRUE,
   preEmpty_mask = TRUE,
   FDR = 0.05,
@@ -79,7 +79,7 @@ dropSplit(
 
 \item{Cell_score}{A cutoff value of \code{dropSplitScore} to determine if a droplet is cell-containing. Range between 0.5 and 1. Default is 0.8.}
 
-\item{Empty_score}{A cutoff value of \code{dropSplitScore} to determine if a droplet is empty. Range between 0 and 0.5. Default is 0.1.}
+\item{Empty_score}{A cutoff value of \code{dropSplitScore} to determine if a droplet is empty. Range between 0 and 0.5. Default is 0.25.}
 
 \item{CE_ratio}{Ratio value between down-sampled 'Cells' and 'Empty' droplets. The actual value will be slightly higher than the set. Default is 1.}
 
@@ -109,7 +109,7 @@ dropSplit(
 
 \item{min_improve}{Minimal improvement of the model. If \code{-Inf}, the early stopping is not triggered. Default is 1e-3.}
 
-\item{iter_by_nCount}{Whether to divides the 'Uncertain' droplets into intervals by \code{nCount} and add new defined 'Empty' droplets from them incrementally in each iteration. Default is \code{FALSE}.}
+\item{iter_by_nCount}{Whether to divides the 'Uncertain' droplets into intervals by \code{nCount} and add new defined 'Empty' droplets from them incrementally in each iteration. Default is \code{TRUE}.}
 
 \item{preCell_mask}{logical; Whether to mask pre-defined 'Cell' droplets when prediction. If \code{TRUE}, XGBoostScore for all droplets pre-defined as 'Cell' will be set to 1; Default is \code{TRUE}.}
 
