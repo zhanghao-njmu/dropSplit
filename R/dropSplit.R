@@ -109,7 +109,7 @@ dropSplit <- function(counts, do_plot = TRUE, Cell_score = 0.9, Empty_score = 0.
                       Cell_min_nCount = 500, Empty_min_nCount = 20,
                       Empty_max_num = 50000, Empty_overflow = TRUE, high_sensitive = FALSE,
                       Gini_control = TRUE, Gini_threshold = NULL,
-                      max_iter = 6, min_error = 1e-3, min_improve = 1e-5,
+                      max_iter = 5, min_error = 1e-3, min_improve = 1e-5,
                       preCell_mask = FALSE, preEmpty_mask = TRUE, FDR = 0.05,
                       xgb_params = NULL, xgb_nrounds = 20, xgb_thread = 8,
                       modelOpt = FALSE, verbose = 1, seed = 0, ...) {
