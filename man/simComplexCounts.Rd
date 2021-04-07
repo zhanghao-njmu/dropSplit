@@ -10,7 +10,7 @@ simComplexCounts(
   nempty = 20000,
   nlarge = 5000,
   nsmall = 500,
-  empty_type = 2,
+  empty_type = 5,
   large_type = 10,
   small_type = 2,
   empty_prof = NULL,

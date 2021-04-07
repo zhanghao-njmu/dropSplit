@@ -181,10 +181,6 @@ dropSplit <- function(counts, do_plot = TRUE, Cell_score = 0.9, Empty_score = 0.
   Empty_count <- meta_info$nCount[Empty_rank]
   Uncertain_count <- meta_info$nCount[Uncertain_rank]
 
-  if (Empty_count < 10) {
-    warning("The minimum nCount of 'Empty' droplets is ", Empty_count, ". Discard the droplets with nCount<10.", immediate. = TRUE)
-    Empty_count <- 10
-  }
   Cell_counts <- counts[, meta_info$nCount >= Cell_count]
   Empty_counts <- counts[, meta_info$nCount < Uncertain_count & meta_info$nCount >= Empty_count]
   Uncertain_counts <- counts[, meta_info$nCount < Cell_count & meta_info$nCount >= Uncertain_count]
