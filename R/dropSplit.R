@@ -369,10 +369,6 @@ dropSplit <- function(counts, do_plot = TRUE, Cell_score = 0.9, Empty_score = 0.
   train_error <- 1
   k <- 0
   j <- 0
-  if (max_iter == 1) {
-    message("max_iter=1 but at least 2 iteration needed. max_iter is set to 2.")
-    max_iter <- 2
-  }
   while (k < max_iter) {
     k <- k + 1
     j <- j + 1
@@ -382,7 +378,16 @@ dropSplit <- function(counts, do_plot = TRUE, Cell_score = 0.9, Empty_score = 0.
       train_label <- ini_train_label
       to_predict <- ini_to_predict
       empty_update <- colnames(Empty_counts)
+      cell_update <- c(colnames(Cell_counts),colnames(Sim_Cell_counts))
     } else {
+      cell_current <- rownames(meta_info)[meta_info$preDefinedClass == "Cell" & meta_info$dropSplitClass != "Empty"]
+      raw_cell <- cell_update
+      cell_update <- c(
+        colnames(Cell_counts)[colnames(Cell_counts) %in% cell_current],
+        colnames(Sim_Cell_counts)[Sim_Cell_counts_rawname %in% cell_current]
+      )
+      cell_remove_num <- length(raw_cell) - length(cell_update)
+
       if (isTRUE(high_sensitive)) {
         empty_current <- rownames(meta_info)[meta_info$dropSplitClass == "Empty" & meta_info$nCount_Bin <= k]
       } else {
@@ -390,7 +395,7 @@ dropSplit <- function(counts, do_plot = TRUE, Cell_score = 0.9, Empty_score = 0.
       }
       new_empty <- colnames(Sim_Uncertain_counts)[Sim_Uncertain_counts_rawname %in% empty_current]
       raw_empty <- empty_update[empty_update %in% empty_current]
-      remove_num <- length(empty_update) - length(raw_empty)
+      empty_remove_num <- length(empty_update) - length(raw_empty)
       empty_update <- c(new_empty, raw_empty)
 
       ### remove overflowing empty
@@ -408,11 +413,13 @@ dropSplit <- function(counts, do_plot = TRUE, Cell_score = 0.9, Empty_score = 0.
         break
       }
 
-      train <- dat[c(colnames(Cell_counts), colnames(Sim_Cell_counts), empty_update), ]
-      train_label <- c(rep(1, ncol(Cell_counts) + ncol(Sim_Cell_counts)), rep(0, length(empty_update)))
+      train <- dat[c(cell_update, empty_update), ]
+      train_label <- c(rep(1, length(cell_update)), rep(0, length(empty_update)))
 
       message(
-        "... Number of  filtered 'Empty' droplets defined in the previous round: ", remove_num,
+        "... Number of filtered 'Cell' droplets defined in the previous round: ", cell_remove_num,
+        "\n... Number of total 'Cell' droplets used for taining: ", length(cell_update),
+        "\n... Number of filtered 'Empty' droplets defined in the previous round: ", empty_remove_num,
         "\n... Number of newly added 'Empty' droplets from 'Uncertain': ", length(new_empty),
         "\n... Number of total 'Empty' droplets used for taining: ", length(empty_update)
       )
@@ -426,12 +433,17 @@ dropSplit <- function(counts, do_plot = TRUE, Cell_score = 0.9, Empty_score = 0.
       verbose = verbose
     )
     new_train_error <- tail(xgb$evaluation_log$train_error, 1)
+    new_train_aucpr <- tail(xgb$evaluation_log$train_aucpr, 1)
 
     if (k >= 2) {
       if (new_train_error > train_error & train_error - new_train_error <= min_improve) {
         message("*** train_error increased(", new_train_error, ">", train_error, "). Use the previous model for final classification.")
         break
       }
+      # if (new_train_aucpr < train_aucpr) {
+      #   message("*** train_aucpr decreased(", new_train_aucpr, "<", train_aucpr, "). Use the previous model for final classification.")
+      #   break
+      # }
       if (train_error - new_train_error <= min_improve | new_train_error <= min_error) {
         message("*** train_error is limited(reduced error:", round(train_error - new_train_error, 6), "). Use the current model for final classification.")
         k <- max_iter
@@ -441,6 +453,7 @@ dropSplit <- function(counts, do_plot = TRUE, Cell_score = 0.9, Empty_score = 0.
     }
 
     train_error <- new_train_error
+    train_aucpr <- new_train_aucpr
     model_use <- xgb
     train_use <- train
     train_label_use <- train_label
@@ -475,6 +488,7 @@ dropSplit <- function(counts, do_plot = TRUE, Cell_score = 0.9, Empty_score = 0.
     )
     xgUncertainScore <- ifelse(XGBoostScore[colnames(Uncertain_counts)] > 0.5 & stat_out[colnames(Uncertain_counts), "mean_value"] > 0.5,
       stat_out[colnames(Uncertain_counts), "mean_value"],
+      # pmin(stat_out[colnames(Uncertain_counts), "mean_value"], XGBoostScore[colnames(Uncertain_counts)]),
       pmin(stat_out[colnames(Uncertain_counts), "mean_value"], XGBoostScore[colnames(Uncertain_counts)])
     )
     XGBoostScore <- c(
