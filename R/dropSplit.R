@@ -750,7 +750,7 @@ RankMSE <- function(meta_info, fill_RankMSE = FALSE, smooth_num = 2, smooth_wind
     # qplot(log10(1:length(df$RankMSE)), log10(df$RankMSE))+geom_vline(xintercept=log10(crk))
 
     ## 'Empty' RankMSE valley
-    maxrk <- max(which(df$nCount >= 10))
+    maxrk <- max(which(df$nCount >= 20))
     minrk <- crk * 5
     erk <- minrk + find_peaks(-df[(minrk + 1):maxrk, "RankMSE"], left_shoulder = maxrk - minrk, right_shoulder = 10000)
     erk <- erk[erk != minrk + 1]
