@@ -21,11 +21,12 @@ dropSplit(
   Empty_min_nCount = 20,
   Empty_max_num = 50000,
   Empty_overflow = TRUE,
+  high_sensitive = FALSE,
   Gini_control = TRUE,
   Gini_threshold = NULL,
   max_iter = 6,
   min_error = 0.001,
-  min_improve = 1e-04,
+  min_improve = 1e-05,
   preCell_mask = FALSE,
   preEmpty_mask = TRUE,
   FDR = 0.05,
@@ -67,15 +68,17 @@ dropSplit(
 
 \item{Empty_overflow}{Whether allow the number of 'Empty' droplets overflow after training in the iteration. Default is \code{TRUE}.}
 
+\item{high_sensitive}{Whether to allow for highly sensitive 'Cell' detection. If \code{TRUE}, dropSplit will filter out the 'Empty' droplets defined in the previous round in each iteration. This will increase the specificity of the detection of 'Empty' droplets and the sensitivity of the detection of 'Cell' droplets, but will also introduce more false positives.}
+
 \item{Gini_control}{Whether to control cell quality by CellGini. Default is \code{TRUE}.}
 
 \item{Gini_threshold}{A value used in \code{\link{Score}} function for CellGini metric. The higher, the more conservative and will get a lower number of cells. Default is automatic.}
 
-\item{max_iter}{An integer specifying the number of iterations to use to rebuild the model with new defined droplets. Default is 6.}
+\item{max_iter}{An integer specifying the number of iterations to use to rebuild the model with new defined droplets. Default is 5.}
 
 \item{min_error}{The minimum train error value to be achieved by the model. Default is 1e-3.}
 
-\item{min_improve}{Minimal improvement of the model. If \code{-Inf}, the early stopping is not triggered. Default is 1e-4.}
+\item{min_improve}{Minimal improvement of the model. If \code{-Inf}, the early stopping is not triggered. Default is 1e-5.}
 
 \item{preCell_mask}{logical; Whether to mask pre-defined 'Cell' droplets when prediction. If \code{TRUE}, XGBoostScore for all droplets pre-defined as 'Cell' will be set to 1; Default is \code{FALSE}.}
 

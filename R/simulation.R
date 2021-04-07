@@ -12,9 +12,9 @@
 #' @export
 simSimpleCounts <- function(total_gene = 30000,
                             nempty = 20000, nlarge = 2000, nsmall = 200,
-                            empty_prof = NULL, empty_ngene_rate = 0.01, empty_rate = 1 / 100,
-                            large_prof = NULL, large_ngene_rate = 0.7, large_shape = 3, large_scale = 1000,
-                            small_prof = NULL, small_ngene_rate = 0.7, small_shape = 15, small_scale = 100,
+                            empty_prof = NULL, empty_ngene_rate = 0.05, empty_rate = 1 / 100,
+                            large_prof = NULL, large_ngene_rate = 0.7, large_shape = 6, large_scale = 500,
+                            small_prof = NULL, small_ngene_rate = 0.7, small_shape = 10, small_scale = 100,
                             remove_zero_drop = TRUE, remove_zero_feature = TRUE, seed = 0) {
   set.seed(seed)
 
@@ -85,11 +85,11 @@ simSimpleCounts <- function(total_gene = 30000,
 #' @importFrom stats rexp rgamma rpois runif rnorm
 #' @export
 simComplexCounts <- function(total_gene = 30000, disturbance = 0.2,
-                             nempty = 20000, nlarge = 5000, nsmall = 500,
+                             nempty = 30000, nlarge = 5000, nsmall = 500,
                              empty_type = 2, large_type = 10, small_type = 2,
-                             empty_prof = NULL, empty_ngene_rate = 0.05, empty_rate = 1 / 100,
-                             large_prof = NULL, large_ngene_rate = 0.7, large_shape = 3, large_scale = 1000,
-                             small_prof = NULL, small_ngene_rate = 0.7, small_shape = 15, small_scale = 100,
+                             empty_prof = NULL, empty_ngene_rate = 0.05, empty_rate = 1 / 200,
+                             large_prof = NULL, large_ngene_rate = 0.7, large_shape = 6, large_scale = 500,
+                             small_prof = NULL, small_ngene_rate = 0.7, small_shape = 10, small_scale = 100,
                              large_frag = TRUE, large_frag_gene = 1:50, large_frag_prop = 0.5,
                              small_frag = TRUE, small_frag_gene = 1:50, small_frag_prop = 0.5,
                              remove_zero_drop = TRUE, remove_zero_feature = TRUE, seed = 0) {
@@ -99,9 +99,6 @@ simComplexCounts <- function(total_gene = 30000, disturbance = 0.2,
   large_shapes[large_shapes < 1] <- 1
   large_scales <- rnorm(n = large_type, mean = large_scale, sd = disturbance * large_scale)
   large_scales[large_scales < 1] <- 1
-  large_ngene_rates <- rnorm(n = large_type, mean = large_ngene_rate, sd = (disturbance * large_ngene_rate)^2)
-  large_ngene_rates[large_ngene_rates < 0] <- 0.1
-  large_ngene_rates[large_ngene_rates > 1] <- 1
   nlarges <- rnorm(n = large_type, mean = 1 / large_type, sd = disturbance / large_type)
   nlarges <- round(nlarges / sum(nlarges) * nlarge, digits = 0)
   nlarges <- nlarges[-1]
@@ -115,7 +112,7 @@ simComplexCounts <- function(total_gene = 30000, disturbance = 0.2,
   for (i in seq_len(large_type)) {
     large_counts_list[[i]] <- simCell(
       total_gene = total_gene, ncell = nlarges[i],
-      cell_prof = large_prof, cell_ngene_rate = large_ngene_rates[i],
+      cell_prof = large_prof, cell_ngene_rate = large_ngene_rate,
       cell_shape = large_shapes[i], cell_scale = large_scales[i],
       frag = large_frag, frag_gene = large_frag_gene, frag_gene_prop = large_frag_props[i]
     )
@@ -130,9 +127,6 @@ simComplexCounts <- function(total_gene = 30000, disturbance = 0.2,
   small_shapes[small_shapes < 1] <- 1
   small_scales <- rnorm(n = small_type, mean = small_scale, sd = disturbance * small_scale)
   small_scales[small_scales < 1] <- 1
-  small_ngene_rates <- rnorm(n = small_type, mean = small_ngene_rate, sd = (disturbance * small_ngene_rate)^2)
-  small_ngene_rates[small_ngene_rates < 0] <- 0.1
-  small_ngene_rates[small_ngene_rates > 1] <- 1
   nsmalls <- rnorm(n = small_type, mean = 1 / small_type, sd = disturbance / small_type)
   nsmalls <- round(nsmalls / sum(nsmalls) * nsmall, digits = 0)
   nsmalls <- nsmalls[-1]
@@ -146,7 +140,7 @@ simComplexCounts <- function(total_gene = 30000, disturbance = 0.2,
   for (i in seq_len(small_type)) {
     small_counts_list[[i]] <- simCell(
       total_gene = total_gene, ncell = nsmalls[i],
-      cell_prof = small_prof, cell_ngene_rate = small_ngene_rates[i],
+      cell_prof = small_prof, cell_ngene_rate = small_ngene_rate,
       cell_shape = small_shapes[i], cell_scale = small_scales[i],
       frag = small_frag, frag_gene = small_frag_gene, frag_gene_prop = small_frag_props[i]
     )
@@ -164,9 +158,6 @@ simComplexCounts <- function(total_gene = 30000, disturbance = 0.2,
   }
   empty_rates <- rnorm(n = empty_type, mean = empty_rate, sd = disturbance * empty_rate)
   empty_rates[empty_rates > 1 / 20] <- 1 / 20
-  empty_ngene_rates <- rnorm(n = empty_type, mean = empty_ngene_rate, sd = (disturbance * empty_ngene_rate)^2)
-  empty_ngene_rates[empty_ngene_rates < 0] <- 0.1
-  empty_ngene_rates[empty_ngene_rates > 1] <- 1
   nemptys <- rnorm(n = empty_type, mean = 1 / empty_type, sd = 0.2 / empty_type)
   nemptys <- round(nemptys / sum(nemptys) * nempty, digits = 0)
   nemptys <- nemptys[-1]
@@ -176,7 +167,7 @@ simComplexCounts <- function(total_gene = 30000, disturbance = 0.2,
   for (i in seq_len(empty_type)) {
     empty_counts_list[[i]] <- simEmpty(
       total_gene = total_gene, nempty = nemptys[i],
-      empty_ngene_rate = empty_ngene_rates[i],
+      empty_ngene_rate = empty_ngene_rate,
       empty_prof = empty_prof, empty_rate = empty_rates[i]
     )
     empty_cluster_list[[i]] <- rep(paste0("cluster", i), ncol(empty_counts_list[[i]]))

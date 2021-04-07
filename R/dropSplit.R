@@ -22,9 +22,9 @@
 #' @param Empty_max_num Number of pre-defined 'Empty' droplets. Default is 50000.
 #' @param Empty_overflow Whether allow the number of 'Empty' droplets overflow after training in the iteration. Default is \code{TRUE}.
 #' @param high_sensitive Whether to allow for highly sensitive 'Cell' detection. If \code{TRUE}, dropSplit will filter out the 'Empty' droplets defined in the previous round in each iteration. This will increase the specificity of the detection of 'Empty' droplets and the sensitivity of the detection of 'Cell' droplets, but will also introduce more false positives.
-#' @param max_iter An integer specifying the number of iterations to use to rebuild the model with new defined droplets. Default is 6.
+#' @param max_iter An integer specifying the number of iterations to use to rebuild the model with new defined droplets. Default is 5.
 #' @param min_error The minimum train error value to be achieved by the model. Default is 1e-3.
-#' @param min_improve Minimal improvement of the model. If \code{-Inf}, the early stopping is not triggered. Default is 1e-4.
+#' @param min_improve Minimal improvement of the model. If \code{-Inf}, the early stopping is not triggered. Default is 1e-5.
 #' @param Gini_control Whether to control cell quality by CellGini. Default is \code{TRUE}.
 #' @param Gini_threshold A value used in \code{\link{Score}} function for CellGini metric. The higher, the more conservative and will get a lower number of cells. Default is automatic.
 #' @param Cell_rank,Uncertain_rank,Empty_rank Custom Rank value to mark the droplets as Cell, Uncertain and Empty labels for the data to be trained. Default is automatic. But useful when the default value is considered to be wrong from the RankMSE plot.
@@ -109,7 +109,7 @@ dropSplit <- function(counts, do_plot = TRUE, Cell_score = 0.9, Empty_score = 0.
                       Cell_min_nCount = 500, Empty_min_nCount = 20,
                       Empty_max_num = 50000, Empty_overflow = TRUE, high_sensitive = FALSE,
                       Gini_control = TRUE, Gini_threshold = NULL,
-                      max_iter = 6, min_error = 1e-3, min_improve = 1e-4,
+                      max_iter = 6, min_error = 1e-3, min_improve = 1e-5,
                       preCell_mask = FALSE, preEmpty_mask = TRUE, FDR = 0.05,
                       xgb_params = NULL, xgb_nrounds = 20, xgb_thread = 8,
                       modelOpt = FALSE, verbose = 1, seed = 0, ...) {
@@ -163,16 +163,6 @@ dropSplit <- function(counts, do_plot = TRUE, Cell_score = 0.9, Empty_score = 0.
   Uncertain_rank <- out$Uncertain_rank
   Empty_rank <- out$Empty_rank
 
-  # if (is.null(Cell_rank)) {
-  #   Cell_rank <- max(meta_info$nCount_rank[meta_info$nCount > cell_count])
-  #   # qplot(log10(meta_info$nCount_rank),log10(meta_info$RankMSE))+geom_vline(xintercept = log10(Cell_rank))
-  # }
-  # if (is.null(Uncertain_rank)) {
-  #   Uncertain_rank <- Cell_rank + which.max(meta_info$RankMSE[(Cell_rank + 1):min(Cell_rank * 10, nrow(meta_info))])
-  # }
-  # if (is.null(Empty_rank)) {
-  #   Empty_rank <- Uncertain_rank + min(Empty_max_num, which.min(meta_info$RankMSE[(Uncertain_rank + 1):min(Uncertain_rank + Empty_max_num, nrow(meta_info))]))
-  # }
   message(
     "... The inflection point is detected at ", inflection,
     "\n... Cell_rank=", Cell_rank,
@@ -311,16 +301,13 @@ dropSplit <- function(counts, do_plot = TRUE, Cell_score = 0.9, Empty_score = 0.
   comb_CellEfficiency[is.na(comb_CellEfficiency)] <- 1
   comb_CellRedundancy <- 1 - comb_CellEfficiency
   comb_CellRedundancy[comb_CellRedundancy < 0] <- 0
-  comb_nCount <- Matrix::colSums(comb_counts)
-  comb_nFeature <- Matrix::colSums(comb_counts > 0)
+  nCount_per_Feature <- Matrix::colSums(comb_counts) / Matrix::colSums(comb_counts > 0)
   dat_Features <- cbind(
     MTprop = comb_MTprop,
     RPprop = comb_RPprop,
     CellEntropy = comb_CellEntropy,
     CellRedundancy = comb_CellRedundancy,
-    nCount = comb_nCount,
-    nFeature = comb_nFeature,
-    nCount_per_Feature = comb_nCount / comb_nFeature
+    nCount_per_Feature = nCount_per_Feature
   )
   rownames(dat_Features) <- colnames(comb_counts)
   meta_info[
@@ -403,6 +390,7 @@ dropSplit <- function(counts, do_plot = TRUE, Cell_score = 0.9, Empty_score = 0.
       }
       new_empty <- colnames(Sim_Uncertain_counts)[Sim_Uncertain_counts_rawname %in% empty_current]
       raw_empty <- empty_update[empty_update %in% empty_current]
+      remove_num <- length(empty_update) - length(raw_empty)
       empty_update <- c(new_empty, raw_empty)
 
       ### remove overflowing empty
@@ -424,7 +412,7 @@ dropSplit <- function(counts, do_plot = TRUE, Cell_score = 0.9, Empty_score = 0.
       train_label <- c(rep(1, ncol(Cell_counts) + ncol(Sim_Cell_counts)), rep(0, length(empty_update)))
 
       message(
-        "... Number of removed 'Empty' droplets: ", ncol(Empty_counts) - length(raw_empty),
+        "... Number of  filtered 'Empty' droplets defined in the previous round: ", remove_num,
         "\n... Number of newly added 'Empty' droplets from 'Uncertain': ", length(new_empty),
         "\n... Number of total 'Empty' droplets used for taining: ", length(empty_update)
       )
@@ -485,7 +473,10 @@ dropSplit <- function(counts, do_plot = TRUE, Cell_score = 0.9, Empty_score = 0.
       pmax(stat_out[colnames(Cell_counts), "mean_value"], XGBoostScore[colnames(Cell_counts)]),
       pmin(stat_out[colnames(Cell_counts), "mean_value"], XGBoostScore[colnames(Cell_counts)])
     )
-    xgUncertainScore <- pmin(stat_out[colnames(Uncertain_counts), "mean_value"], XGBoostScore[colnames(Uncertain_counts)])
+    xgUncertainScore <- ifelse(XGBoostScore[colnames(Uncertain_counts)] > 0.5 & stat_out[colnames(Uncertain_counts), "mean_value"] > 0.5,
+      stat_out[colnames(Uncertain_counts), "mean_value"],
+      pmin(stat_out[colnames(Uncertain_counts), "mean_value"], XGBoostScore[colnames(Uncertain_counts)])
+    )
     XGBoostScore <- c(
       xgCellScore,
       xgUncertainScore,
