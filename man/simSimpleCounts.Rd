@@ -18,8 +18,8 @@ simSimpleCounts(
   large_scale = 1000,
   small_prof = NULL,
   small_ngene_rate = 0.7,
-  small_shape = 3,
-  small_scale = 500,
+  small_shape = 15,
+  small_scale = 100,
   remove_zero_drop = TRUE,
   remove_zero_feature = TRUE,
   seed = 0

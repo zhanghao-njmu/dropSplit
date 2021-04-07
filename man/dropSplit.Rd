@@ -17,16 +17,16 @@ dropSplit(
   Cell_rank = NULL,
   Uncertain_rank = NULL,
   Empty_rank = NULL,
-  Empty_num = 50000,
-  Empty_filter = FALSE,
+  Cell_min_nCount = 500,
+  Empty_min_nCount = 20,
+  Empty_max_num = 50000,
   Empty_overflow = TRUE,
   Gini_control = TRUE,
   Gini_threshold = NULL,
   max_iter = 6,
   min_error = 0.001,
-  min_improve = 1e-05,
-  iter_by_nCount = TRUE,
-  preCell_mask = TRUE,
+  min_improve = 1e-04,
+  preCell_mask = FALSE,
   preEmpty_mask = TRUE,
   FDR = 0.05,
   xgb_params = NULL,
@@ -59,9 +59,11 @@ dropSplit(
 
 \item{Cell_rank, Uncertain_rank, Empty_rank}{Custom Rank value to mark the droplets as Cell, Uncertain and Empty labels for the data to be trained. Default is automatic. But useful when the default value is considered to be wrong from the RankMSE plot.}
 
-\item{Empty_num}{Number of pre-defined 'Empty' droplets. Default is 50000.}
+\item{Cell_min_nCount}{Minimum nCount for 'Cell' droplets. Default is 500.}
 
-\item{Empty_filter}{Whether to filter pre-defined 'Empty' droplets when iterating. Default is \code{FALSE}.}
+\item{Empty_min_nCount}{Minimum nCount for 'Empty' droplets. Default is 20.}
+
+\item{Empty_max_num}{Number of pre-defined 'Empty' droplets. Default is 50000.}
 
 \item{Empty_overflow}{Whether allow the number of 'Empty' droplets overflow after training in the iteration. Default is \code{TRUE}.}
 
@@ -73,11 +75,9 @@ dropSplit(
 
 \item{min_error}{The minimum train error value to be achieved by the model. Default is 1e-3.}
 
-\item{min_improve}{Minimal improvement of the model. If \code{-Inf}, the early stopping is not triggered. Default is 1e-5.}
+\item{min_improve}{Minimal improvement of the model. If \code{-Inf}, the early stopping is not triggered. Default is 1e-4.}
 
-\item{iter_by_nCount}{Whether to divides the 'Uncertain' droplets into intervals by \code{nCount} and add new defined 'Empty' droplets from them incrementally in each iteration. Default is \code{TRUE}.}
-
-\item{preCell_mask}{logical; Whether to mask pre-defined 'Cell' droplets when prediction. If \code{TRUE}, XGBoostScore for all droplets pre-defined as 'Cell' will be set to 1; Default is \code{TRUE}.}
+\item{preCell_mask}{logical; Whether to mask pre-defined 'Cell' droplets when prediction. If \code{TRUE}, XGBoostScore for all droplets pre-defined as 'Cell' will be set to 1; Default is \code{FALSE}.}
 
 \item{preEmpty_mask}{logical; Whether to mask pre-defined 'Empty' droplets when prediction. There is a little different with parameter \code{preCell_mask}. If \code{TRUE}, XGBoostScore will not change, but the final classification will not be 'Cell' in any case. Default is \code{TRUE}.}
 

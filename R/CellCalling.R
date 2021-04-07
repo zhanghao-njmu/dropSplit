@@ -63,12 +63,14 @@ CellCalling <- function(counts, method = "dropSplit", seed = 0, ...) {
   return(result)
 }
 
+
 #' EmptyDrops method used to recognize cell-containing droplets.
 #'
 #' @param counts A \code{matrix} object or a \code{dgCMatrix} object which columns represent features and rows represent droplets.
 #' @param FDR Maximum FDR value to call a droplet as non-empty(labeled as 'Cell'). Default is 0.01.
 #' @param lower A numeric scalar specifying the lower bound on the total UMI count, at or below which all barcodes are assumed to correspond to empty droplets. Default is 100.
 #' @param niters An integer scalar specifying the number of iterations to use for the Monte Carlo p-value calculations. Default is 10000.
+#' @param Cell_min_nCount Minimum nCount for 'Cell' droplets. Default is 500.
 #' @param ... Other arguments passed to \code{\link[DropletUtils]{emptyDrops}}.
 #' @return A \code{DataFrame} containing the classification column named 'EmptyDropsClass'.
 #'
@@ -79,8 +81,11 @@ CellCalling <- function(counts, method = "dropSplit", seed = 0, ...) {
 #' @importFrom DropletUtils emptyDrops
 #' @importFrom S4Vectors DataFrame
 #' @export
-CallEmptyDrops <- function(counts, lower = 100, niters = 10000, FDR = 0.01, ...) {
+CallEmptyDrops <- function(counts, lower = 100, niters = 10000, FDR = 0.01, Cell_min_nCount = 500, ...) {
   meta_info <- emptyDrops(counts, lower = lower, niters = niters, ...)
+  meta_info <- as.data.frame(meta_info)
+  meta_info$nCount <- Matrix::colSums(counts)
+  meta_info$nCount_rank <- rank(-(meta_info$nCount))
   EmptyDropsClass <- ifelse(meta_info$FDR <= FDR, "Cell", "Empty")
   EmptyDropsClass[is.na(EmptyDropsClass)] <- "Empty"
   nlimited_droplets <- sum(table(Sig = EmptyDropsClass, Limited = meta_info$Limited)["Empty", "TRUE"])
@@ -88,6 +93,7 @@ CallEmptyDrops <- function(counts, lower = 100, niters = 10000, FDR = 0.01, ...)
     message(">>> ", nlimited_droplets, " 'Empty' droplets have a limited p-value. A lower p-value could be obtained by increasing niters.")
   }
   meta_info[, "EmptyDropsClass"] <- EmptyDropsClass
+  meta_info[meta_info[, "EmptyDropsClass"] == "Cell" & meta_info[, "nCount"] < Cell_min_nCount, "EmptyDropsClass"] <- "Empty"
   meta_info <- DataFrame(meta_info)
 
   message(">>> EmptyDrops identified ", sum(meta_info$EmptyDropsClass == "Cell"), " cell-containing droplets.")
@@ -98,6 +104,7 @@ CallEmptyDrops <- function(counts, lower = 100, niters = 10000, FDR = 0.01, ...)
 #' zUMI method used to recognize cell-containing droplets.
 #'
 #' @param counts A \code{matrix} object or a \code{dgCMatrix} object which columns represent features and rows represent droplets.
+#' @param Cell_min_nCount Minimum nCount for 'Cell' droplets. Default is 500.
 #' @return A \code{DataFrame} containing the classification column named 'zUMIsClass'.
 #'
 #' @examples
@@ -107,7 +114,7 @@ CallEmptyDrops <- function(counts, lower = 100, niters = 10000, FDR = 0.01, ...)
 #' @importFrom inflection uik
 #' @importFrom S4Vectors DataFrame
 #' @export
-CallzUMIs <- function(counts) {
+CallzUMIs <- function(counts, Cell_min_nCount = 500) {
   meta_info <- data.frame(row.names = colnames(counts))
   meta_info$nCount <- Matrix::colSums(counts)
   meta_info$nCount_rank <- rank(-(meta_info$nCount))
@@ -121,6 +128,7 @@ CallzUMIs <- function(counts) {
   ntop <- floor(uik(x = meta_info[, "nCount_rank"], y = meta_info[, "nCount_cumsum"]))
   meta_info[, "zUMIsClass"] <- "Empty"
   meta_info[1:ntop, "zUMIsClass"] <- "Cell"
+  meta_info[meta_info[, "zUMIsClass"] == "Cell" & meta_info[, "nCount"] < Cell_min_nCount, "zUMIsClass"] <- "Empty"
   meta_info <- meta_info[raw_cell_order, ]
   meta_info <- DataFrame(meta_info)
 
@@ -134,6 +142,7 @@ CallzUMIs <- function(counts) {
 #' @param counts A \code{matrix} object or a \code{dgCMatrix} object which columns represent features and rows represent droplets.
 #' @param recovered_cells Expected number of recovered cells. Default is 3000.
 #' @param recovered_cells_quantile Quantile of the top \code{recovered_cells} barcodes by total UMI counts. Default is 0.99.
+#' @param Cell_min_nCount Minimum nCount for 'Cell' droplets. Default is 500.
 #' @return A \code{DataFrame} containing the classification column named 'CellRangerV2Class'.
 #'
 #' @examples
@@ -143,13 +152,14 @@ CallzUMIs <- function(counts) {
 #' @importFrom stats quantile
 #' @importFrom S4Vectors DataFrame
 #' @export
-CallCellRangerV2 <- function(counts, recovered_cells = 3000, recovered_cells_quantile = 0.99) {
+CallCellRangerV2 <- function(counts, recovered_cells = 3000, recovered_cells_quantile = 0.99, Cell_min_nCount = 500) {
   meta_info <- data.frame(row.names = colnames(counts))
   meta_info$nCount <- Matrix::colSums(counts)
   meta_info$nCount_rank <- rank(-(meta_info$nCount))
   filtered_indices <- filter_cellular_barcodes_ordmag(meta_info$nCount, recovered_cells, recovered_cells_quantile)
   meta_info[, "CellRangerV2Class"] <- "Empty"
   meta_info[filtered_indices, "CellRangerV2Class"] <- "Cell"
+  meta_info[meta_info[, "CellRangerV2Class"] == "Cell" & meta_info[, "nCount"] < Cell_min_nCount, "CellRangerV2Class"] <- "Empty"
   meta_info <- DataFrame(meta_info)
 
   message(">>> CellRangerV2 identified ", sum(meta_info$CellRangerV2Class == "Cell"), " cell-containing droplets.")

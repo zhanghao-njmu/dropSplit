@@ -7,7 +7,8 @@
 CallCellRangerV2(
   counts,
   recovered_cells = 3000,
-  recovered_cells_quantile = 0.99
+  recovered_cells_quantile = 0.99,
+  Cell_min_nCount = 500
 )
 }
 \arguments{
@@ -16,6 +17,8 @@ CallCellRangerV2(
 \item{recovered_cells}{Expected number of recovered cells. Default is 3000.}
 
 \item{recovered_cells_quantile}{Quantile of the top \code{recovered_cells} barcodes by total UMI counts. Default is 0.99.}
+
+\item{Cell_min_nCount}{Minimum nCount for 'Cell' droplets. Default is 500.}
 }
 \value{
 A \code{DataFrame} containing the classification column named 'CellRangerV2Class'.

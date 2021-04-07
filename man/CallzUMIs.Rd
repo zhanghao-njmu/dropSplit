@@ -4,10 +4,12 @@
 \alias{CallzUMIs}
 \title{zUMI method used to recognize cell-containing droplets.}
 \usage{
-CallzUMIs(counts)
+CallzUMIs(counts, Cell_min_nCount = 500)
 }
 \arguments{
 \item{counts}{A \code{matrix} object or a \code{dgCMatrix} object which columns represent features and rows represent droplets.}
+
+\item{Cell_min_nCount}{Minimum nCount for 'Cell' droplets. Default is 500.}
 }
 \value{
 A \code{DataFrame} containing the classification column named 'zUMIsClass'.

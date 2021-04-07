@@ -14,7 +14,7 @@ simSimpleCounts <- function(total_gene = 30000,
                             nempty = 20000, nlarge = 2000, nsmall = 200,
                             empty_prof = NULL, empty_ngene_rate = 0.01, empty_rate = 1 / 100,
                             large_prof = NULL, large_ngene_rate = 0.7, large_shape = 3, large_scale = 1000,
-                            small_prof = NULL, small_ngene_rate = 0.7, small_shape = 3, small_scale = 500,
+                            small_prof = NULL, small_ngene_rate = 0.7, small_shape = 15, small_scale = 100,
                             remove_zero_drop = TRUE, remove_zero_feature = TRUE, seed = 0) {
   set.seed(seed)
 
@@ -88,8 +88,8 @@ simComplexCounts <- function(total_gene = 30000, disturbance = 0.2,
                              nempty = 20000, nlarge = 5000, nsmall = 500,
                              empty_type = 2, large_type = 10, small_type = 2,
                              empty_prof = NULL, empty_ngene_rate = 0.05, empty_rate = 1 / 100,
-                             large_prof = NULL, large_ngene_rate = 0.7, large_shape = 5, large_scale = 1000,
-                             small_prof = NULL, small_ngene_rate = 0.7, small_shape = 4, small_scale = 500,
+                             large_prof = NULL, large_ngene_rate = 0.7, large_shape = 3, large_scale = 1000,
+                             small_prof = NULL, small_ngene_rate = 0.7, small_shape = 15, small_scale = 100,
                              large_frag = TRUE, large_frag_gene = 1:50, large_frag_prop = 0.5,
                              small_frag = TRUE, small_frag_gene = 1:50, small_frag_prop = 0.5,
                              remove_zero_drop = TRUE, remove_zero_feature = TRUE, seed = 0) {

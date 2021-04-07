@@ -4,7 +4,14 @@
 \alias{CallEmptyDrops}
 \title{EmptyDrops method used to recognize cell-containing droplets.}
 \usage{
-CallEmptyDrops(counts, lower = 100, niters = 10000, FDR = 0.01, ...)
+CallEmptyDrops(
+  counts,
+  lower = 100,
+  niters = 10000,
+  FDR = 0.01,
+  Cell_min_nCount = 500,
+  ...
+)
 }
 \arguments{
 \item{counts}{A \code{matrix} object or a \code{dgCMatrix} object which columns represent features and rows represent droplets.}
@@ -14,6 +21,8 @@ CallEmptyDrops(counts, lower = 100, niters = 10000, FDR = 0.01, ...)
 \item{niters}{An integer scalar specifying the number of iterations to use for the Monte Carlo p-value calculations. Default is 10000.}
 
 \item{FDR}{Maximum FDR value to call a droplet as non-empty(labeled as 'Cell'). Default is 0.01.}
+
+\item{Cell_min_nCount}{Minimum nCount for 'Cell' droplets. Default is 500.}
 
 \item{...}{Other arguments passed to \code{\link[DropletUtils]{emptyDrops}}.}
 }
