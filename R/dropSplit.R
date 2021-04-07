@@ -17,7 +17,7 @@
 #' @param Empty_score A cutoff value of \code{dropSplitScore} to determine if a droplet is empty. Range between 0 and 0.5. Default is 0.25.
 #' @param CE_ratio Ratio value between down-sampled 'Cells' and 'Empty' droplets. The actual value will be slightly higher than the set. Default is 1.
 #' @param Empty_num Number of pre-defined 'Empty' droplets. Default is 50000.
-#' @param Empty_filter Whether to filter pre-defined 'Empty' droplets when iterating. Default is \code{TRUE}.
+#' @param Empty_filter Whether to filter pre-defined 'Empty' droplets when iterating. Default is \code{FALSE}.
 #' @param Empty_overflow Whether allow the number of 'Empty' droplets overflow after training in the iteration. Default is \code{TRUE}.
 #' @param max_iter An integer specifying the number of iterations to use to rebuild the model with new defined droplets. Default is 6.
 #' @param min_error The minimum train error value to be achieved by the model. Default is 1e-3.
@@ -105,7 +105,7 @@
 dropSplit <- function(counts, do_plot = TRUE, Cell_score = 0.9, Empty_score = 0.25, CE_ratio = 2,
                       fill_RankMSE = FALSE, smooth_num = 2, smooth_window = 100, tolerance = 0.2,
                       Cell_rank = NULL, Uncertain_rank = NULL, Empty_rank = NULL,
-                      Empty_num = 50000, Empty_filter = TRUE, Empty_overflow = TRUE,
+                      Empty_num = 50000, Empty_filter = FALSE, Empty_overflow = TRUE,
                       Gini_control = TRUE, Gini_threshold = NULL,
                       max_iter = 6, min_error = 1e-3, min_improve = 5e-4, iter_by_nCount = TRUE,
                       preCell_mask = TRUE, preEmpty_mask = TRUE, FDR = 0.05,
@@ -750,6 +750,7 @@ RankMSE <- function(meta_info, fill_RankMSE = FALSE, smooth_num = 2, smooth_wind
     cell_count <- df[pks, "nCount"]
     crk <- max(which(df[, "nCount"] > cell_count))
     Cell_rank <- max(meta_info$nCount_rank[meta_info$nCount > cell_count])
+    # qplot(log10(1:length(df$RankMSE)), log10(df$RankMSE))+geom_vline(xintercept=log10(crk))
 
     ## 'Empty' RankMSE valley
     maxrk <- max(which(df$nCount >= 10))
@@ -757,12 +758,13 @@ RankMSE <- function(meta_info, fill_RankMSE = FALSE, smooth_num = 2, smooth_wind
     erk <- min(max(minrk + which.min(df[(minrk + 1):maxrk, "RankMSE"]), crk * 20), maxrk)
     empty_count <- df[erk, "nCount"]
     Empty_rank <- max(meta_info$nCount_rank[meta_info$nCount > empty_count])
-    # qplot(log10(1:length(df$RankMSE)), log10(df$RankMSE))+geom_vline(xintercept=log10(Empty_rank))
+    # qplot(log10(1:length(df$RankMSE)), log10(df$RankMSE))+geom_vline(xintercept=log10(erk))
 
     ## 'Uncertain' RankMSE peak
-    urk <- crk + which.max(df[(crk + 1):erk, "RankMSE"])
+    urk <- minrk + which.max(df[(minrk + 1):erk, "RankMSE"])
     uncertain_count <- df[urk, "nCount"]
     Uncertain_rank <- max(meta_info$nCount_rank[meta_info$nCount > uncertain_count])
+    # qplot(log10(1:length(df$RankMSE)), log10(df$RankMSE))+geom_vline(xintercept=log10(urk))
   }
 
   raw_df <- unique(df[, c("droplets", "RankMSE")])

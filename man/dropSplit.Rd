@@ -18,7 +18,7 @@ dropSplit(
   Uncertain_rank = NULL,
   Empty_rank = NULL,
   Empty_num = 50000,
-  Empty_filter = TRUE,
+  Empty_filter = FALSE,
   Empty_overflow = TRUE,
   Gini_control = TRUE,
   Gini_threshold = NULL,
@@ -61,7 +61,7 @@ dropSplit(
 
 \item{Empty_num}{Number of pre-defined 'Empty' droplets. Default is 50000.}
 
-\item{Empty_filter}{Whether to filter pre-defined 'Empty' droplets when iterating. Default is \code{TRUE}.}
+\item{Empty_filter}{Whether to filter pre-defined 'Empty' droplets when iterating. Default is \code{FALSE}.}
 
 \item{Empty_overflow}{Whether allow the number of 'Empty' droplets overflow after training in the iteration. Default is \code{TRUE}.}
 
