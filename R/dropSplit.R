@@ -685,7 +685,7 @@ RankMSE <- function(meta_info, fill_RankMSE = FALSE, smooth_num = 2, smooth_wind
       df[, "RankMSE"][is.na(df[, "RankMSE"])] <- na.omit(df[, "RankMSE"])[1]
       df[, "RankMSE"][df[, "RankMSE"] < 0] <- 0
     }
-    df[, "logRankMSE"] <- log(df[, "RankMSE"] + 1)
+    df[, "logRankMSE"] <- log10(df[, "RankMSE"] + 1)
   } else {
     df <- meta_info
     df[, "droplets"] <- rownames(meta_info)
@@ -695,7 +695,7 @@ RankMSE <- function(meta_info, fill_RankMSE = FALSE, smooth_num = 2, smooth_wind
       df[, "RankMSE"][is.na(df[, "RankMSE"])] <- na.omit(df[, "RankMSE"])[1]
       df[, "RankMSE"][df[, "RankMSE"] < 0] <- 0
     }
-    df[, "logRankMSE"] <- log(df[, "RankMSE"] + 1)
+    df[, "logRankMSE"] <- log10(df[, "RankMSE"] + 1)
   }
   # qplot(log10(1:length(df$RankMSE)), log(df$RankMSE))
 
@@ -707,54 +707,80 @@ RankMSE <- function(meta_info, fill_RankMSE = FALSE, smooth_num = 2, smooth_wind
     df_inflection <- head(which(df[, "nCount"] <= meta_info$nCount[inflection]), 1)
     df_inflection_left <- head(which(df[, "nCount"] <= meta_info$nCount[inflection_left]), 1)
     df_inflection_right <- tail(which(df[, "nCount"] >= meta_info$nCount[inflection_right]), 1)
-    pks <- df_inflection_left + find_peaks(-df$RankMSE[df_inflection_left:df_inflection_right],
+    crk <- df_inflection_left + find_peaks(-df$RankMSE[df_inflection_left:df_inflection_right],
       left_shoulder = df_inflection * 0.05,
       right_shoulder = df_inflection_right
     ) - 1
-    # qplot(log10(1:length(df$RankMSE)), log(df$RankMSE))+geom_vline(xintercept = log10(pks))+ xlim(1, log10(df_inflection_right*1.2))
-    # qplot((1:length(df$RankMSE)), log(df$RankMSE)) + xlim(1, df_inflection_right*1.2) + geom_vline(xintercept = c(pks))
+    # qplot(log10(1:length(df$RankMSE)), log(df$RankMSE))+geom_vline(xintercept = log10(crk))+ xlim(1, log10(df_inflection_right*1.2))
+    # qplot((1:length(df$RankMSE)), log(df$RankMSE)) + xlim(1, df_inflection_right*1.2) + geom_vline(xintercept = c(crk))
 
     iter <- 1
-    cell_max <- quantile(df[1:(pks[1] - 1), "logRankMSE"], 0.99)
-    while (length(pks) > 1) {
-      message("... ", length(pks), " 'Cell' valleys found. Perform automatic selection(iter=", iter, ")...")
-      if (all(df[pks, "logRankMSE"] < 0)) {
-        pks <- pks[length(pks)]
+    cell_max <- quantile(df[1:(crk[1] - 1), "logRankMSE"], 0.99)
+    while (length(crk) > 1) {
+      message("... ", length(crk), " 'Cell' valleys found. Perform automatic selection(iter=", iter, ")...")
+      if (all(df[crk, "logRankMSE"] < 0)) {
+        crk <- crk[length(crk)]
       }
-      if (length(pks) > 1) {
-        pks_diff_MSE <- diff(df[pks, "logRankMSE"])
-        pks_max_MSE <- sapply(1:(length(pks) - 1), function(i) {
-          quantile(df[pks[i]:pks[i + 1], "logRankMSE"], 0.99) - df[pks[i + 1], "logRankMSE"]
+      if (length(crk) > 1) {
+        pks_diff_MSE <- diff(df[crk, "logRankMSE"])
+        pks_max_MSE <- sapply(1:(length(crk) - 1), function(i) {
+          quantile(df[crk[i]:crk[i + 1], "logRankMSE"], 0.99) - df[crk[i + 1], "logRankMSE"]
         })
         j <- which(pks_diff_MSE <= pks_max_MSE * tolerance | pks_max_MSE >= 0.5 * cell_max) + 1
         if (length(j) == 1) {
           j <- c(1, j)
-          pks_diff_MSE <- diff(df[pks[j], "logRankMSE"])
-          pks_max_MSE <- quantile(df[pks[1]:pks[2], "logRankMSE"], 0.99) - df[pks[2], "logRankMSE"]
+          pks_diff_MSE <- diff(df[crk[j], "logRankMSE"])
+          pks_max_MSE <- quantile(df[crk[1]:crk[2], "logRankMSE"], 0.99) - df[crk[2], "logRankMSE"]
           j <- which(pks_diff_MSE <= pks_max_MSE * tolerance | pks_max_MSE >= 0.5 * cell_max) + 1
         }
         if (length(j) == 0) {
           j <- 1
         }
-        pks <- pks[j]
+        crk <- crk[j]
         iter <- iter + 1
       }
-      if (length(pks) == 1) {
+      if (length(crk) == 1) {
         message("... Automatic selection finished.")
       } else {
-        message("... ", length(pks), " apples left. Go to the next loop.")
+        message("... ", length(crk), " valleys left. Go to the next loop.")
       }
     }
-    # qplot(log10(1:length(df$RankMSE)), log(df$RankMSE))+geom_vline(xintercept = log10(pks))+ xlim(1, log10(df_inflection_right*1.2))
-    cell_count <- df[pks, "nCount"]
-    crk <- max(which(df[, "nCount"] > cell_count))
+    cell_count <- df[crk, "nCount"]
     Cell_rank <- max(meta_info$nCount_rank[meta_info$nCount > cell_count])
     # qplot(log10(1:length(df$RankMSE)), log10(df$RankMSE))+geom_vline(xintercept=log10(crk))
 
     ## 'Empty' RankMSE valley
     maxrk <- max(which(df$nCount >= 10))
     minrk <- crk * 5
-    erk <- min(max(minrk + which.min(df[(minrk + 1):maxrk, "RankMSE"]), crk * 20), maxrk)
+    erk <- minrk + find_peaks(-df[(minrk + 1):maxrk, "RankMSE"], left_shoulder = maxrk - minrk, right_shoulder = 10000)
+    erk <- erk[erk != minrk + 1]
+    iter <- 1
+    while (length(erk) > 1) {
+      message("... ", length(erk), " 'Empty' valleys found. Perform automatic selection(iter=", iter, ")...")
+      pks_diff_MSE <- diff(df[erk, "logRankMSE"])
+      pks_max_MSE <- sapply(1:(length(erk) - 1), function(i) {
+        quantile(df[erk[i]:erk[i + 1], "logRankMSE"], 0.99) - df[erk[i + 1], "logRankMSE"]
+      })
+      j <- which(-pks_diff_MSE >= pks_max_MSE * tolerance) + 1
+      if (length(j) == 1) {
+        j <- c(1, j)
+        pks_diff_MSE <- diff(df[erk[j], "logRankMSE"])
+        pks_max_MSE <- quantile(df[erk[1]:erk[2], "logRankMSE"], 0.99) - df[erk[2], "logRankMSE"]
+        j <- which(-pks_diff_MSE >= pks_max_MSE * tolerance) + 1
+      }
+      if (length(j) == 0) {
+        j <- 1
+      }
+      erk <- erk[j]
+      iter <- iter + 1
+
+      if (length(erk) == 1) {
+        message("... Automatic selection finished.")
+      } else {
+        message("... ", length(erk), " valleys left. Go to the next loop.")
+      }
+    }
+    # erk <- min(max(minrk + which.min(df[(minrk + 1):maxrk, "RankMSE"]), crk * 20), maxrk)
     empty_count <- df[erk, "nCount"]
     Empty_rank <- max(meta_info$nCount_rank[meta_info$nCount > empty_count])
     # qplot(log10(1:length(df$RankMSE)), log10(df$RankMSE))+geom_vline(xintercept=log10(erk))
