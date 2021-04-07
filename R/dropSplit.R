@@ -13,7 +13,7 @@
 #' It also provides a automatic XGBoost hyperparameters-tuning function to optimize the model.
 #' @param counts A \code{matrix} object or a \code{dgCMatrix} object which columns represent droplets and rows represent features.
 #' @param do_plot Whether to plot during the cellcalling. Default is \code{TRUE}.
-#' @param Cell_score A cutoff value of \code{dropSplitScore} to determine if a droplet is cell-containing. Range between 0.5 and 1. Default is 0.8.
+#' @param Cell_score A cutoff value of \code{dropSplitScore} to determine if a droplet is cell-containing. Range between 0.5 and 1. Default is 0.9.
 #' @param Empty_score A cutoff value of \code{dropSplitScore} to determine if a droplet is empty. Range between 0 and 0.5. Default is 0.25.
 #' @param CE_ratio Ratio value between down-sampled 'Cells' and 'Empty' droplets. The actual value will be slightly higher than the set. Default is 1.
 #' @param Empty_num Number of pre-defined 'Empty' droplets. Default is 50000.
@@ -21,7 +21,7 @@
 #' @param Empty_overflow Whether allow the number of 'Empty' droplets overflow after training in the iteration. Default is \code{TRUE}.
 #' @param max_iter An integer specifying the number of iterations to use to rebuild the model with new defined droplets. Default is 6.
 #' @param min_error The minimum train error value to be achieved by the model. Default is 1e-3.
-#' @param min_improve Minimal improvement of the model. If \code{-Inf}, the early stopping is not triggered. Default is 5e-4.
+#' @param min_improve Minimal improvement of the model. If \code{-Inf}, the early stopping is not triggered. Default is 1e-5.
 #' @param iter_by_nCount Whether to divides the 'Uncertain' droplets into intervals by \code{nCount} and add new defined 'Empty' droplets from them incrementally in each iteration. Default is \code{TRUE}.
 #' @inheritParams RankMSE
 #' @param Gini_control Whether to control cell quality by CellGini. Default is \code{TRUE}.
@@ -107,7 +107,7 @@ dropSplit <- function(counts, do_plot = TRUE, Cell_score = 0.9, Empty_score = 0.
                       Cell_rank = NULL, Uncertain_rank = NULL, Empty_rank = NULL,
                       Empty_num = 50000, Empty_filter = FALSE, Empty_overflow = TRUE,
                       Gini_control = TRUE, Gini_threshold = NULL,
-                      max_iter = 6, min_error = 1e-3, min_improve = 5e-4, iter_by_nCount = TRUE,
+                      max_iter = 6, min_error = 1e-3, min_improve = 1e-5, iter_by_nCount = TRUE,
                       preCell_mask = TRUE, preEmpty_mask = TRUE, FDR = 0.05,
                       xgb_params = NULL, xgb_nrounds = 20, xgb_thread = 8,
                       modelOpt = FALSE, verbose = 1, seed = 0, ...) {

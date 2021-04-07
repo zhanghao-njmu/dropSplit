@@ -24,7 +24,7 @@ dropSplit(
   Gini_threshold = NULL,
   max_iter = 6,
   min_error = 0.001,
-  min_improve = 5e-04,
+  min_improve = 1e-05,
   iter_by_nCount = TRUE,
   preCell_mask = TRUE,
   preEmpty_mask = TRUE,
@@ -43,7 +43,7 @@ dropSplit(
 
 \item{do_plot}{Whether to plot during the cellcalling. Default is \code{TRUE}.}
 
-\item{Cell_score}{A cutoff value of \code{dropSplitScore} to determine if a droplet is cell-containing. Range between 0.5 and 1. Default is 0.8.}
+\item{Cell_score}{A cutoff value of \code{dropSplitScore} to determine if a droplet is cell-containing. Range between 0.5 and 1. Default is 0.9.}
 
 \item{Empty_score}{A cutoff value of \code{dropSplitScore} to determine if a droplet is empty. Range between 0 and 0.5. Default is 0.25.}
 
@@ -73,7 +73,7 @@ dropSplit(
 
 \item{min_error}{The minimum train error value to be achieved by the model. Default is 1e-3.}
 
-\item{min_improve}{Minimal improvement of the model. If \code{-Inf}, the early stopping is not triggered. Default is 5e-4.}
+\item{min_improve}{Minimal improvement of the model. If \code{-Inf}, the early stopping is not triggered. Default is 1e-5.}
 
 \item{iter_by_nCount}{Whether to divides the 'Uncertain' droplets into intervals by \code{nCount} and add new defined 'Empty' droplets from them incrementally in each iteration. Default is \code{TRUE}.}
 

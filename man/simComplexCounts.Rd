@@ -14,7 +14,7 @@ simComplexCounts(
   large_type = 10,
   small_type = 2,
   empty_prof = NULL,
-  empty_ngene_rate = 0.01,
+  empty_ngene_rate = 0.05,
   empty_rate = 1/100,
   large_prof = NULL,
   large_ngene_rate = 0.7,
