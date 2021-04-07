@@ -24,7 +24,7 @@ dropSplit(
   high_sensitive = FALSE,
   Gini_control = TRUE,
   Gini_threshold = NULL,
-  max_iter = 6,
+  max_iter = 5,
   min_error = 0.001,
   min_improve = 1e-05,
   preCell_mask = FALSE,
