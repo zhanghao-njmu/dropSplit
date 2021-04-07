@@ -181,6 +181,10 @@ dropSplit <- function(counts, do_plot = TRUE, Cell_score = 0.9, Empty_score = 0.
   Empty_count <- meta_info$nCount[Empty_rank]
   Uncertain_count <- meta_info$nCount[Uncertain_rank]
 
+  if (Empty_count < 10) {
+    warning("The minimum nCount of 'Empty' droplets is ", Empty_count, ". Discard the droplets with nCount<10.", immediate. = TRUE)
+    Empty_count <- 10
+  }
   Cell_counts <- counts[, meta_info$nCount >= Cell_count]
   Empty_counts <- counts[, meta_info$nCount < Uncertain_count & meta_info$nCount >= Empty_count]
   Uncertain_counts <- counts[, meta_info$nCount < Cell_count & meta_info$nCount >= Uncertain_count]
@@ -754,7 +758,7 @@ RankMSE <- function(meta_info, fill_RankMSE = FALSE, smooth_num = 2, smooth_wind
     ## 'Empty' RankMSE valley
     maxrk <- max(which(df$nCount >= 10))
     minrk <- crk * 5
-    erk <- minrk + which.min(df[(minrk + 1):maxrk, "RankMSE"])
+    erk <- min(max(minrk + which.min(df[(minrk + 1):maxrk, "RankMSE"]), crk * 20), maxrk)
     empty_count <- df[erk, "nCount"]
     Empty_rank <- max(meta_info$nCount_rank[meta_info$nCount > empty_count])
     # qplot(log10(1:length(df$RankMSE)), log10(df$RankMSE))+geom_vline(xintercept=log10(Empty_rank))
