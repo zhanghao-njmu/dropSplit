@@ -515,7 +515,6 @@ dropSplit <- function(counts, do_plot = TRUE, Cell_score = 0.9, Empty_score = 0.
       improved <- ifelse(abs(meta_info[, paste0("dropSplitScore_iter", j)] - 0.5) > abs(meta_info[, paste0("dropSplitScore_iter", j - 1)] - 0.5), 1, 0)
       noswitched <- ifelse(meta_info[, paste0("dropSplitScore_iter", j - 1)] < 0.5 & meta_info[, paste0("dropSplitScore_iter", j)] > 0.5, 0, 1)
       meta_info[, "dropSplitScore"] <- ifelse(improved * noswitched == 1, meta_info[, paste0("dropSplitScore_iter", j)], meta_info[, "dropSplitScore"])
-      meta_info[colnames(Empty_counts), "dropSplitScore"] <- meta_info[colnames(Empty_counts), "dropSplitScore_iter1"]
     }
 
     ## make classification
