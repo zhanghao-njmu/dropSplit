@@ -8,8 +8,9 @@ dropSplit(
   counts,
   do_plot = TRUE,
   Cell_score = 0.9,
-  Empty_score = 0.25,
-  CE_ratio = 2,
+  Empty_score = 0.2,
+  downsample_times = NULL,
+  CE_ratio = 1,
   fill_RankMSE = FALSE,
   smooth_num = 2,
   smooth_window = 100,
@@ -20,19 +21,16 @@ dropSplit(
   Cell_min_nCount = 500,
   Empty_min_nCount = 20,
   Empty_max_num = 50000,
-  Empty_overflow = TRUE,
-  high_sensitive = FALSE,
   Gini_control = TRUE,
   Gini_threshold = NULL,
   max_iter = 5,
-  min_error = 0.001,
-  min_improve = 1e-05,
   preCell_mask = FALSE,
   preEmpty_mask = TRUE,
   FDR = 0.05,
   xgb_params = NULL,
   xgb_nrounds = 20,
   xgb_thread = 8,
+  xgb_early_stopping_rounds = 3,
   modelOpt = FALSE,
   verbose = 1,
   seed = 0,
@@ -46,7 +44,9 @@ dropSplit(
 
 \item{Cell_score}{A cutoff value of \code{dropSplitScore} to determine if a droplet is cell-containing. Range between 0.5 and 1. Default is 0.9.}
 
-\item{Empty_score}{A cutoff value of \code{dropSplitScore} to determine if a droplet is empty. Range between 0 and 0.5. Default is 0.25.}
+\item{Empty_score}{A cutoff value of \code{dropSplitScore} to determine if a droplet is empty. Range between 0 and 0.5. Default is 0.2.}
+
+\item{downsample_times}{Number of repetitions of downsampling for 'Cell' and 'Uncertain' droplets. If \code{NULL}, will be determined by \code{CE_ratio}. Default is \code{NULL}.}
 
 \item{CE_ratio}{Ratio value between down-sampled 'Cells' and 'Empty' droplets. The actual value will be slightly higher than the set. Default is 1.}
 
@@ -66,19 +66,11 @@ dropSplit(
 
 \item{Empty_max_num}{Number of pre-defined 'Empty' droplets. Default is 50000.}
 
-\item{Empty_overflow}{Whether allow the number of 'Empty' droplets overflow after training in the iteration. Default is \code{TRUE}.}
-
-\item{high_sensitive}{Whether to allow for highly sensitive 'Cell' detection. If \code{TRUE}, dropSplit will filter out the 'Empty' droplets defined in the previous round in each iteration. This will increase the specificity of the detection of 'Empty' droplets and the sensitivity of the detection of 'Cell' droplets, but will also introduce more false positives.}
-
 \item{Gini_control}{Whether to control cell quality by CellGini. Default is \code{TRUE}.}
 
-\item{Gini_threshold}{A value used in \code{\link{Score}} function for CellGini metric. The higher, the more conservative and will get a lower number of cells. Default is automatic.}
+\item{Gini_threshold}{A cutoff of the CellGini metric. The higher, the more conservative and will get a lower number of cells. Default is automatic.}
 
 \item{max_iter}{An integer specifying the number of iterations to use to rebuild the model with new defined droplets. Default is 5.}
-
-\item{min_error}{The minimum train error value to be achieved by the model. Default is 1e-3.}
-
-\item{min_improve}{Minimal improvement of the model. If \code{-Inf}, the early stopping is not triggered. Default is 1e-5.}
 
 \item{preCell_mask}{logical; Whether to mask pre-defined 'Cell' droplets when prediction. If \code{TRUE}, XGBoostScore for all droplets pre-defined as 'Cell' will be set to 1; Default is \code{FALSE}.}
 
@@ -91,6 +83,8 @@ dropSplit(
 \item{xgb_nrounds}{Max number of boosting iterations.}
 
 \item{xgb_thread}{Number of thread used in \code{\link[xgboost]{xgb.cv}}.}
+
+\item{xgb_early_stopping_rounds}{If NULL, the early stopping function is not triggered. If set to an integer k, training with a validation set will stop if the performance doesn't improve for k rounds. Setting this parameter engages the \code{cb.early.stop} callback.}
 
 \item{modelOpt}{Whether to optimize the model using \code{\link{xgbOptimization}}. Will take long time for large datasets. If \code{TRUE}, will overwrite the parameters list in \code{xgb_params}. The following parameters are only used in \code{\link{xgbOptimization}}.}
 

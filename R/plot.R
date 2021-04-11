@@ -203,7 +203,7 @@ nFeaturePlot <- function(meta_info, colorBy = "dropSplitClass", splitBy = "dropS
   if (is.numeric(meta_info[, colorBy])) {
     p <- p + geom_point(
       aes(color = meta_info[, colorBy]),
-      alpha = 0.5, shape = 16
+      size = 1, alpha = 0.5, shape = 16
     ) +
       scale_color_viridis_c(
         name = colorBy
@@ -213,7 +213,7 @@ nFeaturePlot <- function(meta_info, colorBy = "dropSplitClass", splitBy = "dropS
     if (colorBy %in% c("preDefinedClass", "dropSplitClass")) {
       p <- p + geom_point(
         aes(color = meta_info[, colorBy]),
-        alpha = 0.5, shape = 16
+        size = 1, alpha = 0.5, shape = 16
       ) +
         scale_color_manual(
           name = colorBy,
@@ -224,7 +224,7 @@ nFeaturePlot <- function(meta_info, colorBy = "dropSplitClass", splitBy = "dropS
       meta_info[, colorBy] <- factor(meta_info[, colorBy], levels = unique(meta_info[, colorBy]))
       p <- p + geom_point(
         aes(color = meta_info[, colorBy]),
-        alpha = 0.5, shape = 16
+        size = 1, alpha = 0.5, shape = 16
       ) +
         scale_color_brewer(
           name = colorBy,
@@ -300,7 +300,7 @@ RankPlot <- function(meta_info, colorBy = "dropSplitClass", splitBy = "dropSplit
   if (is.numeric(meta_info[, colorBy])) {
     p <- p + geom_point(
       aes(color = meta_info[, colorBy]),
-      alpha = 0.5, shape = 16
+      size = 1,  alpha = 0.5, shape = 16
     ) +
       scale_color_viridis_c(
         name = colorBy
@@ -310,7 +310,7 @@ RankPlot <- function(meta_info, colorBy = "dropSplitClass", splitBy = "dropSplit
     if (colorBy %in% c("preDefinedClass", "dropSplitClass")) {
       p <- p + geom_point(
         aes(color = meta_info[, colorBy]),
-        alpha = 0.5, shape = 16
+        size = 1, alpha = 0.5, shape = 16
       ) +
         scale_color_manual(
           name = colorBy,
@@ -324,7 +324,7 @@ RankPlot <- function(meta_info, colorBy = "dropSplitClass", splitBy = "dropSplit
       meta_info[, colorBy] <- factor(meta_info[, colorBy], levels = unique(meta_info[, colorBy]))
       p <- p + geom_point(
         aes(color = meta_info[, colorBy]),
-        alpha = 0.5, shape = 16
+        size = 1, alpha = 0.5, shape = 16
       ) +
         scale_color_brewer(
           name = colorBy,
@@ -371,10 +371,15 @@ RankMSEPlot <- function(meta_info, colorBy = "dropSplitClass", splitBy = "dropSp
 #' @importFrom ggplot2 ggplot aes geom_point geom_vline labs guides guide_legend scale_x_log10 scale_color_brewer scale_color_manual scale_color_viridis_c annotation_logticks theme_classic theme
 #' @importFrom scales trans_format math_format
 #' @importFrom stats setNames
-.CellEntropyPlot <- function(meta_info, colorBy, cell_stat_by) {
+.CellEntropyPlot <- function(meta_info, colorBy, cell_stat_by, highlight) {
   meta_info <- subset(meta_info, !is.na(CellEntropy))
   if (nrow(meta_info) == 0) {
     return(NULL)
+  }
+  cell <- intersect(highlight, rownames(meta_info))
+  if (length(cell) > 0) {
+    meta_info[, "highlight"] <- FALSE
+    meta_info[cell, "highlight"] <- TRUE
   }
   color <- c("red3", "forestgreen", "steelblue", "grey80")
   names(color) <- c("Cell", "Uncertain", "Empty", "Discarded")
@@ -395,7 +400,7 @@ RankMSEPlot <- function(meta_info, colorBy = "dropSplitClass", splitBy = "dropSp
   if (is.numeric(meta_info[, colorBy])) {
     p <- p + geom_point(
       aes(color = meta_info[, colorBy]),
-      alpha = 0.5, shape = 16
+      size = 1, alpha = 0.5, shape = 16
     ) +
       scale_color_viridis_c(
         name = colorBy
@@ -405,7 +410,7 @@ RankMSEPlot <- function(meta_info, colorBy = "dropSplitClass", splitBy = "dropSp
     if (colorBy %in% c("preDefinedClass", "dropSplitClass")) {
       p <- p + geom_point(
         aes(color = meta_info[, colorBy]),
-        alpha = 0.5, shape = 16
+        size = 1, alpha = 0.5, shape = 16
       ) +
         scale_color_manual(
           name = colorBy,
@@ -416,7 +421,7 @@ RankMSEPlot <- function(meta_info, colorBy = "dropSplitClass", splitBy = "dropSp
       meta_info[, colorBy] <- factor(meta_info[, colorBy], levels = unique(meta_info[, colorBy]))
       p <- p + geom_point(
         aes(color = meta_info[, colorBy]),
-        alpha = 0.5, shape = 16
+        size = 1, alpha = 0.5, shape = 16
       ) +
         scale_color_brewer(
           name = colorBy,
@@ -424,6 +429,9 @@ RankMSEPlot <- function(meta_info, colorBy = "dropSplitClass", splitBy = "dropSp
         ) +
         guides(colour = guide_legend(override.aes = list(alpha = 1, size = 2)))
     }
+  }
+  if (length(cell) > 0) {
+    p <- p + geom_point(data = subset(meta_info[meta_info$highlight == TRUE, ]), color = "red", size = 1, alpha = 0.5, shape = 21)
   }
   preDefinedClass <- unique(meta_info$preDefinedClass)
   p <- p + geom_vline(
@@ -436,7 +444,7 @@ RankMSEPlot <- function(meta_info, colorBy = "dropSplitClass", splitBy = "dropSp
     linetype = 2
   )
 }
-CellEntropyPlot <- function(meta_info, colorBy = "dropSplitClass", splitBy = "dropSplitClass", cell_stat_by = "dropSplitClass") {
+CellEntropyPlot <- function(meta_info, colorBy = "dropSplitClass", splitBy = "dropSplitClass", cell_stat_by = "dropSplitClass", highlight = NULL) {
   meta_info <- as.data.frame(meta_info)
   if ("preDefinedClass" %in% colnames(meta_info)) {
     meta_info[, "preDefinedClass"] <- factor(meta_info[, "preDefinedClass"],
@@ -448,11 +456,11 @@ CellEntropyPlot <- function(meta_info, colorBy = "dropSplitClass", splitBy = "dr
       levels = c("Cell", "Uncertain", "Empty", "Discarded")
     )
   }
-  p <- .CellEntropyPlot(meta_info, colorBy, cell_stat_by)
+  p <- .CellEntropyPlot(meta_info, colorBy, cell_stat_by, highlight)
   if (!is.null(splitBy)) {
     if (splitBy %in% colnames(meta_info)) {
       meta_sp <- split.data.frame(meta_info, meta_info[[splitBy]])
-      p <- c(list(Merge = p), lapply(meta_sp, function(x) .CellEntropyPlot(x, colorBy, cell_stat_by)))
+      p <- c(list(Merge = p), lapply(meta_sp, function(x) .CellEntropyPlot(x, colorBy, cell_stat_by, highlight)))
     }
   }
   return(p)
@@ -485,7 +493,7 @@ CellEntropyPlot <- function(meta_info, colorBy = "dropSplitClass", splitBy = "dr
   if (is.numeric(meta_info[, colorBy])) {
     p <- p + geom_point(
       aes(color = meta_info[, colorBy]),
-      alpha = 0.5, shape = 16
+      size = 1, alpha = 0.5, shape = 16
     ) +
       scale_color_viridis_c(
         name = colorBy
@@ -495,7 +503,7 @@ CellEntropyPlot <- function(meta_info, colorBy = "dropSplitClass", splitBy = "dr
     if (colorBy %in% c("preDefinedClass", "dropSplitClass")) {
       p <- p + geom_point(
         aes(color = meta_info[, colorBy]),
-        alpha = 0.5, shape = 16
+        size = 1, alpha = 0.5, shape = 16
       ) +
         scale_color_manual(
           name = colorBy,
@@ -506,7 +514,7 @@ CellEntropyPlot <- function(meta_info, colorBy = "dropSplitClass", splitBy = "dr
       meta_info[, colorBy] <- factor(meta_info[, colorBy], levels = unique(meta_info[, colorBy]))
       p <- p + geom_point(
         aes(color = meta_info[, colorBy]),
-        alpha = 0.5, shape = 16
+        size = 1, alpha = 0.5, shape = 16
       ) +
         scale_color_brewer(
           name = colorBy,
@@ -575,7 +583,7 @@ CellRedundancyPlot <- function(meta_info, colorBy = "dropSplitClass", splitBy = 
   if (is.numeric(meta_info[, colorBy])) {
     p <- p + geom_point(
       aes(color = meta_info[, colorBy]),
-      alpha = 0.5, shape = 16
+      size = 1, alpha = 0.5, shape = 16
     ) +
       scale_color_viridis_c(
         name = colorBy
@@ -585,7 +593,7 @@ CellRedundancyPlot <- function(meta_info, colorBy = "dropSplitClass", splitBy = 
     if (colorBy %in% c("preDefinedClass", "dropSplitClass")) {
       p <- p + geom_point(
         aes(color = meta_info[, colorBy]),
-        alpha = 0.5, shape = 16
+        size = 1, alpha = 0.5, shape = 16
       ) +
         scale_color_manual(
           name = colorBy,
@@ -596,7 +604,7 @@ CellRedundancyPlot <- function(meta_info, colorBy = "dropSplitClass", splitBy = 
       meta_info[, colorBy] <- factor(meta_info[, colorBy], levels = unique(meta_info[, colorBy]))
       p <- p + geom_point(
         aes(color = meta_info[, colorBy]),
-        alpha = 0.5, shape = 16
+        size = 1, alpha = 0.5, shape = 16
       ) +
         scale_color_brewer(
           name = colorBy,

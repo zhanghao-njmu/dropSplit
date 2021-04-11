@@ -85,7 +85,7 @@ simSimpleCounts <- function(total_gene = 30000,
 #' @importFrom stats rexp rgamma rpois runif rnorm
 #' @export
 simComplexCounts <- function(total_gene = 30000, disturbance = 0.2,
-                             nempty = 30000, nlarge = 5000, nsmall = 500,
+                             nempty = 50000, nlarge = 5000, nsmall = 500,
                              empty_type = 2, large_type = 10, small_type = 2,
                              empty_prof = NULL, empty_ngene_rate = 0.05, empty_rate = 1 / 100,
                              large_prof = NULL, large_ngene_rate = 0.7, large_shape = 6, large_scale = 500,

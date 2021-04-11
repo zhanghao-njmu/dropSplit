@@ -7,7 +7,7 @@
 simComplexCounts(
   total_gene = 30000,
   disturbance = 0.2,
-  nempty = 30000,
+  nempty = 50000,
   nlarge = 5000,
   nsmall = 500,
   empty_type = 2,
