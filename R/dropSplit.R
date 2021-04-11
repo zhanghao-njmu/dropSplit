@@ -107,7 +107,7 @@ dropSplit <- function(counts, do_plot = TRUE, Cell_score = 0.9, Empty_score = 0.
                       Cell_min_nCount = 500, Empty_min_nCount = 20, Empty_max_num = 50000,
                       Gini_control = TRUE, Gini_threshold = NULL, max_iter = 5,
                       preCell_mask = FALSE, preEmpty_mask = TRUE, FDR = 0.05,
-                      xgb_params = NULL, xgb_nrounds = 20, xgb_thread = 8, xgb_early_stopping_rounds = 3,
+                      xgb_params = NULL, xgb_nrounds = 20, xgb_thread = 8, xgb_early_stopping_rounds = NULL,
                       modelOpt = FALSE, verbose = 1, seed = 0, ...) {
   start <- Sys.time()
   if (!hasArg(counts)) {
@@ -211,7 +211,7 @@ dropSplit <- function(counts, do_plot = TRUE, Cell_score = 0.9, Empty_score = 0.
     )
   }
   message("*** Gini_threshold was set to: ", round(Gini_threshold, 3))
-  minGini <- max(Gini_threshold - 0.05, min(final_Gini))
+  minGini <- max(Gini_threshold - 0.03, min(final_Gini))
   final_CellGiniScore <- (final_Gini - minGini) / (Gini_threshold - minGini)
   final_CellGiniScore[final_CellGiniScore < 0] <- 0
   final_CellGiniScore[final_CellGiniScore > 1] <- 1
@@ -346,8 +346,8 @@ dropSplit <- function(counts, do_plot = TRUE, Cell_score = 0.9, Empty_score = 0.
     max_delta_step = 1,
     alpha = 5,
     lambda = 10,
-    eval_metric = "error",
     eval_metric = "aucpr",
+    eval_metric = "error",
     objective = "binary:logistic",
     nthread = xgb_thread
   )
@@ -364,12 +364,13 @@ dropSplit <- function(counts, do_plot = TRUE, Cell_score = 0.9, Empty_score = 0.
       xgb_nrounds = xgb_nrounds, xgb_thread = xgb_thread, ...
     )
     xgb_params <- c(opt$BestPars,
-      eval_metric = "error",
       eval_metric = "auc",
+      eval_metric = "error",
       objective = "binary:logistic",
       nthread = xgb_thread
     )
   }
+  xgb_params <- c(xgb_params, eval_metric = "error")
   message(">>> Construct the XGBoost model with pre-defined classification...")
 
   train_error <- 1
@@ -386,6 +387,7 @@ dropSplit <- function(counts, do_plot = TRUE, Cell_score = 0.9, Empty_score = 0.
       empty_update <- colnames(Empty_counts)
       cell_update <- c(colnames(Cell_counts), colnames(Sim_Cell_counts))
       highlight <- colnames(Cell_counts)
+      cell_expansion <- empty_expansion <- 1
     } else {
       ### empty
       if (k == 2) {
@@ -394,31 +396,32 @@ dropSplit <- function(counts, do_plot = TRUE, Cell_score = 0.9, Empty_score = 0.
         empty_current <- c(empty_update, rownames(meta_info)[meta_info$dropSplitClass == "Empty" & meta_info$nCount_Bin == k])
       }
       new_empty <- colnames(Sim_Uncertain_counts)[Sim_Uncertain_counts_rawname %in% empty_current]
-      if (length(new_empty) > ceiling(Empty_max_num / max_iter)) {
-        new_empty <- sample(new_empty, ceiling(Empty_max_num / max_iter))
+      if (empty_expansion != 1 & length(new_empty) > 0) {
+        new_empty <- sample(new_empty, round(empty_expansion * length(new_empty)), replace = TRUE)
       }
-      empty_remove_num <- length(empty_update[empty_update %in% rownames(meta_info)]) - length(empty_update[empty_update %in% empty_current & empty_update %in% rownames(meta_info)])
+      empty_remove_num <- length(unique(empty_update[empty_update %in% rownames(meta_info)])) - length(unique(empty_update[empty_update %in% empty_current & empty_update %in% rownames(meta_info)]))
       raw_empty <- empty_update[empty_update %in% empty_current]
-      empty_update <- unique(c(new_empty, raw_empty))
+      empty_update <- c(new_empty, raw_empty)
+
+      if (length(empty_update) > Empty_max_num) {
+        empty_update <- sample(empty_update, Empty_max_num, replace = TRUE)
+        empty_expansion <- empty_expansion * Empty_max_num / length(empty_update)
+      }
 
       ### cell
       if (k == 2) {
         cell_current <- rownames(meta_info)[meta_info$dropSplitClass == "Cell" & meta_info$nCount_Bin %in% c(1, max_iter)]
+        cell_current <- c(cell_current, colnames(Sim_Cell_counts)[Sim_Cell_counts_rawname %in% cell_current])
       } else {
         cell_current <- c(cell_update, rownames(meta_info)[meta_info$dropSplitClass == "Cell" & meta_info$nCount_Bin %in% c(1, max_iter - k + 2)])
       }
       new_cell <- colnames(Sim_Uncertain_counts)[Sim_Uncertain_counts_rawname %in% cell_current]
-      if (length(new_cell) > ceiling(Empty_max_num / max_iter)) {
-        new_cell <- sample(new_cell, ceiling(Empty_max_num / max_iter))
+      if (cell_expansion != 1 & length(new_cell) > 0) {
+        new_cell <- sample(new_cell, round(cell_expansion * length(new_cell)), replace = TRUE)
       }
-      cell_remove_num <- length(cell_update[cell_update %in% rownames(meta_info)]) - length(cell_update[cell_update %in% cell_current & cell_update %in% rownames(meta_info)])
+      cell_remove_num <- length(unique(cell_update[cell_update %in% rownames(meta_info)])) - length(unique(cell_update[cell_update %in% cell_current & cell_update %in% rownames(meta_info)]))
       raw_cell <- cell_update[cell_update %in% cell_current]
-      cell_update <- unique(c(new_cell, raw_cell))
-      if (length(cell_update) / length(empty_update) < CE_ratio) {
-        nsample <- ceiling(length(empty_update) * CE_ratio - length(cell_update))
-        new_cell <- sample(cell_update, nsample, replace = TRUE)
-        cell_update <- c(cell_update, new_cell)
-      }
+      cell_update <- c(new_cell, raw_cell)
 
       if (length(empty_update) < ncol(Cell_counts)) {
         message("*** Number of 'Empty' droplets is too small(", length(empty_update), "). Use the previous model for final classification.")
@@ -427,6 +430,14 @@ dropSplit <- function(counts, do_plot = TRUE, Cell_score = 0.9, Empty_score = 0.
       if (length(new_empty) == 0 & length(new_cell) == 0 & empty_remove_num == 0 & cell_remove_num == 0) {
         message("*** No change in the training data. Use the previous model for final classification.")
         break
+      }
+
+      expansion <- length(empty_update) / length(cell_update)
+      # message("cell_update:", length(cell_update)," empty_update:", length(empty_update))
+      if (1 / expansion != CE_ratio) {
+        nsample <- round(length(empty_update) * CE_ratio)
+        cell_update <- sample(cell_update, nsample, replace = TRUE)
+        cell_expansion <- cell_expansion * expansion
       }
 
       train <- dat[c(cell_update, empty_update), ]
@@ -439,23 +450,28 @@ dropSplit <- function(counts, do_plot = TRUE, Cell_score = 0.9, Empty_score = 0.
       message(
         "... Number of filtered 'Cell' droplets defined in the previous round: ", cell_remove_num,
         "\n... Number of filtered 'Empty' droplets defined in the previous round: ", empty_remove_num,
-        "\n... Number of the current training 'Cell' droplets from 'Uncertain': ", length(intersect(
+        "\n... Number of the new training 'Cell' droplets from 'Uncertain': ", length(intersect(
           cell_current,
           rownames(meta_info)[meta_info[, "preDefinedClass"] == "Uncertain"]
         )),
-        "\n... Number of the current training 'Empty' droplets from 'Uncertain': ", length(intersect(
+        "\n... Number of the new training 'Empty' droplets from 'Uncertain': ", length(intersect(
           empty_current,
           rownames(meta_info)[meta_info[, "preDefinedClass"] == "Uncertain"]
         ))
       )
     }
 
+    message(
+      ">>> cell_expansion: ", round(cell_expansion, 3),
+      "\n>>> empty_expansion: ", round(empty_expansion, 3)
+    )
     message(">>> Train data: 'Cell'=", sum(train_label == 1), "; 'Empty'=", sum(train_label == 0), "; 'C/E' Ratio=", round(sum(train_label == 1) / sum(train_label == 0), 3))
     xgb <- xgboost(
       data = xgb.DMatrix(data = train, label = train_label),
       nrounds = xgb_nrounds,
       params = xgb_params,
       early_stopping_rounds = xgb_early_stopping_rounds,
+      maximize = FALSE,
       verbose = verbose
     )
     new_train_error <- tail(xgb$evaluation_log$train_error, 1)
@@ -599,7 +615,7 @@ dropSplit <- function(counts, do_plot = TRUE, Cell_score = 0.9, Empty_score = 0.
 
   rescure <- which(meta_info[, "preDefinedClass"] %in% c("Uncertain", "Empty") & meta_info[, "dropSplitClass"] == "Cell")
   rescure_score <- meta_info[rescure, "dropSplitScore"]
-  er_rate <- train_error * (1 - Cell_score) * 2
+  er_rate <- train_error * (1 + (1 - Cell_score) * 2)
   drop <- round(length(rescure) * er_rate)
   if (drop > 0) {
     drop_index <- rescure[order(rescure_score, decreasing = FALSE)[1:drop]]
@@ -829,4 +845,3 @@ CalldropSplit <- function(counts, ...) {
   result <- dropSplit(counts, ...)
   return(result)
 }
-

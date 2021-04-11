@@ -30,7 +30,7 @@ dropSplit(
   xgb_params = NULL,
   xgb_nrounds = 20,
   xgb_thread = 8,
-  xgb_early_stopping_rounds = 3,
+  xgb_early_stopping_rounds = NULL,
   modelOpt = FALSE,
   verbose = 1,
   seed = 0,

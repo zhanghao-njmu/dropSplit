@@ -469,10 +469,15 @@ CellEntropyPlot <- function(meta_info, colorBy = "dropSplitClass", splitBy = "dr
 #' @importFrom ggplot2 ggplot aes geom_point geom_vline labs guides guide_legend scale_x_log10 scale_color_brewer scale_color_manual scale_color_viridis_c annotation_logticks theme_classic theme
 #' @importFrom scales trans_format math_format
 #' @importFrom stats setNames
-.CellRedundancyPlot <- function(meta_info, colorBy, cell_stat_by) {
+.CellRedundancyPlot <- function(meta_info, colorBy, cell_stat_by, highlight) {
   meta_info <- subset(meta_info, !is.na(CellRedundancy))
   if (nrow(meta_info) == 0) {
     return(NULL)
+  }
+  cell <- intersect(highlight, rownames(meta_info))
+  if (length(cell) > 0) {
+    meta_info[, "highlight"] <- FALSE
+    meta_info[cell, "highlight"] <- TRUE
   }
   color <- c("red3", "forestgreen", "steelblue", "grey80")
   names(color) <- c("Cell", "Uncertain", "Empty", "Discarded")
@@ -523,6 +528,9 @@ CellEntropyPlot <- function(meta_info, colorBy = "dropSplitClass", splitBy = "dr
         guides(colour = guide_legend(override.aes = list(alpha = 1, size = 2)))
     }
   }
+  if (length(cell) > 0) {
+    p <- p + geom_point(data = subset(meta_info[meta_info$highlight == TRUE, ]), color = "red", size = 1, alpha = 0.5, shape = 21)
+  }
   preDefinedClass <- unique(meta_info$preDefinedClass)
   p <- p + geom_vline(
     xintercept = c(
@@ -534,7 +542,7 @@ CellEntropyPlot <- function(meta_info, colorBy = "dropSplitClass", splitBy = "dr
     linetype = 2
   )
 }
-CellRedundancyPlot <- function(meta_info, colorBy = "dropSplitClass", splitBy = "dropSplitClass", cell_stat_by = "dropSplitClass") {
+CellRedundancyPlot <- function(meta_info, colorBy = "dropSplitClass", splitBy = "dropSplitClass", cell_stat_by = "dropSplitClass", highlight = NULL) {
   meta_info <- as.data.frame(meta_info)
   if ("preDefinedClass" %in% colnames(meta_info)) {
     meta_info[, "preDefinedClass"] <- factor(meta_info[, "preDefinedClass"],
@@ -546,11 +554,11 @@ CellRedundancyPlot <- function(meta_info, colorBy = "dropSplitClass", splitBy = 
       levels = c("Cell", "Uncertain", "Empty", "Discarded")
     )
   }
-  p <- .CellRedundancyPlot(meta_info, colorBy, cell_stat_by)
+  p <- .CellRedundancyPlot(meta_info, colorBy, cell_stat_by, highlight)
   if (!is.null(splitBy)) {
     if (splitBy %in% colnames(meta_info)) {
       meta_sp <- split.data.frame(meta_info, meta_info[[splitBy]])
-      p <- c(list(Merge = p), lapply(meta_sp, function(x) .CellRedundancyPlot(x, colorBy, cell_stat_by)))
+      p <- c(list(Merge = p), lapply(meta_sp, function(x) .CellRedundancyPlot(x, colorBy, cell_stat_by, highlight)))
     }
   }
   return(p)
@@ -559,10 +567,15 @@ CellRedundancyPlot <- function(meta_info, colorBy = "dropSplitClass", splitBy = 
 #' @importFrom ggplot2 ggplot aes geom_point geom_vline labs guides guide_legend scale_x_log10 scale_color_brewer scale_color_manual scale_color_viridis_c annotation_logticks theme_classic theme
 #' @importFrom scales trans_format math_format
 #' @importFrom stats setNames
-.CellGiniPlot <- function(meta_info, colorBy, cell_stat_by) {
+.CellGiniPlot <- function(meta_info, colorBy, cell_stat_by, highlight) {
   meta_info <- subset(meta_info, !is.na(CellGini))
   if (nrow(meta_info) == 0) {
     return(NULL)
+  }
+  cell <- intersect(highlight, rownames(meta_info))
+  if (length(cell) > 0) {
+    meta_info[, "highlight"] <- FALSE
+    meta_info[cell, "highlight"] <- TRUE
   }
   color <- c("red3", "forestgreen", "steelblue", "grey80")
   names(color) <- c("Cell", "Uncertain", "Empty", "Discarded")
@@ -613,6 +626,9 @@ CellRedundancyPlot <- function(meta_info, colorBy = "dropSplitClass", splitBy = 
         guides(colour = guide_legend(override.aes = list(alpha = 1, size = 2)))
     }
   }
+  if (length(cell) > 0) {
+    p <- p + geom_point(data = subset(meta_info[meta_info$highlight == TRUE, ]), color = "red", size = 1, alpha = 0.5, shape = 21)
+  }
   preDefinedClass <- unique(meta_info$preDefinedClass)
   p <- p + geom_vline(
     xintercept = c(
@@ -624,7 +640,7 @@ CellRedundancyPlot <- function(meta_info, colorBy = "dropSplitClass", splitBy = 
     linetype = 2
   )
 }
-CellGiniPlot <- function(meta_info, colorBy = "dropSplitClass", splitBy = "dropSplitClass", cell_stat_by = "dropSplitClass") {
+CellGiniPlot <- function(meta_info, colorBy = "dropSplitClass", splitBy = "dropSplitClass", cell_stat_by = "dropSplitClass", highlight = NULL) {
   meta_info <- as.data.frame(meta_info)
   if ("preDefinedClass" %in% colnames(meta_info)) {
     meta_info[, "preDefinedClass"] <- factor(meta_info[, "preDefinedClass"],
@@ -636,11 +652,11 @@ CellGiniPlot <- function(meta_info, colorBy = "dropSplitClass", splitBy = "dropS
       levels = c("Cell", "Uncertain", "Empty", "Discarded")
     )
   }
-  p <- .CellGiniPlot(meta_info, colorBy, cell_stat_by)
+  p <- .CellGiniPlot(meta_info, colorBy, cell_stat_by, highlight)
   if (!is.null(splitBy)) {
     if (splitBy %in% colnames(meta_info)) {
       meta_sp <- split.data.frame(meta_info, meta_info[[splitBy]])
-      p <- c(list(Merge = p), lapply(meta_sp, function(x) .CellGiniPlot(x, colorBy, cell_stat_by)))
+      p <- c(list(Merge = p), lapply(meta_sp, function(x) .CellGiniPlot(x, colorBy, cell_stat_by, highlight)))
     }
   }
   return(p)
