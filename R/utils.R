@@ -112,3 +112,25 @@ curvatureCalcluate <- function(x, y) {
   return(list(x = x, y = y, d1n = d1n, d2n = d2n, curvature = curvature))
 }
 
+#' The IQR method of identifying outliers.
+#'
+#' @param x A numeric vector.
+#' @param times A constant used to discern bound.
+#'
+#' @return A list of the upper bound, the upper outliers index, the lower bound and the lower outliers index.
+#'
+#' @examples
+#' x <- rep(seq(0.91, 1, 0.01), 2^(1:10))
+#' boxplot(x)
+#' outliers(x)
+#' @export
+outliers <- function(x, times = 1.5) {
+  q25 <- quantile(x, 0.25)
+  q75 <- quantile(x, 0.75)
+  iqr <- q75 - q25
+  ub <- q75 + iqr * times
+  uo <- which(x > ub)
+  lb <- q25 - iqr * times
+  lo <- which(x < lb)
+  return(list("UpperBound" = as.numeric(ub), "LowerBound" = as.numeric(lb), "UpperOutliers" = uo, "LowerOutliers" = lo))
+}

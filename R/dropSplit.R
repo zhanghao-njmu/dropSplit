@@ -28,6 +28,7 @@
 #' @param preCell_mask logical; Whether to mask pre-defined 'Cell' droplets when prediction. If \code{TRUE}, XGBoostScore for all droplets pre-defined as 'Cell' will be set to 1; Default is \code{FALSE}.
 #' @param preEmpty_mask logical; Whether to mask pre-defined 'Empty' droplets when prediction. There is a little different with parameter \code{preCell_mask}. If \code{TRUE}, XGBoostScore will not change, but the final classification will not be 'Cell' in any case. Default is \code{TRUE}.
 #' @param FDR FDR cutoff for droplets that predicted as 'Cell' or 'Empty' from pre-defined 'Uncertain'. Note, statistic tests and the FDR control only performed on the difference between averaged \code{XGBoostScore} and 0.5. Default is 0.05.
+#' @param remove_outliers Whether remove outliers for 'Cell' droplets according to the \code{dropSplitScore}. Default is \code{TRUE}.
 #' @param xgb_params The \code{list} of XGBoost parameters.
 #' @param modelOpt Whether to optimize the model using \code{\link{xgbOptimization}}. Will take long time for large datasets. If \code{TRUE}, will overwrite the parameters list in \code{xgb_params}. The following parameters are only used in \code{\link{xgbOptimization}}.
 #' @inheritParams xgbOptimization
@@ -106,7 +107,7 @@ dropSplit <- function(counts, do_plot = TRUE, Cell_score = 0.9, Empty_score = 0.
                       Cell_rank = NULL, Uncertain_rank = NULL, Empty_rank = NULL,
                       Cell_min_nCount = 500, Empty_min_nCount = 20, Empty_max_num = 50000,
                       Gini_control = TRUE, Gini_threshold = NULL, max_iter = 5,
-                      preCell_mask = FALSE, preEmpty_mask = TRUE, FDR = 0.05,
+                      preCell_mask = FALSE, preEmpty_mask = TRUE, FDR = 0.05, remove_outliers = TRUE,
                       xgb_params = NULL, xgb_nrounds = 20, xgb_thread = 8, xgb_early_stopping_rounds = NULL,
                       modelOpt = FALSE, verbose = 1, seed = 0, ...) {
   start <- Sys.time()
@@ -129,9 +130,13 @@ dropSplit <- function(counts, do_plot = TRUE, Cell_score = 0.9, Empty_score = 0.
       stop("'Gini_threshold' must be between 0 and 1.")
     }
   }
+  if (!is.numeric(CE_ratio)) {
+    stop("'CE_ratio' is not a numeric value.")
+  }
   if (class(counts) == "matrix") {
     counts <- as(counts, "dgCMatrix")
   }
+
 
   set.seed(seed)
 
@@ -192,8 +197,11 @@ dropSplit <- function(counts, do_plot = TRUE, Cell_score = 0.9, Empty_score = 0.
   if (ncol(Empty_counts) == 0) {
     stop("No 'Empty' droplets detected. Please check the RankMSE curve with the pre-defined droplet cutoff. You may set custom cutoff values in the parameters manually.")
   }
-  if (ncol(Empty_counts) < ncol(Cell_counts)) {
-    stop("Pre-defined 'Empty' droplets is fewer than 'Cell'. You may set custom rank values in the parameters manually or set a lower value for 'Empty_min_nCount'.")
+  if (ncol(Empty_counts) * CE_ratio < ncol(Cell_counts)) {
+    warning("Pre-defined 'Empty' droplets is fewer than 'Cell'. You may set a lower value for 'Empty_min_nCount' or set custom rank values in the parameters manually.", immediate. = TRUE)
+    Empty_counts <- counts[, meta_info$nCount < Uncertain_count]
+    Empty_counts <- Empty_counts[, 1:min(Empty_max_num, ncol(Empty_counts))]
+    warning("'Empty' droplets are defined with a low nCount(", min(colSums(Empty_counts)), ") than specificed(", Empty_min_nCount, ")", immediate. = TRUE)
   }
   if (ncol(Empty_counts) > Empty_max_num) {
     warning("The number of 'Empty' droplets exceeds the specified. Converting the excess 'Empty' droplets to 'Uncertain' droplets.", immediate. = TRUE)
@@ -201,17 +209,20 @@ dropSplit <- function(counts, do_plot = TRUE, Cell_score = 0.9, Empty_score = 0.
     Empty_counts <- Empty_counts[, (ncol(Empty_counts) - Empty_max_num + 1):ncol(Empty_counts)]
   }
 
-  message(">>> Calculate CellGiniScore for the droplets...")
+  message(">>> Calculate CellGini for the droplets...")
   primary_counts <- cbind(Cell_counts, Uncertain_counts, Empty_counts)
   final_Gini <- CellGini(primary_counts, normalize = TRUE)
   if (is.null(Gini_threshold)) {
-    Gini_threshold <- max(
-      quantile(final_Gini[colnames(Cell_counts)], 0.25) - diff(quantile(final_Gini[colnames(Cell_counts)], c(0.25, 0.75))) * 3,
-      min(final_Gini[colnames(Cell_counts)])
-    )
+    message(">>> Automatic determination of Gini_threshold according to the CellGini lower bound of 'Cell' droplets")
+    fq <- cut(final_Gini[colnames(Cell_counts)], breaks = seq(min(final_Gini[colnames(Cell_counts)]), max(final_Gini[colnames(Cell_counts)]), length.out = 100))
+    fqfq <- table(fq)
+    lowerbin <- outliers(fqfq, times = 3)$UpperOutliers
+    lowerbin <- lowerbin[fqfq[names(lowerbin)] > ncol(Cell_counts) * 0.02][1]
+    lowerbound <- as.numeric(sub("\\((.+),.*", "\\1", names(lowerbin)))
+    Gini_threshold <- ifelse(length(lowerbound) == 0 | is.na(lowerbound), min(final_Gini[colnames(Cell_counts)]), lowerbound)
   }
   message("*** Gini_threshold was set to: ", round(Gini_threshold, 3))
-  minGini <- max(Gini_threshold - 0.03, min(final_Gini))
+  minGini <- max(Gini_threshold - 0.05, min(final_Gini))
   final_CellGiniScore <- (final_Gini - minGini) / (Gini_threshold - minGini)
   final_CellGiniScore[final_CellGiniScore < 0] <- 0
   final_CellGiniScore[final_CellGiniScore > 1] <- 1
@@ -268,8 +279,10 @@ dropSplit <- function(counts, do_plot = TRUE, Cell_score = 0.9, Empty_score = 0.
     "\n... nCount in 'Cell' droplets: Min=", min(Cell_nCount), " Median=", median(Cell_nCount), " Max=", max(Cell_nCount),
     "\n... nCount in 'Empty' droplets: Min=", min(Empty_nCount), " Median=", median(Empty_nCount), " Max=", max(Empty_nCount)
   )
-  if (!is.null(CE_ratio)) {
+  if (is.null(downsample_times)) {
     downsample_times <- ceiling(ncol(Empty_counts) / ncol(Cell_counts) * CE_ratio) - 1
+  } else {
+    warning("'CE_ratio' will be reset according to the 'downsample_times'.", immediate. = TRUE)
   }
   Sim_Cell_counts <- Cell_counts[, rep(1:ncol(Cell_counts), downsample_times)]
   colnames(Sim_Cell_counts) <- paste0(rep(paste0("Sim", 1:downsample_times), each = ncol(Cell_counts)), "-", colnames(Sim_Cell_counts))
@@ -390,11 +403,11 @@ dropSplit <- function(counts, do_plot = TRUE, Cell_score = 0.9, Empty_score = 0.
       cell_expansion <- empty_expansion <- 1
     } else {
       ### empty
-      if (k == 2) {
-        empty_current <- rownames(meta_info)[meta_info$dropSplitClass == "Empty" & meta_info$nCount_Bin %in% c(0, k)]
-      } else {
-        empty_current <- c(empty_update, rownames(meta_info)[meta_info$dropSplitClass == "Empty" & meta_info$nCount_Bin == k])
-      }
+      # if (k == 2) {
+      #   empty_current <- rownames(meta_info)[meta_info$dropSplitClass == "Empty" & meta_info$nCount_Bin %in% c(0, k)]
+      # } else {
+      empty_current <- c(empty_update, rownames(meta_info)[meta_info$dropSplitClass == "Empty" & meta_info$nCount_Bin == k])
+      # }
       new_empty <- colnames(Sim_Uncertain_counts)[Sim_Uncertain_counts_rawname %in% empty_current]
       if (empty_expansion != 1 & length(new_empty) > 0) {
         new_empty <- sample(new_empty, round(empty_expansion * length(new_empty)), replace = TRUE)
@@ -613,6 +626,8 @@ dropSplit <- function(counts, do_plot = TRUE, Cell_score = 0.9, Empty_score = 0.
   }
   message("\n  ============= Final result =============  ")
 
+  ### Estimate error rate
+  message(">>> Estimated the classification error for 'Cell' droplets")
   rescure <- which(meta_info[, "preDefinedClass"] %in% c("Uncertain", "Empty") & meta_info[, "dropSplitClass"] == "Cell")
   rescure_score <- meta_info[rescure, "dropSplitScore"]
   er_rate <- train_error * (1 + (1 - Cell_score) * 2)
@@ -625,13 +640,39 @@ dropSplit <- function(counts, do_plot = TRUE, Cell_score = 0.9, Empty_score = 0.
     drop_score <- NA
   }
   message(
-    ">>> Estimated the classification error for 'Cell'",
-    "\n... Number of new defined Cell from 'Uncertain' or 'Empty': ", length(rescure),
+    "... Number of new defined Cell from 'Uncertain' or 'Empty': ", length(rescure),
     "\n... Estimated error rate: ", round(er_rate, digits = 3),
-    "\n... Estimated error number: ", drop,
-    "\n... Estimated error droplets mean ", "dropSplitScore", ": ", drop_score,
-    "\n*** The dropSplitClass for these ", drop, " droplets are set to 'Uncertain'"
+    "\n... Number of error droplets: ", drop,
+    "\n... Error droplets mean dropSplitScore: ", drop_score,
+    "\n*** The dropSplitClass for these ", drop, " droplets are reset to 'Uncertain'"
   )
+
+  ### Detect outliers according to the dropSplitScore
+  message("\n>>> Remove outliers according to the dropSplitScore lower bound of 'Cell' droplets(5*IQR)")
+  if (isTRUE(remove_outliers)) {
+    allscore <- meta_info[meta_info[, "dropSplitClass"] == "Cell", "dropSplitScore"]
+    names(allscore) <- rownames(meta_info)[meta_info[, "dropSplitClass"] == "Cell"]
+    outcell <- outliers(allscore, times = 5)
+    outcell_n <- length(outcell$LowerOutliers)
+    if (outcell_n > 0) {
+      outcell_median <- median(allscore[outcell$LowerOutliers])
+      if ((outcell_median - Cell_score) / (median(allscore[!names(allscore) %in% names(outcell$LowerOutliers)]) - Cell_score) < 2 / 3) {
+        meta_info[names(outcell$LowerOutliers), "dropSplitClass"] <- "Uncertain"
+        message(
+          "... Number of detected outliers for 'Cell' droplets: ", outcell_n,
+          "\n... Outliers median dropSplitScore: ", round(outcell_median, 3),
+          "\n*** The dropSplitClass for these ", outcell_n, " droplets are reset to 'Uncertain'"
+        )
+      } else {
+        message(
+          "... Outliers have a dropSplitScore(", round(outcell_median, 3), ") similar to the main 'Cell' droplets(", round(median(allscore[!names(allscore) %in% names(outcell$LowerOutliers)]), 3), ")",
+          "\n... Skip the outliers detection"
+        )
+        outcell_n <- 0
+        outcell_median <- NA
+      }
+    }
+  }
 
   message(
     "\n>>> Summary of final dropSplit-defined droplet",
@@ -753,27 +794,30 @@ RankMSE <- function(meta_info, fill_RankMSE = FALSE, smooth_num = 2, smooth_wind
     cell_max <- quantile(df[1:(crk[1] - 1), "logRankMSE"], 0.99)
     while (length(crk) > 1) {
       message("... ", length(crk), " 'Cell' valleys found. Perform automatic selection(iter=", iter, ")...")
-      if (all(df[crk, "logRankMSE"] < 0)) {
-        crk <- crk[length(crk)]
+      if (any(df[crk, "logRankMSE"] < 0)) {
+        crk <- crk[df[crk, "logRankMSE"] < 0][1]
+        # crk <- crk[length(crk)]
+      } else {
+        crk <- crk[1]
       }
-      if (length(crk) > 1) {
-        pks_diff_MSE <- diff(df[crk, "logRankMSE"])
-        pks_max_MSE <- sapply(1:(length(crk) - 1), function(i) {
-          quantile(df[crk[i]:crk[i + 1], "logRankMSE"], 0.99) - df[crk[i + 1], "logRankMSE"]
-        })
-        j <- which(pks_diff_MSE <= pks_max_MSE * tolerance | pks_max_MSE >= 0.5 * cell_max) + 1
-        if (length(j) == 1) {
-          j <- c(1, j)
-          pks_diff_MSE <- diff(df[crk[j], "logRankMSE"])
-          pks_max_MSE <- quantile(df[crk[1]:crk[2], "logRankMSE"], 0.99) - df[crk[2], "logRankMSE"]
-          j <- which(pks_diff_MSE <= pks_max_MSE * tolerance | pks_max_MSE >= 0.5 * cell_max) + 1
-        }
-        if (length(j) == 0) {
-          j <- 1
-        }
-        crk <- crk[j]
-        iter <- iter + 1
-      }
+      # if (length(crk) > 1) {
+      #   pks_diff_MSE <- diff(df[crk, "logRankMSE"])
+      #   pks_max_MSE <- sapply(1:(length(crk) - 1), function(i) {
+      #     quantile(df[crk[i]:crk[i + 1], "logRankMSE"], 0.99) - df[crk[i + 1], "logRankMSE"]
+      #   })
+      #   j <- which(pks_diff_MSE <= pks_max_MSE * tolerance | pks_max_MSE >= 0.5 * cell_max) + 1
+      #   if (length(j) == 1) {
+      #     j <- c(1, j)
+      #     pks_diff_MSE <- diff(df[crk[j], "logRankMSE"])
+      #     pks_max_MSE <- quantile(df[crk[1]:crk[2], "logRankMSE"], 0.99) - df[crk[2], "logRankMSE"]
+      #     j <- which(pks_diff_MSE <= pks_max_MSE * tolerance | pks_max_MSE >= 0.5 * cell_max) + 1
+      #   }
+      #   if (length(j) == 0) {
+      #     j <- 1
+      #   }
+      #   crk <- crk[j]
+      #   iter <- iter + 1
+      # }
       if (length(crk) == 1) {
         message("... Automatic selection finished.")
       } else {

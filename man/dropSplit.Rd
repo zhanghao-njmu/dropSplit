@@ -27,6 +27,7 @@ dropSplit(
   preCell_mask = FALSE,
   preEmpty_mask = TRUE,
   FDR = 0.05,
+  remove_outliers = TRUE,
   xgb_params = NULL,
   xgb_nrounds = 20,
   xgb_thread = 8,
@@ -77,6 +78,8 @@ dropSplit(
 \item{preEmpty_mask}{logical; Whether to mask pre-defined 'Empty' droplets when prediction. There is a little different with parameter \code{preCell_mask}. If \code{TRUE}, XGBoostScore will not change, but the final classification will not be 'Cell' in any case. Default is \code{TRUE}.}
 
 \item{FDR}{FDR cutoff for droplets that predicted as 'Cell' or 'Empty' from pre-defined 'Uncertain'. Note, statistic tests and the FDR control only performed on the difference between averaged \code{XGBoostScore} and 0.5. Default is 0.05.}
+
+\item{remove_outliers}{Whether remove outliers for 'Cell' droplets according to the \code{dropSplitScore}. Default is \code{TRUE}.}
 
 \item{xgb_params}{The \code{list} of XGBoost parameters.}
 

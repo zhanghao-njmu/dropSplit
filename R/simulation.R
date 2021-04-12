@@ -13,7 +13,7 @@
 simSimpleCounts <- function(total_gene = 30000,
                             nempty = 20000, nlarge = 2000, nsmall = 200,
                             empty_prof = NULL, empty_ngene_rate = 0.05, empty_rate = 1 / 100,
-                            large_prof = NULL, large_ngene_rate = 0.7, large_shape = 6, large_scale = 500,
+                            large_prof = NULL, large_ngene_rate = 0.8, large_shape = 6, large_scale = 500,
                             small_prof = NULL, small_ngene_rate = 0.7, small_shape = 10, small_scale = 100,
                             remove_zero_drop = TRUE, remove_zero_feature = TRUE, seed = 0) {
   set.seed(seed)
@@ -88,7 +88,7 @@ simComplexCounts <- function(total_gene = 30000, disturbance = 0.2,
                              nempty = 50000, nlarge = 5000, nsmall = 500,
                              empty_type = 2, large_type = 10, small_type = 2,
                              empty_prof = NULL, empty_ngene_rate = 0.05, empty_rate = 1 / 100,
-                             large_prof = NULL, large_ngene_rate = 0.7, large_shape = 6, large_scale = 500,
+                             large_prof = NULL, large_ngene_rate = 0.8, large_shape = 6, large_scale = 500,
                              small_prof = NULL, small_ngene_rate = 0.7, small_shape = 10, small_scale = 100,
                              large_frag = TRUE, large_frag_gene = 1:50, large_frag_prop = 0.5,
                              small_frag = TRUE, small_frag_gene = 1:50, small_frag_prop = 0.5,
@@ -229,6 +229,7 @@ simCell <- function(total_gene = 10000, ncell = 5000,
       rep(0, total_gene - n)
     )
     cell_prof <- sample(cell_prof)
+    cell_prof[order(cell_prof, decreasing = TRUE) %in% 1:20] <- 0
   } else {
     cell_prof <- cell_prof * sample(c(0, 1), size = length(cell_prof), replace = TRUE, prob = c(1 - cell_ngene_rate, cell_ngene_rate))
   }
