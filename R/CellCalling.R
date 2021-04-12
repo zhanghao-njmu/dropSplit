@@ -31,8 +31,10 @@ CellCalling <- function(counts, method = "dropSplit", seed = 0, ...) {
   if (length(colnames(counts)) != ncol(counts) | length(rownames(counts)) != nrow(counts)) {
     stop("'counts' matrix must have both row(feature) names and column(cell) names.")
   }
+  nCount <- Matrix::colSums(counts)
   if (any(Matrix::colSums(counts) <= 0)) {
-    stop("'counts' has droplets that nCount<=0.")
+    warning("'counts' has droplets that nCount<=0. These droplets will be removed in the following steps.", immediate. = TRUE)
+    counts <- counts[, nCount > 0]
   }
   args1 <- mget(names(formals()))
   args2 <- as.list(match.call())
@@ -82,6 +84,7 @@ CellCalling <- function(counts, method = "dropSplit", seed = 0, ...) {
 #' @importFrom S4Vectors DataFrame
 #' @export
 CallEmptyDrops <- function(counts, lower = 100, niters = 10000, FDR = 0.01, Cell_min_nCount = 500, ...) {
+  start <- Sys.time()
   meta_info <- emptyDrops(counts, lower = lower, niters = niters, ...)
   meta_info <- as.data.frame(meta_info)
   meta_info$nCount <- Matrix::colSums(counts)
@@ -97,6 +100,8 @@ CallEmptyDrops <- function(counts, lower = 100, niters = 10000, FDR = 0.01, Cell
   meta_info <- DataFrame(meta_info)
 
   message(">>> EmptyDrops identified ", sum(meta_info$EmptyDropsClass == "Cell"), " cell-containing droplets.")
+  end <- Sys.time()
+  message("Elapsed: ", round(difftime(time1 = end, time2 = start, units = "mins"), digits = 3), " mins")
   return(meta_info)
 }
 
@@ -115,6 +120,7 @@ CallEmptyDrops <- function(counts, lower = 100, niters = 10000, FDR = 0.01, Cell
 #' @importFrom S4Vectors DataFrame
 #' @export
 CallzUMIs <- function(counts, Cell_min_nCount = 500) {
+  start <- Sys.time()
   meta_info <- data.frame(row.names = colnames(counts))
   meta_info$nCount <- Matrix::colSums(counts)
   meta_info$nCount_rank <- rank(-(meta_info$nCount))
@@ -133,6 +139,8 @@ CallzUMIs <- function(counts, Cell_min_nCount = 500) {
   meta_info <- DataFrame(meta_info)
 
   message(">>> zUMIs identified ", sum(meta_info$zUMIsClass == "Cell"), " cell-containing droplets.")
+  end <- Sys.time()
+  message("Elapsed: ", round(difftime(time1 = end, time2 = start, units = "mins"), digits = 3), " mins")
   return(meta_info)
 }
 
@@ -153,6 +161,7 @@ CallzUMIs <- function(counts, Cell_min_nCount = 500) {
 #' @importFrom S4Vectors DataFrame
 #' @export
 CallCellRangerV2 <- function(counts, recovered_cells = 3000, recovered_cells_quantile = 0.99, Cell_min_nCount = 500) {
+  start <- Sys.time()
   meta_info <- data.frame(row.names = colnames(counts))
   meta_info$nCount <- Matrix::colSums(counts)
   meta_info$nCount_rank <- rank(-(meta_info$nCount))
@@ -163,6 +172,8 @@ CallCellRangerV2 <- function(counts, recovered_cells = 3000, recovered_cells_qua
   meta_info <- DataFrame(meta_info)
 
   message(">>> CellRangerV2 identified ", sum(meta_info$CellRangerV2Class == "Cell"), " cell-containing droplets.")
+  end <- Sys.time()
+  message("Elapsed: ", round(difftime(time1 = end, time2 = start, units = "mins"), digits = 3), " mins")
   return(meta_info)
 }
 
@@ -188,10 +199,12 @@ CallCellRangerV2 <- function(counts, recovered_cells = 3000, recovered_cells_qua
 CallCellRangerV3 <- function(counts, recovered_cells = 3000, recovered_cells_quantile = 0.99,
                              n_candidate_barcodes = 20000, n_partitions = 90000,
                              min_umis_nonambient = 500, min_umi_frac_of_median = 0.01, max_adj_pvalue = 0.01) {
-  message(">>> Use 'CallCellRangerV2' to perform initial cell calling...")
-  meta_info <- CallCellRangerV2(counts, recovered_cells, recovered_cells_quantile)
+  start <- Sys.time()
+  message(">>> Use 'CallCellRangerV2' to perform initial cell calling")
+  meta_info <- suppressMessages(CallCellRangerV2(counts, recovered_cells, recovered_cells_quantile))
+  message(">>> CellRangerV2 identified ", sum(meta_info$CellRangerV2Class == "Cell"), " cell-containing droplets.")
   orig_cell_bcs <- rownames(meta_info)[which(meta_info$CellRangerV2Class == "Cell")]
-  message(">>> Identify low RNA content cells from remaining droplets...")
+  message(">>> Identify low RNA content cells from remaining droplets")
 
   cr3 <- find_nonambient_barcodes(
     matrix = counts, orig_cell_bcs = orig_cell_bcs,
@@ -211,6 +224,8 @@ CallCellRangerV3 <- function(counts, recovered_cells = 3000, recovered_cells_qua
   message("An additional ", sum(cr3$is_nonambien), " cells were identified.")
 
   message("\n>>> CellRangerV3 identified ", sum(meta_info$CellRangerV3Class == "Cell"), " cell-containing droplets.")
+  end <- Sys.time()
+  message("Elapsed: ", round(difftime(time1 = end, time2 = start, units = "mins"), digits = 3), " mins")
   return(meta_info)
 }
 

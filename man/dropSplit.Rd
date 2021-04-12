@@ -19,7 +19,7 @@ dropSplit(
   Empty_rank = NULL,
   Cell_min_nCount = 500,
   Empty_min_nCount = 10,
-  Empty_max_num = 50000,
+  Empty_max_num = 80000,
   Gini_control = TRUE,
   Gini_threshold = NULL,
   max_iter = 5,
@@ -62,7 +62,7 @@ dropSplit(
 
 \item{Empty_min_nCount}{Minimum nCount for 'Empty' droplets. Default is 10.}
 
-\item{Empty_max_num}{Number of pre-defined 'Empty' droplets. Default is 50000.}
+\item{Empty_max_num}{Number of pre-defined 'Empty' droplets. Default is 80000.}
 
 \item{Gini_control}{Whether to control cell quality by CellGini. Default is \code{TRUE}.}
 

@@ -20,7 +20,7 @@
 #' @inheritParams RankMSE
 #' @param Cell_min_nCount Minimum nCount for 'Cell' droplets. Default is 500.
 #' @param Empty_min_nCount Minimum nCount for 'Empty' droplets. Default is 10.
-#' @param Empty_max_num Number of pre-defined 'Empty' droplets. Default is 50000.
+#' @param Empty_max_num Number of pre-defined 'Empty' droplets. Default is 80000.
 #' @param max_iter An integer specifying the number of iterations to use to rebuild the model with new defined droplets. Default is 5.
 #' @param Gini_control Whether to control cell quality by CellGini. Default is \code{TRUE}.
 #' @param Gini_threshold A cutoff of the CellGini metric. The higher, the more conservative and will get a lower number of cells. Default is automatic.
@@ -105,7 +105,7 @@ dropSplit <- function(counts, do_plot = TRUE, Cell_score = 0.9, Empty_score = 0.
                       downsample_times = NULL, CE_ratio = 1,
                       fill_RankMSE = FALSE, smooth_num = 2, smooth_window = 100,
                       Cell_rank = NULL, Uncertain_rank = NULL, Empty_rank = NULL,
-                      Cell_min_nCount = 500, Empty_min_nCount = 10, Empty_max_num = 50000,
+                      Cell_min_nCount = 500, Empty_min_nCount = 10, Empty_max_num = 80000,
                       Gini_control = TRUE, Gini_threshold = NULL, max_iter = 5,
                       preCell_mask = FALSE, preEmpty_mask = TRUE, FDR = 0.05, remove_outliers = FALSE,
                       xgb_params = NULL, xgb_nrounds = 20, xgb_thread = 8, xgb_early_stopping_rounds = NULL,
@@ -144,7 +144,7 @@ dropSplit <- function(counts, do_plot = TRUE, Cell_score = 0.9, Empty_score = 0.
 
   set.seed(seed)
 
-  message(">>> Start to define the credible cell-containing droplet...")
+  message(">>> Start to define the credible cell-containing droplet")
   meta_info <- data.frame(row.names = colnames(counts))
   meta_info$nCount <- Matrix::colSums(counts)
   meta_info$nCount_rank <- rank(-(meta_info$nCount))
@@ -202,13 +202,13 @@ dropSplit <- function(counts, do_plot = TRUE, Cell_score = 0.9, Empty_score = 0.
     Empty_counts <- Empty_counts[, 1:min(2 * ncol(Cell_counts), ncol(Empty_counts))]
     warning("Rank for the 'Empty' droplets are re-adjusted.", immediate. = TRUE)
   }
-  if (ncol(Empty_counts) > Empty_max_num) {
+  if (ncol(Empty_counts) > round(Empty_max_num / 2)) {
     warning("The number of 'Empty' droplets exceeds the specified. Converting the excess 'Empty' droplets to 'Uncertain' droplets.", immediate. = TRUE)
-    Uncertain_counts <- cbind(Uncertain_counts, Empty_counts[, 1:(ncol(Empty_counts) - Empty_max_num)])
-    Empty_counts <- Empty_counts[, (ncol(Empty_counts) - Empty_max_num + 1):ncol(Empty_counts)]
+    Uncertain_counts <- cbind(Uncertain_counts, Empty_counts[, 1:(ncol(Empty_counts) - round(Empty_max_num / 2))])
+    Empty_counts <- Empty_counts[, (ncol(Empty_counts) - round(Empty_max_num / 2) + 1):ncol(Empty_counts)]
   }
 
-  message(">>> Calculate CellGini for the droplets...")
+  message(">>> Calculate CellGini for the droplets")
   primary_counts <- cbind(Cell_counts, Uncertain_counts, Empty_counts)
   final_Gini <- CellGini(primary_counts, normalize = TRUE)
   if (is.null(Gini_threshold)) {
@@ -216,7 +216,7 @@ dropSplit <- function(counts, do_plot = TRUE, Cell_score = 0.9, Empty_score = 0.
     fq <- cut(final_Gini[colnames(Cell_counts)], breaks = seq(min(final_Gini[colnames(Cell_counts)]), max(final_Gini[colnames(Cell_counts)]), length.out = 100))
     fqfq <- table(fq)
     lowerbin <- outliers(fqfq, times = 3)$UpperOutliers
-    lowerbin <- lowerbin[fqfq[names(lowerbin)] > ncol(Cell_counts) * 0.02][1]
+    lowerbin <- lowerbin[fqfq[names(lowerbin)] > ncol(Cell_counts) * 0.01][1]
     lowerbound <- as.numeric(sub("\\((.+),.*", "\\1", names(lowerbin)))
     Gini_threshold <- ifelse(length(lowerbound) == 0 | is.na(lowerbound), quantile(final_Gini[colnames(Cell_counts)], 0.01), lowerbound)
   }
@@ -241,7 +241,7 @@ dropSplit <- function(counts, do_plot = TRUE, Cell_score = 0.9, Empty_score = 0.
   cell_use <- names(cell_Gini)[cell_Gini >= Gini_threshold]
   if (length(cell_drop) > 0) {
     message(
-      "*** There are ", length(cell_drop), " high RNA content droplets with low 'CellGini' values than the Gini_threshold:", round(Gini_threshold, 3), "\n",
+      "*** There are ", length(cell_drop), " 'Cell' droplets with low 'CellGini' values than the Gini_threshold:", round(Gini_threshold, 3), "\n",
       "*** These ", length(cell_drop), " droplets will pre-defined as 'Uncertain'"
     )
     Drop_counts <- Cell_counts[, cell_drop]
@@ -269,7 +269,8 @@ dropSplit <- function(counts, do_plot = TRUE, Cell_score = 0.9, Empty_score = 0.
     "\n... Number of Discarded: ", ncol(counts) - ncol(Cell_counts) - ncol(Uncertain_counts) - ncol(Empty_counts), "  Minimum nCounts: ", min(meta_info$nCount)
   )
   if (do_plot) {
-    p <- RankMSEPlot(meta_info, colorBy = "preDefinedClass", splitBy = NULL, cell_stat_by = "preDefinedClass") + geom_vline(xintercept = inflection)
+    p <- RankMSEPlot(meta_info, colorBy = "preDefinedClass", splitBy = NULL, cell_stat_by = "preDefinedClass", smooth_num = smooth_num, smooth_window = smooth_window) +
+      geom_vline(xintercept = inflection)
     suppressWarnings(print(p))
   }
 
@@ -306,7 +307,7 @@ dropSplit <- function(counts, do_plot = TRUE, Cell_score = 0.9, Empty_score = 0.
   Sim_Uncertain_counts <- downsampleMatrix(x = Sim_Uncertain_counts, prop = Sim_Uncertain_nCount_assign / Matrix::colSums(Sim_Uncertain_counts), bycol = TRUE)
   Sim_Uncertain_nCount <- Matrix::colSums(Sim_Uncertain_counts)
 
-  message(">>> Calculate various metrics for the droplets to be trained...")
+  message(">>> Calculate various metrics for the droplets to be trained")
   comb_counts <- cbind(Cell_counts, Sim_Cell_counts, Uncertain_counts, Sim_Uncertain_counts, Empty_counts)
   MTgene <- grep(x = rownames(comb_counts), pattern = "(^MT-)|(^Mt-)|(^mt-)", perl = T, value = TRUE)
   RPgene <- grep(x = rownames(comb_counts), pattern = "(^RP[SL]\\d+(\\w|)$)|(^Rp[sl]\\d+(\\w|)$)|(^rp[sl]\\d+(\\w|)$)", perl = T, value = TRUE)
@@ -340,7 +341,7 @@ dropSplit <- function(counts, do_plot = TRUE, Cell_score = 0.9, Empty_score = 0.
   meta_info[colnames(Empty_counts), "nCount_Bin"] <- 0
   meta_info[colnames(Cell_counts), "nCount_Bin"] <- 1
 
-  message(">>> Merge new features into train data...")
+  message(">>> Merge new features into train data")
   norm_counts <- Matrix::t(Matrix::t(comb_counts) / Matrix::colSums(comb_counts))
   dat <- cbind(Matrix::t(norm_counts), dat_Features[, colnames(dat_Features)])
   ini_train <- dat[c(colnames(Cell_counts), colnames(Sim_Cell_counts), colnames(Empty_counts)), ]
@@ -351,7 +352,9 @@ dropSplit <- function(counts, do_plot = TRUE, Cell_score = 0.9, Empty_score = 0.
     colnames(Empty_counts)
   ), ]
   Sim_Cell_counts_rawname <- gsub(x = colnames(Sim_Cell_counts), pattern = "Sim\\d+-", replacement = "")
+  names(Sim_Cell_counts_rawname) <- colnames(Sim_Cell_counts)
   Sim_Uncertain_counts_rawname <- gsub(x = colnames(Sim_Uncertain_counts), pattern = "Sim\\d+-", replacement = "")
+  names(Sim_Uncertain_counts_rawname) <- colnames(Sim_Uncertain_counts)
 
   xgb_base_params <- list(
     eta = 0.3,
@@ -387,7 +390,7 @@ dropSplit <- function(counts, do_plot = TRUE, Cell_score = 0.9, Empty_score = 0.
     )
   }
   xgb_params <- c(xgb_params, eval_metric = "error")
-  message(">>> Construct the XGBoost model with pre-defined classification...")
+  message(">>> Construct the XGBoost model with pre-defined classification")
 
   train_error <- 1
   k <- 0
@@ -420,12 +423,21 @@ dropSplit <- function(counts, do_plot = TRUE, Cell_score = 0.9, Empty_score = 0.
       empty_update <- c(new_empty, raw_empty)
 
       if (length(empty_update) > Empty_max_num) {
-        empty_update <- sample(empty_update, Empty_max_num, replace = TRUE)
-        empty_expansion <- empty_expansion * Empty_max_num / length(empty_update)
+        empty_New <- empty_update[empty_update %in% colnames(Sim_Uncertain_counts)]
+        empty_New_n <- length(unique(Sim_Uncertain_counts_rawname[names(Sim_Uncertain_counts_rawname) %in% empty_New]))
+        empty_New_prop <- min(0.5, empty_New_n / (empty_New_n + ncol(Empty_counts)))
+        empty_NewSample <- sample(empty_New, round(empty_New_prop * Empty_max_num), replace = TRUE)
+        empty_KeepSample <- sample(colnames(Empty_counts), round((1 - empty_New_prop) * Empty_max_num), replace = TRUE)
+        empty_update <- c(empty_NewSample, empty_KeepSample)
+        empty_expansion <- ifelse(length(empty_New) == 0, empty_expansion, empty_expansion * length(empty_NewSample) / length(empty_New))
+        # empty_update <- c(empty_SimSample, colnames(Empty_counts))
+        # empty_expansion <- empty_expansion * (Empty_max_num - ncol(Empty_counts)) / length(empty_Sim)
       }
 
       ### cell
       if (k == 2) {
+        cell_k1 <- rownames(meta_info)[meta_info$dropSplitClass == "Cell" & meta_info$nCount_Bin == 1]
+        cell_k1Sim <- colnames(Sim_Cell_counts)[Sim_Cell_counts_rawname %in% cell_k1]
         cell_current <- rownames(meta_info)[meta_info$dropSplitClass == "Cell" & meta_info$nCount_Bin %in% c(1, max_iter)]
         cell_current <- c(cell_current, colnames(Sim_Cell_counts)[Sim_Cell_counts_rawname %in% cell_current])
       } else {
@@ -448,12 +460,16 @@ dropSplit <- function(counts, do_plot = TRUE, Cell_score = 0.9, Empty_score = 0.
         break
       }
 
-      expansion <- length(empty_update) / length(cell_update)
       # message("cell_update:", length(cell_update)," empty_update:", length(empty_update))
-      if (1 / expansion != CE_ratio) {
-        nsample <- round(length(empty_update) * CE_ratio)
-        cell_update <- sample(cell_update, nsample, replace = TRUE)
-        cell_expansion <- cell_expansion * expansion
+      if (length(cell_update) / length(empty_update) != CE_ratio) {
+        total <- round(length(empty_update) * CE_ratio)
+        cell_New <- cell_update[cell_update %in% colnames(Sim_Uncertain_counts)]
+        cell_New_n <- length(unique(Sim_Uncertain_counts_rawname[names(Sim_Uncertain_counts_rawname) %in% cell_New]))
+        cell_New_prop <- min(0.5, cell_New_n / (cell_New_n + length(cell_k1)))
+        cell_NewSample <- sample(cell_New, round(cell_New_prop * total), replace = TRUE)
+        cell_KeepSample <- sample(c(cell_k1, cell_k1Sim), round((1 - cell_New_prop) * total), replace = TRUE)
+        cell_update <- c(cell_NewSample, cell_KeepSample)
+        cell_expansion <- ifelse(length(cell_New) == 0, cell_expansion, cell_expansion * length(cell_NewSample) / length(cell_New))
       }
 
       train <- dat[c(cell_update, empty_update), ]
@@ -463,6 +479,7 @@ dropSplit <- function(counts, do_plot = TRUE, Cell_score = 0.9, Empty_score = 0.
         cell_current,
         rownames(meta_info)[meta_info[, "preDefinedClass"] == "Uncertain"]
       )
+
       message(
         "... Number of filtered 'Cell' droplets defined in the previous round: ", cell_remove_num,
         "\n... Number of filtered 'Empty' droplets defined in the previous round: ", empty_remove_num,
@@ -493,12 +510,23 @@ dropSplit <- function(counts, do_plot = TRUE, Cell_score = 0.9, Empty_score = 0.
     new_train_error <- tail(xgb$evaluation_log$train_error, 1)
     new_train_aucpr <- tail(xgb$evaluation_log$train_aucpr, 1)
 
+    if (k >= 2) {
+      if (new_train_aucpr < train_aucpr) {
+        message("*** train_aucpr decreased(", new_train_aucpr, "<", train_aucpr, "). Use the previous model for final classification.")
+        break
+      }
+      if (new_train_error > train_error) {
+        message("*** train_error increased(", new_train_error, ">", train_error, "). Use the previous model for final classification.")
+        break
+      }
+    }
+
     train_error <- new_train_error
     train_aucpr <- new_train_aucpr
     model_use <- xgb
     train_use <- train
     train_label_use <- train_label
-    message(">>> Predict the type of droplets...")
+    message(">>> Predict the type of droplets")
     XGBoostScore <- predict(model_use, to_predict)
     names(XGBoostScore) <- rownames(to_predict)
 
@@ -707,12 +735,9 @@ dropSplit <- function(counts, do_plot = TRUE, Cell_score = 0.9, Empty_score = 0.
     model = model_use,
     importance_matrix = importance_matrix
   )
-
+  message(">>> dropSplit identified ", sum(meta_info$dropSplitClass == "Cell"), " cell-containing droplets.")
   end <- Sys.time()
-  message(
-    "Elapsed: ", round(difftime(time1 = end, time2 = start, units = "mins"), digits = 3), " mins",
-    "\n>>> dropSplit identified ", sum(meta_info$dropSplitClass == "Cell"), " cell-containing droplets."
-  )
+  message("Elapsed: ", round(difftime(time1 = end, time2 = start, units = "mins"), digits = 3), " mins")
   return(result)
 }
 
