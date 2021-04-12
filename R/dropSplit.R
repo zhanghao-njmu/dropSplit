@@ -648,8 +648,8 @@ dropSplit <- function(counts, do_plot = TRUE, Cell_score = 0.9, Empty_score = 0.
   )
 
   ### Detect outliers according to the dropSplitScore
-  message("\n>>> Remove outliers according to the dropSplitScore lower bound of 'Cell' droplets(5*IQR)")
   if (isTRUE(remove_outliers)) {
+    message("\n>>> Remove outliers according to the dropSplitScore lower bound of 'Cell' droplets(5*IQR)")
     allscore <- meta_info[meta_info[, "dropSplitClass"] == "Cell", "dropSplitScore"]
     names(allscore) <- rownames(meta_info)[meta_info[, "dropSplitClass"] == "Cell"]
     outcell <- outliers(allscore, times = 5)
@@ -783,49 +783,47 @@ RankMSE <- function(meta_info, fill_RankMSE = FALSE, smooth_num = 2, smooth_wind
     df_inflection <- head(which(df[, "nCount"] <= meta_info$nCount[inflection]), 1)
     df_inflection_left <- head(which(df[, "nCount"] <= meta_info$nCount[inflection_left]), 1)
     df_inflection_right <- tail(which(df[, "nCount"] >= meta_info$nCount[inflection_right]), 1)
-    crk <- df_inflection_left + find_peaks(-df$RankMSE[df_inflection_left:df_inflection_right],
-      left_shoulder = df_inflection * 0.05,
-      right_shoulder = df_inflection_right
-    ) - 1
+    # crk <- df_inflection_left + find_peaks(-df$RankMSE[df_inflection_left:df_inflection_right],
+    #   left_shoulder = df_inflection * 0.05,
+    #   right_shoulder = df_inflection_right
+    # ) - 1
     # qplot(log10(1:length(df$RankMSE)), log(df$RankMSE))+geom_vline(xintercept = log10(crk))+ xlim(1, log10(df_inflection_right*1.2))
     # qplot((1:length(df$RankMSE)), log(df$RankMSE)) + xlim(1, df_inflection_right*1.2) + geom_vline(xintercept = c(crk))
 
-    iter <- 1
-    cell_max <- quantile(df[1:(crk[1] - 1), "logRankMSE"], 0.99)
-    while (length(crk) > 1) {
-      message("... ", length(crk), " 'Cell' valleys found. Perform automatic selection(iter=", iter, ")...")
-      if (any(df[crk, "logRankMSE"] < 0)) {
-        crk <- crk[df[crk, "logRankMSE"] < 0][1]
-        # crk <- crk[length(crk)]
-      } else {
-        crk <- crk[1]
-      }
-      # if (length(crk) > 1) {
-      #   pks_diff_MSE <- diff(df[crk, "logRankMSE"])
-      #   pks_max_MSE <- sapply(1:(length(crk) - 1), function(i) {
-      #     quantile(df[crk[i]:crk[i + 1], "logRankMSE"], 0.99) - df[crk[i + 1], "logRankMSE"]
-      #   })
-      #   j <- which(pks_diff_MSE <= pks_max_MSE * tolerance | pks_max_MSE >= 0.5 * cell_max) + 1
-      #   if (length(j) == 1) {
-      #     j <- c(1, j)
-      #     pks_diff_MSE <- diff(df[crk[j], "logRankMSE"])
-      #     pks_max_MSE <- quantile(df[crk[1]:crk[2], "logRankMSE"], 0.99) - df[crk[2], "logRankMSE"]
-      #     j <- which(pks_diff_MSE <= pks_max_MSE * tolerance | pks_max_MSE >= 0.5 * cell_max) + 1
-      #   }
-      #   if (length(j) == 0) {
-      #     j <- 1
-      #   }
-      #   crk <- crk[j]
-      #   iter <- iter + 1
-      # }
-      if (length(crk) == 1) {
-        message("... Automatic selection finished.")
-      } else {
-        message("... ", length(crk), " valleys left. Go to the next loop.")
-      }
-    }
+    # iter <- 1
+    # cell_max <- quantile(df[1:(crk[1] - 1), "logRankMSE"], 0.99)
+    # while (length(crk) > 1) {
+    #   message("... ", length(crk), " 'Cell' valleys found. Perform automatic selection(iter=", iter, ")...")
+    #   if (any(df[crk, "logRankMSE"] < 0)) {
+    #     crk <- crk[length(crk)]
+    #   }
+    # if (length(crk) > 1) {
+    #   pks_diff_MSE <- diff(df[crk, "logRankMSE"])
+    #   pks_max_MSE <- sapply(1:(length(crk) - 1), function(i) {
+    #     quantile(df[crk[i]:crk[i + 1], "logRankMSE"], 0.99) - df[crk[i + 1], "logRankMSE"]
+    #   })
+    #   j <- which(pks_diff_MSE <= pks_max_MSE * tolerance | pks_max_MSE >= 0.5 * cell_max) + 1
+    #   if (length(j) == 1) {
+    #     j <- c(1, j)
+    #     pks_diff_MSE <- diff(df[crk[j], "logRankMSE"])
+    #     pks_max_MSE <- quantile(df[crk[1]:crk[2], "logRankMSE"], 0.99) - df[crk[2], "logRankMSE"]
+    #     j <- which(pks_diff_MSE <= pks_max_MSE * tolerance | pks_max_MSE >= 0.5 * cell_max) + 1
+    #   }
+    #   if (length(j) == 0) {
+    #     j <- 1
+    #   }
+    #   crk <- crk[j]
+    #   iter <- iter + 1
+    # }
+    #   if (length(crk) == 1) {
+    #     message("... Automatic selection finished.")
+    #   } else {
+    #     message("... ", length(crk), " valleys left. Go to the next loop.")
+    #   }
+    # }
+    crk <- df_inflection_left + which.min(df[(df_inflection_left + 1):df_inflection_right, "RankMSE"])
     cell_count <- df[crk, "nCount"]
-    Cell_rank <- max(meta_info$nCount_rank[meta_info$nCount >= cell_count])
+    Cell_rank <- max(meta_info$nCount_rank[meta_info$nCount > cell_count])
     # qplot(log10(1:length(df$RankMSE)), log10(df$RankMSE))+geom_vline(xintercept=log10(crk))
 
     ## 'Empty' RankMSE valley
@@ -867,7 +865,7 @@ RankMSE <- function(meta_info, fill_RankMSE = FALSE, smooth_num = 2, smooth_wind
     ## 'Uncertain' RankMSE peak
     urk <- crk * 2 + which.max(df[(crk * 2 + 1):erk, "RankMSE"])
     uncertain_count <- df[urk, "nCount"]
-    Uncertain_rank <- max(meta_info$nCount_rank[meta_info$nCount >= uncertain_count])
+    Uncertain_rank <- max(meta_info$nCount_rank[meta_info$nCount > uncertain_count])
     # qplot(log10(1:length(df$RankMSE)), log10(df$RankMSE))+geom_vline(xintercept=log10(urk))
   }
 
