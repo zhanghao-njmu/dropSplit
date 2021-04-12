@@ -219,7 +219,7 @@ dropSplit <- function(counts, do_plot = TRUE, Cell_score = 0.9, Empty_score = 0.
     lowerbin <- outliers(fqfq, times = 3)$UpperOutliers
     lowerbin <- lowerbin[fqfq[names(lowerbin)] > ncol(Cell_counts) * 0.02][1]
     lowerbound <- as.numeric(sub("\\((.+),.*", "\\1", names(lowerbin)))
-    Gini_threshold <- ifelse(length(lowerbound) == 0 | is.na(lowerbound), min(final_Gini[colnames(Cell_counts)]), lowerbound)
+    Gini_threshold <- ifelse(length(lowerbound) == 0 | is.na(lowerbound), quantile(final_Gini[colnames(Cell_counts)], 0.01), lowerbound)
   }
   message("*** Gini_threshold was set to: ", round(Gini_threshold, 3))
   minGini <- max(Gini_threshold - 0.05, min(final_Gini))
