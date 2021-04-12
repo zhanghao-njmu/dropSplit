@@ -52,7 +52,7 @@ dropSplit(
 
 \item{fill_RankMSE}{Whether to fill the RankMSE by nCount. Default is \code{TRUE}.}
 
-\item{smooth_num}{Number of times to smooth(take a mean value within a window length \code{smooth_window}) the squared error. Default is 2.}
+\item{smooth_num}{Number of times to smooth(take a mean value within a window length \code{smooth_window}) the squared error. Default is 3.}
 
 \item{smooth_window}{Window length used to smooth the squared error. Default is 100.}
 

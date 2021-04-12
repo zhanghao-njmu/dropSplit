@@ -744,7 +744,7 @@ dropSplit <- function(counts, do_plot = TRUE, Cell_score = 0.9, Empty_score = 0.
 #' Calculate Mean Squared Error for nCount/nFeature Rank.
 #' @param meta_info A \code{data.frame} or \code{DataFrame}. Must contain the 'nCount' and 'nFeature' columns.
 #' @param fill_RankMSE Whether to fill the RankMSE by nCount. Default is \code{TRUE}.
-#' @param smooth_num Number of times to smooth(take a mean value within a window length \code{smooth_window}) the squared error. Default is 2.
+#' @param smooth_num Number of times to smooth(take a mean value within a window length \code{smooth_window}) the squared error. Default is 3.
 #' @param smooth_window Window length used to smooth the squared error. Default is 100.
 #' @param find_rank Whether to find the 'Cell' RankMSE valley, the 'Uncertain' RankMSE peak and the 'Empty' RankMSE valley. Default is FALSE.
 #' @param Empty_min_nCount Minimum nCount for 'Empty' droplets. Default is 10.
@@ -752,7 +752,7 @@ dropSplit <- function(counts, do_plot = TRUE, Cell_score = 0.9, Empty_score = 0.
 #' @return A list include \code{meta_info} and \code{cell_rank_count}
 #' @importFrom inflection uik
 #' @importFrom TTR runMean
-RankMSE <- function(meta_info, fill_RankMSE = FALSE, smooth_num = 3, smooth_window = 100,
+ RankMSE <- function(meta_info, fill_RankMSE = FALSE, smooth_num = 3, smooth_window = 100,
                     find_rank = FALSE, Empty_min_nCount = 10) {
   meta_info <- as.data.frame(meta_info)
   meta_info$nCount_rank <- rank(-(meta_info$nCount))
@@ -856,7 +856,7 @@ RankMSE <- function(meta_info, fill_RankMSE = FALSE, smooth_num = 3, smooth_wind
     ## 'Empty' RankMSE valley
     maxrk <- max(which(df$nCount >= Empty_min_nCount))
     minrk <- min(crk, maxrk - crk)
-    erk <- minrk + find_peaks(-df[(minrk + 1):maxrk, "RankMSE"], left_shoulder = 10^(0.5*diff(log10(c(minrk,maxrk)))), right_shoulder = 10000)
+    erk <- minrk + find_peaks(-df[(minrk + 1):maxrk, "RankMSE"], left_shoulder = 10^(0.5 * diff(log10(c(minrk, maxrk)))), right_shoulder = 10000)
     erk_diff <- diff(log10(c(minrk + 1, erk)))
     erk <- erk[which.max(erk_diff)]
     # erk <- erk[erk != minrk + 1]
@@ -892,8 +892,13 @@ RankMSE <- function(meta_info, fill_RankMSE = FALSE, smooth_num = 3, smooth_wind
     # qplot(log10(1:length(df$RankMSE)), log10(df$RankMSE))+geom_vline(xintercept=log10(erk))
 
     ## 'Uncertain' RankMSE peak
-    urk <- crk + find_peaks(df[(crk + 1):erk, "RankMSE"], left_shoulder = crk * 3, right_shoulder = erk - crk)
-    urk <- urk[length(urk)]
+    urk <- crk + find_peaks(df[(crk + 1):erk, "RankMSE"], left_shoulder = crk, right_shoulder = erk - crk)
+    urk <- urk[erk - urk > 2 * crk]
+    if (length(urk) == 0) {
+      urk <- crk + which.max(df[(crk + 1):erk, "RankMSE"])
+    } else {
+      urk <- urk[length(urk)]
+    }
     uncertain_count <- df[urk, "nCount"]
     Uncertain_rank <- max(meta_info$nCount_rank[meta_info$nCount > uncertain_count])
     # qplot(log10(1:length(df$RankMSE)), log10(df$RankMSE))+geom_vline(xintercept=log10(urk))
