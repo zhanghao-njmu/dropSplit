@@ -21,7 +21,7 @@ simComplexCounts(
   large_shape = 6,
   large_scale = 500,
   small_prof = NULL,
-  small_ngene_rate = 0.7,
+  small_ngene_rate = 0.6,
   small_shape = 10,
   small_scale = 100,
   large_frag = TRUE,

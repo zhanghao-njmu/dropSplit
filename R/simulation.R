@@ -89,7 +89,7 @@ simComplexCounts <- function(total_gene = 30000, disturbance = 0.2,
                              empty_type = 2, large_type = 10, small_type = 2,
                              empty_prof = NULL, empty_ngene_rate = 0.05, empty_rate = 1 / 100,
                              large_prof = NULL, large_ngene_rate = 0.8, large_shape = 6, large_scale = 500,
-                             small_prof = NULL, small_ngene_rate = 0.7, small_shape = 10, small_scale = 100,
+                             small_prof = NULL, small_ngene_rate = 0.6, small_shape = 10, small_scale = 100,
                              large_frag = TRUE, large_frag_gene = 1:50, large_frag_prop = 0.5,
                              small_frag = TRUE, small_frag_gene = 1:50, small_frag_prop = 0.5,
                              remove_zero_drop = TRUE, remove_zero_feature = TRUE, seed = 0) {
