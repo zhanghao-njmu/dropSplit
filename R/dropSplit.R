@@ -426,8 +426,8 @@ dropSplit <- function(counts, do_plot = TRUE, Cell_score = 0.9, Empty_score = 0.
         empty_New <- empty_update[empty_update %in% colnames(Sim_Uncertain_counts)]
         empty_New_n <- length(unique(Sim_Uncertain_counts_rawname[names(Sim_Uncertain_counts_rawname) %in% empty_New]))
         empty_New_prop <- min(0.5, empty_New_n / (empty_New_n + ncol(Empty_counts)))
-        empty_NewSample <- sample(empty_New, round(empty_New_prop * Empty_max_num), replace = TRUE)
-        empty_KeepSample <- sample(colnames(Empty_counts), round((1 - empty_New_prop) * Empty_max_num), replace = TRUE)
+        empty_NewSample <- sample(empty_New, ceiling(empty_New_prop * Empty_max_num), replace = TRUE)
+        empty_KeepSample <- sample(colnames(Empty_counts), Empty_max_num - length(empty_NewSample), replace = TRUE)
         empty_update <- c(empty_NewSample, empty_KeepSample)
         empty_expansion <- ifelse(length(empty_New) == 0, empty_expansion, empty_expansion * length(empty_NewSample) / length(empty_New))
         # empty_update <- c(empty_SimSample, colnames(Empty_counts))
@@ -466,8 +466,8 @@ dropSplit <- function(counts, do_plot = TRUE, Cell_score = 0.9, Empty_score = 0.
         cell_New <- cell_update[cell_update %in% colnames(Sim_Uncertain_counts)]
         cell_New_n <- length(unique(Sim_Uncertain_counts_rawname[names(Sim_Uncertain_counts_rawname) %in% cell_New]))
         cell_New_prop <- min(0.5, cell_New_n / (cell_New_n + length(cell_k1)))
-        cell_NewSample <- sample(cell_New, round(cell_New_prop * total), replace = TRUE)
-        cell_KeepSample <- sample(c(cell_k1, cell_k1Sim), round((1 - cell_New_prop) * total), replace = TRUE)
+        cell_NewSample <- sample(cell_New, ceiling(cell_New_prop * total), replace = TRUE)
+        cell_KeepSample <- sample(c(cell_k1, cell_k1Sim), total - length(cell_NewSample), replace = TRUE)
         cell_update <- c(cell_NewSample, cell_KeepSample)
         cell_expansion <- ifelse(length(cell_New) == 0, cell_expansion, cell_expansion * length(cell_NewSample) / length(cell_New))
       }
