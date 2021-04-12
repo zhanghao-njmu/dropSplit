@@ -19,7 +19,7 @@
 #' @param CE_ratio Ratio value between down-sampled 'Cells' and 'Empty' droplets. The actual value will be slightly higher than the set. Default is 1.
 #' @inheritParams RankMSE
 #' @param Cell_min_nCount Minimum nCount for 'Cell' droplets. Default is 500.
-#' @param Empty_min_nCount Minimum nCount for 'Empty' droplets. Default is 20.
+#' @param Empty_min_nCount Minimum nCount for 'Empty' droplets. Default is 15.
 #' @param Empty_max_num Number of pre-defined 'Empty' droplets. Default is 50000.
 #' @param max_iter An integer specifying the number of iterations to use to rebuild the model with new defined droplets. Default is 5.
 #' @param Gini_control Whether to control cell quality by CellGini. Default is \code{TRUE}.
@@ -105,7 +105,7 @@ dropSplit <- function(counts, do_plot = TRUE, Cell_score = 0.9, Empty_score = 0.
                       downsample_times = NULL, CE_ratio = 1,
                       fill_RankMSE = FALSE, smooth_num = 2, smooth_window = 100, tolerance = 0.2,
                       Cell_rank = NULL, Uncertain_rank = NULL, Empty_rank = NULL,
-                      Cell_min_nCount = 500, Empty_min_nCount = 20, Empty_max_num = 50000,
+                      Cell_min_nCount = 500, Empty_min_nCount = 15, Empty_max_num = 50000,
                       Gini_control = TRUE, Gini_threshold = NULL, max_iter = 5,
                       preCell_mask = FALSE, preEmpty_mask = TRUE, FDR = 0.05, remove_outliers = TRUE,
                       xgb_params = NULL, xgb_nrounds = 20, xgb_thread = 8, xgb_early_stopping_rounds = NULL,
@@ -720,13 +720,13 @@ dropSplit <- function(counts, do_plot = TRUE, Cell_score = 0.9, Empty_score = 0.
 #' @param smooth_window Window length used to smooth the squared error. Default is 100.
 #' @param find_rank Whether to find the 'Cell' RankMSE valley, the 'Uncertain' RankMSE peak and the 'Empty' RankMSE valley. Default is FALSE.
 #' @param tolerance A value indicated the tolerance when finding RankMSE valleys. A value greater than 1 indicates relaxed and will find more valleys; lower than 1 indicates strict and will find less valleys. Default is 0.2.
-#' @param Empty_min_nCount Minimum nCount for 'Empty' droplets. Default is 20.
+#' @param Empty_min_nCount Minimum nCount for 'Empty' droplets. Default is 15.
 #'
 #' @return A list include \code{meta_info} and \code{cell_rank_count}
 #' @importFrom inflection uik
 #' @importFrom TTR runMean
 RankMSE <- function(meta_info, fill_RankMSE = FALSE, smooth_num = 2, smooth_window = 100,
-                    find_rank = FALSE, tolerance = 0.2, Empty_min_nCount = 20) {
+                    find_rank = FALSE, tolerance = 0.2, Empty_min_nCount = 15) {
   meta_info <- as.data.frame(meta_info)
   meta_info$nCount_rank <- rank(-(meta_info$nCount))
   meta_info$nFeature_rank <- rank(-(meta_info$nFeature))
