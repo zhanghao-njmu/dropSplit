@@ -426,7 +426,7 @@ dropSplit <- function(counts, do_plot = TRUE, Cell_score = 0.9, Empty_score = 0.
         cell_current <- rownames(meta_info)[meta_info$dropSplitClass == "Cell" & meta_info$nCount_Bin %in% c(1, max_iter)]
         cell_current <- c(cell_current, colnames(Sim_Cell_counts)[Sim_Cell_counts_rawname %in% cell_current])
       } else {
-        cell_current <- c(cell_update, rownames(meta_info)[meta_info$dropSplitClass == "Cell" & meta_info$nCount_Bin %in% c(1, max_iter - k + 2)])
+        cell_current <- c(cell_update, rownames(meta_info)[meta_info$dropSplitClass == "Cell" & meta_info$nCount_Bin == max_iter - k + 2])
       }
       new_cell <- colnames(Sim_Uncertain_counts)[Sim_Uncertain_counts_rawname %in% cell_current]
       if (cell_expansion != 1 & length(new_cell) > 0) {
