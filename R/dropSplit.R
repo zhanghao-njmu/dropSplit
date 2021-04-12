@@ -19,7 +19,7 @@
 #' @param CE_ratio Ratio value between down-sampled 'Cells' and 'Empty' droplets. The actual value will be slightly higher than the set. Default is 1.
 #' @inheritParams RankMSE
 #' @param Cell_min_nCount Minimum nCount for 'Cell' droplets. Default is 500.
-#' @param Empty_min_nCount Minimum nCount for 'Empty' droplets. Default is 15.
+#' @param Empty_min_nCount Minimum nCount for 'Empty' droplets. Default is 10.
 #' @param Empty_max_num Number of pre-defined 'Empty' droplets. Default is 50000.
 #' @param max_iter An integer specifying the number of iterations to use to rebuild the model with new defined droplets. Default is 5.
 #' @param Gini_control Whether to control cell quality by CellGini. Default is \code{TRUE}.
@@ -105,7 +105,7 @@ dropSplit <- function(counts, do_plot = TRUE, Cell_score = 0.9, Empty_score = 0.
                       downsample_times = NULL, CE_ratio = 1,
                       fill_RankMSE = FALSE, smooth_num = 2, smooth_window = 100, tolerance = 0.2,
                       Cell_rank = NULL, Uncertain_rank = NULL, Empty_rank = NULL,
-                      Cell_min_nCount = 500, Empty_min_nCount = 15, Empty_max_num = 50000,
+                      Cell_min_nCount = 500, Empty_min_nCount = 10, Empty_max_num = 50000,
                       Gini_control = TRUE, Gini_threshold = NULL, max_iter = 5,
                       preCell_mask = FALSE, preEmpty_mask = TRUE, FDR = 0.05, remove_outliers = FALSE,
                       xgb_params = NULL, xgb_nrounds = 20, xgb_thread = 8, xgb_early_stopping_rounds = NULL,
@@ -148,7 +148,8 @@ dropSplit <- function(counts, do_plot = TRUE, Cell_score = 0.9, Empty_score = 0.
   meta_info$nFeature_rank <- rank(-(meta_info$nFeature))
 
   if (min(meta_info$nCount) <= 0) {
-    stop("'counts' has droplets that nCount<=0.")
+    warning("'counts' has droplets that nCount<=0. These droplets will be removed in the following steps.", immediate. = TRUE)
+    meta_info <- meta_info[meta_info$nCount > 0, ]
   }
   raw_cell_order <- rownames(meta_info)
   meta_info <- meta_info[order(meta_info$nCount_rank, decreasing = FALSE), ]
@@ -191,17 +192,11 @@ dropSplit <- function(counts, do_plot = TRUE, Cell_score = 0.9, Empty_score = 0.
     suppressWarnings(print(p))
   }
 
-  if (ncol(Uncertain_counts) == 0) {
-    stop("No 'Uncertain' droplets detected. Please check the RankMSE curve with the pre-defined droplet cutoff. You may set custom cutoff values in the parameters manually.")
-  }
-  if (ncol(Empty_counts) == 0) {
-    stop("No 'Empty' droplets detected. Please check the RankMSE curve with the pre-defined droplet cutoff. You may set custom cutoff values in the parameters manually.")
-  }
-  if (ncol(Empty_counts) * CE_ratio < ncol(Cell_counts)) {
-    warning("Pre-defined 'Empty' droplets is fewer than 'Cell'. You may set a lower value for 'Empty_min_nCount' or set custom rank values in the parameters manually.", immediate. = TRUE)
+  if (ncol(Empty_counts) < 2 * ncol(Cell_counts)) {
+    warning("There are too few 'Empty' droplets. You may set custom rank values in the parameters manually.", immediate. = TRUE)
     Empty_counts <- counts[, meta_info$nCount < Uncertain_count]
-    Empty_counts <- Empty_counts[, 1:min(Empty_max_num, ncol(Empty_counts))]
-    warning("'Empty' droplets are defined with a low nCount(", min(colSums(Empty_counts)), ") than specificed(", Empty_min_nCount, ")", immediate. = TRUE)
+    Empty_counts <- Empty_counts[, 1:min(2 * ncol(Cell_counts), ncol(Empty_counts))]
+    warning("Rank for the 'Empty' droplets are re-adjusted.", immediate. = TRUE)
   }
   if (ncol(Empty_counts) > Empty_max_num) {
     warning("The number of 'Empty' droplets exceeds the specified. Converting the excess 'Empty' droplets to 'Uncertain' droplets.", immediate. = TRUE)
@@ -281,6 +276,10 @@ dropSplit <- function(counts, do_plot = TRUE, Cell_score = 0.9, Empty_score = 0.
   )
   if (is.null(downsample_times)) {
     downsample_times <- ceiling(ncol(Empty_counts) / ncol(Cell_counts) * CE_ratio) - 1
+    if (downsample_times < 6) {
+      warning("'downsample_times' is ", downsample_times, ", but at least 6 for a reliable sampling. Reset it to 6.")
+      downsample_times <- 6
+    }
   } else {
     warning("'CE_ratio' will be reset according to the 'downsample_times'.", immediate. = TRUE)
   }
@@ -554,7 +553,7 @@ dropSplit <- function(counts, do_plot = TRUE, Cell_score = 0.9, Empty_score = 0.
 
     ## make classification
     meta_info[, paste0("dropSplitClass_iter", j)] <- ifelse(
-      meta_info[, paste0("dropSplitScore_iter", j)] >= Cell_score, "Cell", ifelse(meta_info[, paste0("dropSplitScore_iter", j)] <= Empty_score, "Empty", "Uncertain")
+      meta_info[, paste0("dropSplitScore_iter", j)] > Cell_score, "Cell", ifelse(meta_info[, paste0("dropSplitScore_iter", j)] <= Empty_score, "Empty", "Uncertain")
     )
     meta_info[meta_info[, "preDefinedClass"] == "Discarded", paste0("dropSplitClass_iter", j)] <- "Discarded"
 
@@ -720,13 +719,13 @@ dropSplit <- function(counts, do_plot = TRUE, Cell_score = 0.9, Empty_score = 0.
 #' @param smooth_window Window length used to smooth the squared error. Default is 100.
 #' @param find_rank Whether to find the 'Cell' RankMSE valley, the 'Uncertain' RankMSE peak and the 'Empty' RankMSE valley. Default is FALSE.
 #' @param tolerance A value indicated the tolerance when finding RankMSE valleys. A value greater than 1 indicates relaxed and will find more valleys; lower than 1 indicates strict and will find less valleys. Default is 0.2.
-#' @param Empty_min_nCount Minimum nCount for 'Empty' droplets. Default is 15.
+#' @param Empty_min_nCount Minimum nCount for 'Empty' droplets. Default is 10.
 #'
 #' @return A list include \code{meta_info} and \code{cell_rank_count}
 #' @importFrom inflection uik
 #' @importFrom TTR runMean
 RankMSE <- function(meta_info, fill_RankMSE = FALSE, smooth_num = 2, smooth_window = 100,
-                    find_rank = FALSE, tolerance = 0.2, Empty_min_nCount = 15) {
+                    find_rank = FALSE, tolerance = 0.2, Empty_min_nCount = 10) {
   meta_info <- as.data.frame(meta_info)
   meta_info$nCount_rank <- rank(-(meta_info$nCount))
   meta_info$nFeature_rank <- rank(-(meta_info$nFeature))
@@ -828,7 +827,7 @@ RankMSE <- function(meta_info, fill_RankMSE = FALSE, smooth_num = 2, smooth_wind
 
     ## 'Empty' RankMSE valley
     maxrk <- max(which(df$nCount >= Empty_min_nCount))
-    minrk <- min(crk * 5, maxrk - 10000)
+    minrk <- min(crk * 3, maxrk - crk)
     erk <- minrk + find_peaks(-df[(minrk + 1):maxrk, "RankMSE"], left_shoulder = maxrk - minrk, right_shoulder = 10000)
     erk <- erk[erk != minrk + 1]
     iter <- 1
@@ -863,7 +862,7 @@ RankMSE <- function(meta_info, fill_RankMSE = FALSE, smooth_num = 2, smooth_wind
     # qplot(log10(1:length(df$RankMSE)), log10(df$RankMSE))+geom_vline(xintercept=log10(erk))
 
     ## 'Uncertain' RankMSE peak
-    urk <- crk * 2 + which.max(df[(crk * 2 + 1):erk, "RankMSE"])
+    urk <- crk * 2 + which.max(df[(crk * 2 + 1):(erk - crk), "RankMSE"])
     uncertain_count <- df[urk, "nCount"]
     Uncertain_rank <- max(meta_info$nCount_rank[meta_info$nCount > uncertain_count])
     # qplot(log10(1:length(df$RankMSE)), log10(df$RankMSE))+geom_vline(xintercept=log10(urk))
