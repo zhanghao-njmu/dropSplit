@@ -11,7 +11,7 @@ RankMSE(
   smooth_window = 100,
   find_rank = FALSE,
   tolerance = 0.2,
-  Empty_min_nCount = 20
+  Empty_min_nCount = 15
 )
 }
 \arguments{
@@ -27,7 +27,7 @@ RankMSE(
 
 \item{tolerance}{A value indicated the tolerance when finding RankMSE valleys. A value greater than 1 indicates relaxed and will find more valleys; lower than 1 indicates strict and will find less valleys. Default is 0.2.}
 
-\item{Empty_min_nCount}{Minimum nCount for 'Empty' droplets. Default is 20.}
+\item{Empty_min_nCount}{Minimum nCount for 'Empty' droplets. Default is 15.}
 }
 \value{
 A list include \code{meta_info} and \code{cell_rank_count}
