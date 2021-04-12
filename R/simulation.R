@@ -14,7 +14,7 @@ simSimpleCounts <- function(total_gene = 30000,
                             nempty = 20000, nlarge = 2000, nsmall = 200,
                             empty_prof = NULL, empty_ngene_rate = 0.05, empty_rate = 1 / 100,
                             large_prof = NULL, large_ngene_rate = 0.8, large_shape = 6, large_scale = 500,
-                            small_prof = NULL, small_ngene_rate = 0.7, small_shape = 10, small_scale = 100,
+                            small_prof = NULL, small_ngene_rate = 0.6, small_shape = 10, small_scale = 100,
                             remove_zero_drop = TRUE, remove_zero_feature = TRUE, seed = 0) {
   set.seed(seed)
 
