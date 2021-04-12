@@ -103,7 +103,7 @@
 #' @export
 dropSplit <- function(counts, do_plot = TRUE, Cell_score = 0.9, Empty_score = 0.2,
                       downsample_times = NULL, CE_ratio = 1,
-                      fill_RankMSE = FALSE, smooth_num = 2, smooth_window = 100, tolerance = 0.2,
+                      fill_RankMSE = FALSE, smooth_num = 2, smooth_window = 100,
                       Cell_rank = NULL, Uncertain_rank = NULL, Empty_rank = NULL,
                       Cell_min_nCount = 500, Empty_min_nCount = 10, Empty_max_num = 50000,
                       Gini_control = TRUE, Gini_threshold = NULL, max_iter = 5,
@@ -133,10 +133,14 @@ dropSplit <- function(counts, do_plot = TRUE, Cell_score = 0.9, Empty_score = 0.
   if (!is.numeric(CE_ratio)) {
     stop("'CE_ratio' is not a numeric value.")
   }
+  if (!is.null(downsample_times) & is.numeric(downsample_times)) {
+    if (downsample_times < 6) {
+      stop("'downsample_times' must be larger than 6.")
+    }
+  }
   if (class(counts) == "matrix") {
     counts <- as(counts, "dgCMatrix")
   }
-
 
   set.seed(seed)
 
@@ -157,7 +161,7 @@ dropSplit <- function(counts, do_plot = TRUE, Cell_score = 0.9, Empty_score = 0.
 
   out <- RankMSE(
     meta_info = meta_info, fill_RankMSE = fill_RankMSE, smooth_num = smooth_num, smooth_window = smooth_window,
-    find_rank = TRUE, tolerance = tolerance, Empty_min_nCount = Empty_min_nCount
+    find_rank = TRUE, Empty_min_nCount = Empty_min_nCount
   )
   meta_info <- out$meta_info
   inflection <- out$inflection
@@ -180,7 +184,7 @@ dropSplit <- function(counts, do_plot = TRUE, Cell_score = 0.9, Empty_score = 0.
   Uncertain_counts <- counts[, meta_info$nCount < Cell_count & meta_info$nCount >= Uncertain_count]
 
   if (do_plot) {
-    p <- RankMSEPlot(meta_info, colorBy = "nFeature", splitBy = NULL, cell_stat_by = NULL) +
+    p <- RankMSEPlot(meta_info, colorBy = "nFeature", splitBy = NULL, cell_stat_by = NULL, smooth_num = smooth_num, smooth_window = smooth_window) +
       geom_vline(
         xintercept = c(inflection),
         color = c("black")
@@ -277,7 +281,7 @@ dropSplit <- function(counts, do_plot = TRUE, Cell_score = 0.9, Empty_score = 0.
   if (is.null(downsample_times)) {
     downsample_times <- ceiling(ncol(Empty_counts) / ncol(Cell_counts) * CE_ratio) - 1
     if (downsample_times < 6) {
-      warning("'downsample_times' is ", downsample_times, ", but at least 6 for a reliable sampling. Reset it to 6.")
+      warning("'downsample_times' is ", downsample_times, ", but at least 6 for a reliable sampling. 'downsample_times' and 'CE_ratio' will be reset.", immediate. = TRUE)
       downsample_times <- 6
     }
   } else {
@@ -289,7 +293,7 @@ dropSplit <- function(counts, do_plot = TRUE, Cell_score = 0.9, Empty_score = 0.
   Sim_Cell_counts <- downsampleMatrix(x = Sim_Cell_counts, prop = Sim_Cell_nCount_assign / Matrix::colSums(Sim_Cell_counts), bycol = TRUE)
   Sim_Cell_nCount <- Matrix::colSums(Sim_Cell_counts)
   CE_ratio <- (ncol(Cell_counts) + ncol(Sim_Cell_counts)) / ncol(Empty_counts)
-  message(">>> 'Cell/Empty' ratio is adjusted to ", round(CE_ratio, 3), "(downsample_times=", downsample_times, ")")
+  message("*** 'Cell/Empty' ratio is adjusted to ", round(CE_ratio, 3), "(downsample_times=", downsample_times, ")")
 
   message(
     ">>> Downsample pre-defined 'Uncertain' droplets to a depth similar to the 'Empty' for prediction",
@@ -718,14 +722,13 @@ dropSplit <- function(counts, do_plot = TRUE, Cell_score = 0.9, Empty_score = 0.
 #' @param smooth_num Number of times to smooth(take a mean value within a window length \code{smooth_window}) the squared error. Default is 2.
 #' @param smooth_window Window length used to smooth the squared error. Default is 100.
 #' @param find_rank Whether to find the 'Cell' RankMSE valley, the 'Uncertain' RankMSE peak and the 'Empty' RankMSE valley. Default is FALSE.
-#' @param tolerance A value indicated the tolerance when finding RankMSE valleys. A value greater than 1 indicates relaxed and will find more valleys; lower than 1 indicates strict and will find less valleys. Default is 0.2.
 #' @param Empty_min_nCount Minimum nCount for 'Empty' droplets. Default is 10.
 #'
 #' @return A list include \code{meta_info} and \code{cell_rank_count}
 #' @importFrom inflection uik
 #' @importFrom TTR runMean
 RankMSE <- function(meta_info, fill_RankMSE = FALSE, smooth_num = 2, smooth_window = 100,
-                    find_rank = FALSE, tolerance = 0.2, Empty_min_nCount = 10) {
+                    find_rank = FALSE, Empty_min_nCount = 10) {
   meta_info <- as.data.frame(meta_info)
   meta_info$nCount_rank <- rank(-(meta_info$nCount))
   meta_info$nFeature_rank <- rank(-(meta_info$nFeature))
@@ -827,42 +830,45 @@ RankMSE <- function(meta_info, fill_RankMSE = FALSE, smooth_num = 2, smooth_wind
 
     ## 'Empty' RankMSE valley
     maxrk <- max(which(df$nCount >= Empty_min_nCount))
-    minrk <- min(crk * 3, maxrk - crk)
-    erk <- minrk + find_peaks(-df[(minrk + 1):maxrk, "RankMSE"], left_shoulder = maxrk - minrk, right_shoulder = 10000)
-    erk <- erk[erk != minrk + 1]
-    iter <- 1
-    while (length(erk) > 1) {
-      message("... ", length(erk), " 'Empty' valleys found. Perform automatic selection(iter=", iter, ")...")
-      pks_diff_MSE <- diff(df[erk, "logRankMSE"])
-      pks_max_MSE <- sapply(1:(length(erk) - 1), function(i) {
-        quantile(df[erk[i]:erk[i + 1], "logRankMSE"], 0.99) - df[erk[i + 1], "logRankMSE"]
-      })
-      j <- which(-pks_diff_MSE >= pks_max_MSE * tolerance) + 1
-      if (length(j) == 1) {
-        j <- c(1, j)
-        pks_diff_MSE <- diff(df[erk[j], "logRankMSE"])
-        pks_max_MSE <- quantile(df[erk[1]:erk[2], "logRankMSE"], 0.99) - df[erk[2], "logRankMSE"]
-        j <- which(-pks_diff_MSE >= pks_max_MSE * tolerance) + 1
-      }
-      if (length(j) == 0) {
-        j <- 1
-      }
-      erk <- erk[j]
-      iter <- iter + 1
-
-      if (length(erk) == 1) {
-        message("... Automatic selection finished.")
-      } else {
-        message("... ", length(erk), " valleys left. Go to the next loop.")
-      }
-    }
-    # erk <- min(max(minrk + which.min(df[(minrk + 1):maxrk, "RankMSE"]), crk * 20), maxrk)
+    minrk <- min(crk * 2, maxrk - crk)
+    erk <- minrk + find_peaks(-df[(minrk + 1):maxrk, "RankMSE"], left_shoulder = 0.2 * (maxrk - minrk), right_shoulder = 10000)
+    erk_diff <- diff(log10(c(minrk + 1, erk)))
+    erk <- erk[which.max(erk_diff)]
+    # erk <- erk[erk != minrk + 1]
+    # iter <- 1
+    # while (length(erk) > 1) {
+    #   message("... ", length(erk), " 'Empty' valleys found. Perform automatic selection(iter=", iter, ")...")
+    #   pks_diff_MSE <- diff(df[erk, "logRankMSE"])
+    #   pks_max_MSE <- sapply(1:(length(erk) - 1), function(i) {
+    #     quantile(df[erk[i]:erk[i + 1], "logRankMSE"], 0.99) - df[erk[i + 1], "logRankMSE"]
+    #   })
+    #   j <- which(-pks_diff_MSE >= pks_max_MSE * tolerance) + 1
+    #   if (length(j) == 1) {
+    #     j <- c(1, j)
+    #     pks_diff_MSE <- diff(df[erk[j], "logRankMSE"])
+    #     pks_max_MSE <- quantile(df[erk[1]:erk[2], "logRankMSE"], 0.99) - df[erk[2], "logRankMSE"]
+    #     j <- which(-pks_diff_MSE >= pks_max_MSE * tolerance) + 1
+    #   }
+    #   if (length(j) == 0) {
+    #     j <- 1
+    #   }
+    #   erk <- erk[j]
+    #   iter <- iter + 1
+    #
+    #   if (length(erk) == 1) {
+    #     message("... Automatic selection finished.")
+    #   } else {
+    #     message("... ", length(erk), " valleys left. Go to the next loop.")
+    #   }
+    # }
+    # # erk <- min(max(minrk + which.min(df[(minrk + 1):maxrk, "RankMSE"]), crk * 20), maxrk)
     empty_count <- df[erk, "nCount"]
     Empty_rank <- max(meta_info$nCount_rank[meta_info$nCount >= empty_count])
     # qplot(log10(1:length(df$RankMSE)), log10(df$RankMSE))+geom_vline(xintercept=log10(erk))
 
     ## 'Uncertain' RankMSE peak
-    urk <- crk * 2 + which.max(df[(crk * 2 + 1):(erk - crk), "RankMSE"])
+    urk <- crk + find_peaks(df[(crk + 1):erk, "RankMSE"], left_shoulder = crk * 2, right_shoulder = erk - crk)
+    urk <- urk[length(urk)]
     uncertain_count <- df[urk, "nCount"]
     Uncertain_rank <- max(meta_info$nCount_rank[meta_info$nCount > uncertain_count])
     # qplot(log10(1:length(df$RankMSE)), log10(df$RankMSE))+geom_vline(xintercept=log10(urk))

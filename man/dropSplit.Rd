@@ -14,12 +14,11 @@ dropSplit(
   fill_RankMSE = FALSE,
   smooth_num = 2,
   smooth_window = 100,
-  tolerance = 0.2,
   Cell_rank = NULL,
   Uncertain_rank = NULL,
   Empty_rank = NULL,
   Cell_min_nCount = 500,
-  Empty_min_nCount = 15,
+  Empty_min_nCount = 10,
   Empty_max_num = 50000,
   Gini_control = TRUE,
   Gini_threshold = NULL,
@@ -57,13 +56,11 @@ dropSplit(
 
 \item{smooth_window}{Window length used to smooth the squared error. Default is 100.}
 
-\item{tolerance}{A value indicated the tolerance when finding RankMSE valleys. A value greater than 1 indicates relaxed and will find more valleys; lower than 1 indicates strict and will find less valleys. Default is 0.2.}
-
 \item{Cell_rank, Uncertain_rank, Empty_rank}{Custom Rank value to mark the droplets as Cell, Uncertain and Empty labels for the data to be trained. Default is automatic. But useful when the default value is considered to be wrong from the RankMSE plot.}
 
 \item{Cell_min_nCount}{Minimum nCount for 'Cell' droplets. Default is 500.}
 
-\item{Empty_min_nCount}{Minimum nCount for 'Empty' droplets. Default is 15.}
+\item{Empty_min_nCount}{Minimum nCount for 'Empty' droplets. Default is 10.}
 
 \item{Empty_max_num}{Number of pre-defined 'Empty' droplets. Default is 50000.}
 

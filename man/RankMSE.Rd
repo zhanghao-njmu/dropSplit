@@ -10,8 +10,7 @@ RankMSE(
   smooth_num = 2,
   smooth_window = 100,
   find_rank = FALSE,
-  tolerance = 0.2,
-  Empty_min_nCount = 15
+  Empty_min_nCount = 10
 )
 }
 \arguments{
@@ -25,9 +24,7 @@ RankMSE(
 
 \item{find_rank}{Whether to find the 'Cell' RankMSE valley, the 'Uncertain' RankMSE peak and the 'Empty' RankMSE valley. Default is FALSE.}
 
-\item{tolerance}{A value indicated the tolerance when finding RankMSE valleys. A value greater than 1 indicates relaxed and will find more valleys; lower than 1 indicates strict and will find less valleys. Default is 0.2.}
-
-\item{Empty_min_nCount}{Minimum nCount for 'Empty' droplets. Default is 15.}
+\item{Empty_min_nCount}{Minimum nCount for 'Empty' droplets. Default is 10.}
 }
 \value{
 A list include \code{meta_info} and \code{cell_rank_count}
