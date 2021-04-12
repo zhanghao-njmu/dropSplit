@@ -855,8 +855,8 @@ RankMSE <- function(meta_info, fill_RankMSE = FALSE, smooth_num = 2, smooth_wind
 
     ## 'Empty' RankMSE valley
     maxrk <- max(which(df$nCount >= Empty_min_nCount))
-    minrk <- min(crk * 2, maxrk - crk)
-    erk <- minrk + find_peaks(-df[(minrk + 1):maxrk, "RankMSE"], left_shoulder = 0.2 * (maxrk - minrk), right_shoulder = 10000)
+    minrk <- min(crk, maxrk - crk)
+    erk <- minrk + find_peaks(-df[(minrk + 1):maxrk, "RankMSE"], left_shoulder = 10^(0.5*diff(log10(c(minrk,maxrk)))), right_shoulder = 10000)
     erk_diff <- diff(log10(c(minrk + 1, erk)))
     erk <- erk[which.max(erk_diff)]
     # erk <- erk[erk != minrk + 1]
