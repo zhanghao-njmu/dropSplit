@@ -7,7 +7,7 @@
 RankMSE(
   meta_info,
   fill_RankMSE = FALSE,
-  smooth_num = 2,
+  smooth_num = 3,
   smooth_window = 100,
   find_rank = FALSE,
   Empty_min_nCount = 10

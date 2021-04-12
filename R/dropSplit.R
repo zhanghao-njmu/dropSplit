@@ -103,7 +103,7 @@
 #' @export
 dropSplit <- function(counts, do_plot = TRUE, Cell_score = 0.9, Empty_score = 0.2,
                       downsample_times = NULL, CE_ratio = 1,
-                      fill_RankMSE = FALSE, smooth_num = 2, smooth_window = 100,
+                      fill_RankMSE = FALSE, smooth_num = 3, smooth_window = 100,
                       Cell_rank = NULL, Uncertain_rank = NULL, Empty_rank = NULL,
                       Cell_min_nCount = 500, Empty_min_nCount = 10, Empty_max_num = 80000,
                       Gini_control = TRUE, Gini_threshold = NULL, max_iter = 5,
@@ -752,7 +752,7 @@ dropSplit <- function(counts, do_plot = TRUE, Cell_score = 0.9, Empty_score = 0.
 #' @return A list include \code{meta_info} and \code{cell_rank_count}
 #' @importFrom inflection uik
 #' @importFrom TTR runMean
-RankMSE <- function(meta_info, fill_RankMSE = FALSE, smooth_num = 2, smooth_window = 100,
+RankMSE <- function(meta_info, fill_RankMSE = FALSE, smooth_num = 3, smooth_window = 100,
                     find_rank = FALSE, Empty_min_nCount = 10) {
   meta_info <- as.data.frame(meta_info)
   meta_info$nCount_rank <- rank(-(meta_info$nCount))

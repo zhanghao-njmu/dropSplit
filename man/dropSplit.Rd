@@ -12,7 +12,7 @@ dropSplit(
   downsample_times = NULL,
   CE_ratio = 1,
   fill_RankMSE = FALSE,
-  smooth_num = 2,
+  smooth_num = 3,
   smooth_window = 100,
   Cell_rank = NULL,
   Uncertain_rank = NULL,
