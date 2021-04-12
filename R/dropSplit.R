@@ -656,7 +656,7 @@ dropSplit <- function(counts, do_plot = TRUE, Cell_score = 0.9, Empty_score = 0.
     outcell_n <- length(outcell$LowerOutliers)
     if (outcell_n > 0) {
       outcell_median <- median(allscore[outcell$LowerOutliers])
-      if ((outcell_median - Cell_score) / (median(allscore[!names(allscore) %in% names(outcell$LowerOutliers)]) - Cell_score) < 2 / 3) {
+      if (median(allscore[!names(allscore) %in% names(outcell$LowerOutliers)]) - outcell_median < 0.05) {
         meta_info[names(outcell$LowerOutliers), "dropSplitClass"] <- "Uncertain"
         message(
           "... Number of detected outliers for 'Cell' droplets: ", outcell_n,
