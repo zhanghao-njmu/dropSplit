@@ -892,7 +892,7 @@ RankMSE <- function(meta_info, fill_RankMSE = FALSE, smooth_num = 2, smooth_wind
     # qplot(log10(1:length(df$RankMSE)), log10(df$RankMSE))+geom_vline(xintercept=log10(erk))
 
     ## 'Uncertain' RankMSE peak
-    urk <- crk + find_peaks(df[(crk + 1):erk, "RankMSE"], left_shoulder = crk * 2, right_shoulder = erk - crk)
+    urk <- crk + find_peaks(df[(crk + 1):erk, "RankMSE"], left_shoulder = crk * 3, right_shoulder = erk - crk)
     urk <- urk[length(urk)]
     uncertain_count <- df[urk, "nCount"]
     Uncertain_rank <- max(meta_info$nCount_rank[meta_info$nCount > uncertain_count])
