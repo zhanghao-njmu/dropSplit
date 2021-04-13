@@ -16,11 +16,11 @@
 #' @param Cell_score A cutoff value of \code{dropSplitScore} to determine if a droplet is cell-containing. Range between 0.5 and 1. Default is 0.9.
 #' @param Empty_score A cutoff value of \code{dropSplitScore} to determine if a droplet is empty. Range between 0 and 0.5. Default is 0.2.
 #' @param downsample_times Number of repetitions of downsampling for 'Cell' and 'Uncertain' droplets. If \code{NULL}, will be determined by \code{CE_ratio}. Default is \code{NULL}.
-#' @param CE_ratio Ratio value between down-sampled 'Cells' and 'Empty' droplets. The actual value will be slightly higher than the set. Default is 1.
+#' @param CE_ratio Ratio value between down-sampled 'Cells' and 'Empty' droplets. The actual value will be slightly higher than the set. Default is 2.
 #' @inheritParams RankMSE
 #' @param Cell_min_nCount Minimum nCount for 'Cell' droplets. Default is 500.
 #' @param Empty_min_nCount Minimum nCount for 'Empty' droplets. Default is 10.
-#' @param Empty_max_num Number of pre-defined 'Empty' droplets. Default is 80000.
+#' @param Empty_max_num Number of pre-defined 'Empty' droplets. Default is 50000.
 #' @param max_iter An integer specifying the number of iterations to use to rebuild the model with new defined droplets. Default is 5.
 #' @param Gini_control Whether to control cell quality by CellGini. Default is \code{TRUE}.
 #' @param Gini_threshold A cutoff of the CellGini metric. The higher, the more conservative and will get a lower number of cells. Default is automatic.
@@ -102,10 +102,10 @@
 #' @importFrom ggplot2 ggplot aes geom_point geom_vline
 #' @export
 dropSplit <- function(counts, do_plot = TRUE, Cell_score = 0.9, Empty_score = 0.2,
-                      downsample_times = NULL, CE_ratio = 1,
+                      downsample_times = NULL, CE_ratio = 2,
                       fill_RankMSE = FALSE, smooth_num = 3, smooth_window = 100,
                       Cell_rank = NULL, Uncertain_rank = NULL, Empty_rank = NULL,
-                      Cell_min_nCount = 500, Empty_min_nCount = 10, Empty_max_num = 80000,
+                      Cell_min_nCount = 500, Empty_min_nCount = 10, Empty_max_num = 50000,
                       Gini_control = TRUE, Gini_threshold = NULL, max_iter = 5,
                       preCell_mask = FALSE, preEmpty_mask = TRUE, FDR = 0.05, remove_outliers = FALSE,
                       xgb_params = NULL, xgb_nrounds = 20, xgb_thread = 8, xgb_early_stopping_rounds = NULL,
@@ -763,8 +763,8 @@ RankMSE <- function(meta_info, fill_RankMSE = FALSE, smooth_num = 3, smooth_wind
   }
   meta_info <- meta_info[order(meta_info$nCount_rank, decreasing = FALSE), ]
   inflection <- find_inflection(meta_info$nCount)$index[1]
-  inflection_left <- round(inflection - inflection * 0.3)
-  inflection_right <- round(inflection + inflection * 0.3)
+  inflection_left <- round(inflection - inflection * 0.4)
+  inflection_right <- round(inflection + inflection * 0.4)
 
   meta_info$RankSE <- (meta_info$nCount_rank - meta_info$nFeature_rank)^2
   if (isTRUE(fill_RankMSE)) {
