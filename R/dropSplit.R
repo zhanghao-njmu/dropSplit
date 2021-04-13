@@ -762,9 +762,7 @@ RankMSE <- function(meta_info, fill_RankMSE = FALSE, smooth_num = 3, smooth_wind
     stop("Find 'nCount'<=0. Stop run.")
   }
   meta_info <- meta_info[order(meta_info$nCount_rank, decreasing = FALSE), ]
-  nCount_inflection <- find_inflection(meta_info$nCount)$index[1]
-  nFeature_inflection <- find_inflection(meta_info$nFeature)$index[1]
-  inflection <- min(nCount_inflection, nFeature_inflection)
+  inflection <- find_inflection(meta_info$nCount)$index[1]
   inflection_left <- round(inflection - inflection * 0.3)
   inflection_right <- round(inflection + inflection * 0.3)
 
