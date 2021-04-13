@@ -515,10 +515,10 @@ dropSplit <- function(counts, do_plot = TRUE, Cell_score = 0.9, Empty_score = 0.
         message("*** train_aucpr decreased(", new_train_aucpr, "<", train_aucpr, "). Use the previous model for final classification.")
         break
       }
-      if (new_train_error > train_error) {
-        message("*** train_error increased(", new_train_error, ">", train_error, "). Use the previous model for final classification.")
-        break
-      }
+      # if (new_train_error > train_error) {
+      #   message("*** train_error increased(", new_train_error, ">", train_error, "). Use the previous model for final classification.")
+      #   break
+      # }
     }
 
     train_error <- new_train_error
