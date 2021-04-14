@@ -253,6 +253,25 @@ dropSplit <- function(counts, do_plot = TRUE, Cell_score = 0.9, Empty_score = 0.
     Uncertain_counts <- cbind(as(Drop_counts, "dgCMatrix"), Uncertain_counts)
   }
 
+  message(">>> Calculate CellEntropy for 'Cell' droplets")
+  cell_CellEntropy <- CellEntropy(Cell_counts)
+  lower <- outliers(cell_CellEntropy,times = 1.5)$LowerBound
+  cell_drop <- names(cell_CellEntropy)[cell_CellEntropy < lower]
+  cell_use <- names(cell_CellEntropy)[cell_CellEntropy >= lower]
+  if (length(cell_drop) > 0) {
+    message(
+      "*** There are ", length(cell_drop), " 'Cell' droplets with lower ourliers 'CellEntropy':", round(lower, 3), "\n",
+      "*** These ", length(cell_drop), " droplets will pre-defined as 'Uncertain'"
+    )
+    Drop_counts <- Cell_counts[, cell_drop]
+    if (is.numeric(Drop_counts)) {
+      Drop_counts <- as.matrix(Drop_counts)
+      colnames(Drop_counts) <- cell_drop
+    }
+    Cell_counts <- Cell_counts[, cell_use]
+    Uncertain_counts <- cbind(as(Drop_counts, "dgCMatrix"), Uncertain_counts)
+  }
+
   Cell_nCount <- Matrix::colSums(Cell_counts)
   Uncertain_nCount <- Matrix::colSums(Uncertain_counts)
   Empty_nCount <- Matrix::colSums(Empty_counts)
@@ -313,7 +332,8 @@ dropSplit <- function(counts, do_plot = TRUE, Cell_score = 0.9, Empty_score = 0.
   RPgene <- grep(x = rownames(comb_counts), pattern = "(^RP[SL]\\d+(\\w|)$)|(^Rp[sl]\\d+(\\w|)$)|(^rp[sl]\\d+(\\w|)$)", perl = T, value = TRUE)
   comb_MTprop <- Matrix::colSums(comb_counts[MTgene, ]) / Matrix::colSums(comb_counts)
   comb_RPprop <- Matrix::colSums(comb_counts[RPgene, ]) / Matrix::colSums(comb_counts)
-  comb_CellEntropy <- CellEntropy(comb_counts)
+  comb_CellEntropy <- CellEntropy(comb_counts[,!colnames(comb_counts) %in% names(cell_CellEntropy)])
+  comb_CellEntropy <- c(comb_CellEntropy,cell_CellEntropy)[colnames(comb_counts)]
   comb_maxCellEntropy <- maxCellEntropy(comb_counts)
   comb_CellEfficiency <- comb_CellEntropy / comb_maxCellEntropy
   comb_CellEfficiency[is.na(comb_CellEfficiency)] <- 1

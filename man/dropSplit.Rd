@@ -10,7 +10,7 @@ dropSplit(
   Cell_score = 0.9,
   Empty_score = 0.2,
   downsample_times = NULL,
-  CE_ratio = 1,
+  CE_ratio = 2,
   fill_RankMSE = FALSE,
   smooth_num = 3,
   smooth_window = 100,
@@ -19,7 +19,7 @@ dropSplit(
   Empty_rank = NULL,
   Cell_min_nCount = 500,
   Empty_min_nCount = 10,
-  Empty_max_num = 80000,
+  Empty_max_num = 50000,
   Gini_control = TRUE,
   Gini_threshold = NULL,
   max_iter = 5,
@@ -48,7 +48,7 @@ dropSplit(
 
 \item{downsample_times}{Number of repetitions of downsampling for 'Cell' and 'Uncertain' droplets. If \code{NULL}, will be determined by \code{CE_ratio}. Default is \code{NULL}.}
 
-\item{CE_ratio}{Ratio value between down-sampled 'Cells' and 'Empty' droplets. The actual value will be slightly higher than the set. Default is 1.}
+\item{CE_ratio}{Ratio value between down-sampled 'Cells' and 'Empty' droplets. The actual value will be slightly higher than the set. Default is 2.}
 
 \item{fill_RankMSE}{Whether to fill the RankMSE by nCount. Default is \code{TRUE}.}
 
@@ -62,7 +62,7 @@ dropSplit(
 
 \item{Empty_min_nCount}{Minimum nCount for 'Empty' droplets. Default is 10.}
 
-\item{Empty_max_num}{Number of pre-defined 'Empty' droplets. Default is 80000.}
+\item{Empty_max_num}{Number of pre-defined 'Empty' droplets. Default is 50000.}
 
 \item{Gini_control}{Whether to control cell quality by CellGini. Default is \code{TRUE}.}
 
