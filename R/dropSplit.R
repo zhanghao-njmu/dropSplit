@@ -429,11 +429,7 @@ dropSplit <- function(counts, do_plot = TRUE, Cell_score = 0.9, Empty_score = 0.
       cell_expansion <- empty_expansion <- 1
     } else {
       ### empty
-      # if (k == 2) {
-      #   empty_current <- rownames(meta_info)[meta_info$dropSplitClass == "Empty" & meta_info$nCount_Bin %in% c(0, k)]
-      # } else {
       empty_current <- c(empty_update, rownames(meta_info)[meta_info$dropSplitScore < min(0.1, Empty_score) & meta_info$nCount_Bin == k])
-      # }
       new_empty <- colnames(Sim_Uncertain_counts)[Sim_Uncertain_counts_rawname %in% empty_current]
       if (empty_expansion != 1 & length(new_empty) > 0) {
         new_empty <- sample(new_empty, round(empty_expansion * length(new_empty)), replace = TRUE)
@@ -909,16 +905,16 @@ RankMSE <- function(meta_info, fill_RankMSE = FALSE, smooth_num = 3, smooth_wind
     # # erk <- min(max(minrk + which.min(df[(minrk + 1):maxrk, "RankMSE"]), crk * 20), maxrk)
     empty_count <- df[erk, "nCount"]
     Empty_rank <- max(meta_info$nCount_rank[meta_info$nCount >= empty_count])
-    qplot(log10(1:length(df$RankMSE)), log10(df$RankMSE)) + geom_vline(xintercept = log10(erk))
+    # qplot(log10(1:length(df$RankMSE)), log10(df$RankMSE)) + geom_vline(xintercept = log10(erk))
 
     ## 'Uncertain' RankMSE peak
-    urk <- crk + find_peaks(df[(crk + 1):erk, "RankMSE"], left_shoulder = crk, right_shoulder = erk - crk)
-    urk <- urk[erk - urk > 2 * crk]
-    if (length(urk) == 0) {
-      urk <- crk + which.max(df[(crk + 1):erk, "RankMSE"])
-    } else {
-      urk <- urk[length(urk)]
-    }
+    urk <- crk + find_peaks(df[(crk + 1):erk, "RankMSE"], left_shoulder = 1, right_shoulder = erk - crk)
+    fq <- cut(urk, breaks = 10^seq(log10(min(crk)), log10(max(erk)), length.out = 5))
+    fqfq <- table(fq)
+    bin <- names(fqfq)[which.max(fqfq)]
+    lowerbound <- as.numeric(sub("\\((.+),.*", "\\1", bin))
+    upperbound <- as.numeric(sub("[^,]*,([^]]*)\\]", "\\1", bin))
+    urk <- lowerbound + which.max(df[lowerbound:upperbound, "RankMSE"]) - 1
     uncertain_count <- df[urk, "nCount"]
     Uncertain_rank <- max(meta_info$nCount_rank[meta_info$nCount > uncertain_count])
     # qplot(log10(1:length(df$RankMSE)), log10(df$RankMSE))+geom_vline(xintercept=log10(urk))
