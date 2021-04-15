@@ -908,7 +908,10 @@ RankMSE <- function(meta_info, fill_RankMSE = FALSE, smooth_num = 3, smooth_wind
     # qplot(log10(1:length(df$RankMSE)), log10(df$RankMSE)) + geom_vline(xintercept = log10(erk))
 
     ## 'Uncertain' RankMSE peak
-    urk <- crk + find_peaks(df[(crk + 1):erk, "RankMSE"], left_shoulder = 1, right_shoulder = erk - crk)
+    urk <- erk
+    while (length(urk) < 3) {
+      urk <- crk + find_peaks(df[(crk + 1):(urk[1] - 100), "RankMSE"], left_shoulder = 1, right_shoulder = erk - crk)
+    }
     fq <- cut(urk, breaks = 10^seq(log10(min(crk)), log10(max(erk)), length.out = 5))
     fqfq <- table(fq)
     bin <- names(fqfq)[which.max(fqfq)]
