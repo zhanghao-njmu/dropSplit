@@ -134,8 +134,8 @@ dropSplit <- function(counts, do_plot = TRUE, Cell_score = 0.9, Empty_score = 0.
     stop("'CE_ratio' is not a numeric value.")
   }
   if (!is.null(downsample_times) & is.numeric(downsample_times)) {
-    if (downsample_times < 6) {
-      stop("'downsample_times' must be larger than 6.")
+    if (downsample_times < 10) {
+      stop("'downsample_times' must be larger than 10.")
     }
   }
   if (class(counts) == "matrix") {
@@ -300,9 +300,9 @@ dropSplit <- function(counts, do_plot = TRUE, Cell_score = 0.9, Empty_score = 0.
   )
   if (is.null(downsample_times)) {
     downsample_times <- ceiling(ncol(Empty_counts) / ncol(Cell_counts) * CE_ratio) - 1
-    if (downsample_times < 6) {
-      warning("'downsample_times' is ", downsample_times, ", but at least 6 for a reliable sampling. 'downsample_times' and 'CE_ratio' will be reset.", immediate. = TRUE)
-      downsample_times <- 6
+    if (downsample_times < 10) {
+      warning("'downsample_times' is ", downsample_times, ", but at least 10 for a reliable sampling. 'downsample_times' and 'CE_ratio' will be reset.", immediate. = TRUE)
+      downsample_times <- 10
     }
   } else {
     warning("'CE_ratio' will be reset according to the 'downsample_times'.", immediate. = TRUE)
