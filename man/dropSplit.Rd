@@ -22,7 +22,7 @@ dropSplit(
   Empty_max_num = 50000,
   Gini_control = TRUE,
   Gini_threshold = NULL,
-  max_iter = 5,
+  max_iter = 6,
   preCell_mask = FALSE,
   preEmpty_mask = TRUE,
   FDR = 0.05,
@@ -68,7 +68,7 @@ dropSplit(
 
 \item{Gini_threshold}{A cutoff of the CellGini metric. The higher, the more conservative and will get a lower number of cells. Default is automatic.}
 
-\item{max_iter}{An integer specifying the number of iterations to use to rebuild the model with new defined droplets. Default is 5.}
+\item{max_iter}{An integer specifying the number of iterations to use to rebuild the model with new defined droplets. Default is 6.}
 
 \item{preCell_mask}{logical; Whether to mask pre-defined 'Cell' droplets when prediction. If \code{TRUE}, XGBoostScore for all droplets pre-defined as 'Cell' will be set to 1; Default is \code{FALSE}.}
 

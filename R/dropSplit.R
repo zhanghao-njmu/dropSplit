@@ -21,7 +21,7 @@
 #' @param Cell_min_nCount Minimum nCount for 'Cell' droplets. Default is 500.
 #' @param Empty_min_nCount Minimum nCount for 'Empty' droplets. Default is 10.
 #' @param Empty_max_num Number of pre-defined 'Empty' droplets. Default is 50000.
-#' @param max_iter An integer specifying the number of iterations to use to rebuild the model with new defined droplets. Default is 5.
+#' @param max_iter An integer specifying the number of iterations to use to rebuild the model with new defined droplets. Default is 6.
 #' @param Gini_control Whether to control cell quality by CellGini. Default is \code{TRUE}.
 #' @param Gini_threshold A cutoff of the CellGini metric. The higher, the more conservative and will get a lower number of cells. Default is automatic.
 #' @param Cell_rank,Uncertain_rank,Empty_rank Custom Rank value to mark the droplets as Cell, Uncertain and Empty labels for the data to be trained. Default is automatic. But useful when the default value is considered to be wrong from the RankMSE plot.
@@ -106,7 +106,7 @@ dropSplit <- function(counts, do_plot = TRUE, Cell_score = 0.9, Empty_score = 0.
                       fill_RankMSE = FALSE, smooth_num = 3, smooth_window = 100,
                       Cell_rank = NULL, Uncertain_rank = NULL, Empty_rank = NULL,
                       Cell_min_nCount = 500, Empty_min_nCount = 10, Empty_max_num = 50000,
-                      Gini_control = TRUE, Gini_threshold = NULL, max_iter = 5,
+                      Gini_control = TRUE, Gini_threshold = NULL, max_iter = 6,
                       preCell_mask = FALSE, preEmpty_mask = TRUE, FDR = 0.05, remove_outliers = FALSE,
                       xgb_params = NULL, xgb_nrounds = 20, xgb_thread = 8, xgb_early_stopping_rounds = NULL,
                       modelOpt = FALSE, verbose = 1, seed = 0, ...) {
@@ -255,7 +255,7 @@ dropSplit <- function(counts, do_plot = TRUE, Cell_score = 0.9, Empty_score = 0.
 
   message(">>> Calculate CellEntropy for 'Cell' droplets")
   cell_CellEntropy <- CellEntropy(Cell_counts)
-  lower <- outliers(cell_CellEntropy,times = 1.5)$LowerBound
+  lower <- outliers(cell_CellEntropy, times = 3)$LowerBound
   cell_drop <- names(cell_CellEntropy)[cell_CellEntropy < lower]
   cell_use <- names(cell_CellEntropy)[cell_CellEntropy >= lower]
   if (length(cell_drop) > 0) {
@@ -332,8 +332,8 @@ dropSplit <- function(counts, do_plot = TRUE, Cell_score = 0.9, Empty_score = 0.
   RPgene <- grep(x = rownames(comb_counts), pattern = "(^RP[SL]\\d+(\\w|)$)|(^Rp[sl]\\d+(\\w|)$)|(^rp[sl]\\d+(\\w|)$)", perl = T, value = TRUE)
   comb_MTprop <- Matrix::colSums(comb_counts[MTgene, ]) / Matrix::colSums(comb_counts)
   comb_RPprop <- Matrix::colSums(comb_counts[RPgene, ]) / Matrix::colSums(comb_counts)
-  comb_CellEntropy <- CellEntropy(comb_counts[,!colnames(comb_counts) %in% names(cell_CellEntropy)])
-  comb_CellEntropy <- c(comb_CellEntropy,cell_CellEntropy)[colnames(comb_counts)]
+  comb_CellEntropy <- CellEntropy(comb_counts[, !colnames(comb_counts) %in% names(cell_CellEntropy)])
+  comb_CellEntropy <- c(comb_CellEntropy, cell_CellEntropy)[colnames(comb_counts)]
   comb_maxCellEntropy <- maxCellEntropy(comb_counts)
   comb_CellEfficiency <- comb_CellEntropy / comb_maxCellEntropy
   comb_CellEfficiency[is.na(comb_CellEfficiency)] <- 1
@@ -432,7 +432,7 @@ dropSplit <- function(counts, do_plot = TRUE, Cell_score = 0.9, Empty_score = 0.
       # if (k == 2) {
       #   empty_current <- rownames(meta_info)[meta_info$dropSplitClass == "Empty" & meta_info$nCount_Bin %in% c(0, k)]
       # } else {
-      empty_current <- c(empty_update, rownames(meta_info)[meta_info$dropSplitClass == "Empty" & meta_info$nCount_Bin == k])
+      empty_current <- c(empty_update, rownames(meta_info)[meta_info$dropSplitScore < min(0.1, Empty_score) & meta_info$nCount_Bin == k])
       # }
       new_empty <- colnames(Sim_Uncertain_counts)[Sim_Uncertain_counts_rawname %in% empty_current]
       if (empty_expansion != 1 & length(new_empty) > 0) {
@@ -450,18 +450,16 @@ dropSplit <- function(counts, do_plot = TRUE, Cell_score = 0.9, Empty_score = 0.
         empty_KeepSample <- sample(colnames(Empty_counts), Empty_max_num - length(empty_NewSample), replace = TRUE)
         empty_update <- c(empty_NewSample, empty_KeepSample)
         empty_expansion <- ifelse(length(empty_New) == 0, empty_expansion, empty_expansion * length(empty_NewSample) / length(empty_New))
-        # empty_update <- c(empty_SimSample, colnames(Empty_counts))
-        # empty_expansion <- empty_expansion * (Empty_max_num - ncol(Empty_counts)) / length(empty_Sim)
       }
 
       ### cell
       if (k == 2) {
-        cell_k1 <- rownames(meta_info)[meta_info$dropSplitClass == "Cell" & meta_info$nCount_Bin == 1]
+        cell_k1 <- rownames(meta_info)[meta_info$dropSplitScore > max(0.9, Cell_score) & meta_info$nCount_Bin == 1]
         cell_k1Sim <- colnames(Sim_Cell_counts)[Sim_Cell_counts_rawname %in% cell_k1]
-        cell_current <- rownames(meta_info)[meta_info$dropSplitClass == "Cell" & meta_info$nCount_Bin %in% c(1, max_iter)]
+        cell_current <- rownames(meta_info)[meta_info$dropSplitScore > max(0.9, Cell_score) & meta_info$nCount_Bin %in% c(1, max_iter)]
         cell_current <- c(cell_current, colnames(Sim_Cell_counts)[Sim_Cell_counts_rawname %in% cell_current])
       } else {
-        cell_current <- c(cell_update, rownames(meta_info)[meta_info$dropSplitClass == "Cell" & meta_info$nCount_Bin == max_iter - k + 2])
+        cell_current <- c(cell_update, rownames(meta_info)[meta_info$dropSplitScore > max(0.9, Cell_score) & meta_info$nCount_Bin == max_iter - k + 2])
       }
       new_cell <- colnames(Sim_Uncertain_counts)[Sim_Uncertain_counts_rawname %in% cell_current]
       if (cell_expansion != 1 & length(new_cell) > 0) {
@@ -530,16 +528,16 @@ dropSplit <- function(counts, do_plot = TRUE, Cell_score = 0.9, Empty_score = 0.
     new_train_error <- tail(xgb$evaluation_log$train_error, 1)
     new_train_aucpr <- tail(xgb$evaluation_log$train_aucpr, 1)
 
-    if (k >= 2) {
-      if (new_train_aucpr < train_aucpr) {
-        message("*** train_aucpr decreased(", new_train_aucpr, "<", train_aucpr, "). Use the previous model for final classification.")
-        break
-      }
-      # if (new_train_error > train_error) {
-      #   message("*** train_error increased(", new_train_error, ">", train_error, "). Use the previous model for final classification.")
-      #   break
-      # }
-    }
+    # if (k >= 2) {
+    #   if (new_train_aucpr < train_aucpr) {
+    #     message("*** train_aucpr decreased(", new_train_aucpr, "<", train_aucpr, "). Use the previous model for final classification.")
+    #     break
+    #   }
+    #   # if (new_train_error > train_error) {
+    #   #   message("*** train_error increased(", new_train_error, ">", train_error, "). Use the previous model for final classification.")
+    #   #   break
+    #   # }
+    # }
 
     train_error <- new_train_error
     train_aucpr <- new_train_aucpr
@@ -571,10 +569,14 @@ dropSplit <- function(counts, do_plot = TRUE, Cell_score = 0.9, Empty_score = 0.
     stat_out <- as.data.frame(Reduce(function(x, y) rbind(x, y), stat_list))
     stat_out[colnames(Uncertain_counts), "FDR"] <- p.adjust(stat_out[colnames(Uncertain_counts), "pvalue"], "BH")
 
-    xgCellScore <- ifelse(XGBoostScore[colnames(Cell_counts)] > 0.5,
-      pmax(stat_out[colnames(Cell_counts), "mean_value"], XGBoostScore[colnames(Cell_counts)]),
-      pmin(stat_out[colnames(Cell_counts), "mean_value"], XGBoostScore[colnames(Cell_counts)])
-    )
+    if (k == 1) {
+      xgCellScore <- stat_out[colnames(Cell_counts), "mean_value"]
+    } else {
+      xgCellScore <- ifelse(XGBoostScore[colnames(Cell_counts)] > 0.5,
+        pmax(stat_out[colnames(Cell_counts), "mean_value"], XGBoostScore[colnames(Cell_counts)]),
+        pmin(stat_out[colnames(Cell_counts), "mean_value"], XGBoostScore[colnames(Cell_counts)])
+      )
+    }
     xgUncertainScore <- stat_out[colnames(Uncertain_counts), "mean_value"]
     XGBoostScore <- c(
       xgCellScore,
@@ -605,7 +607,7 @@ dropSplit <- function(counts, do_plot = TRUE, Cell_score = 0.9, Empty_score = 0.
 
     ## make classification
     meta_info[, paste0("dropSplitClass_iter", j)] <- ifelse(
-      meta_info[, paste0("dropSplitScore_iter", j)] > Cell_score, "Cell", ifelse(meta_info[, paste0("dropSplitScore_iter", j)] <= Empty_score, "Empty", "Uncertain")
+      meta_info[, paste0("dropSplitScore_iter", j)] > Cell_score, "Cell", ifelse(meta_info[, paste0("dropSplitScore_iter", j)] < Empty_score, "Empty", "Uncertain")
     )
     meta_info[meta_info[, "preDefinedClass"] == "Discarded", paste0("dropSplitClass_iter", j)] <- "Discarded"
 
@@ -873,7 +875,7 @@ RankMSE <- function(meta_info, fill_RankMSE = FALSE, smooth_num = 3, smooth_wind
 
     ## 'Empty' RankMSE valley
     maxrk <- max(which(df$nCount >= Empty_min_nCount))
-    minrk <- min(crk, maxrk - crk)
+    minrk <- min(2 * crk, maxrk - crk)
     erk <- minrk + find_peaks(-df[(minrk + 1):maxrk, "RankMSE"], left_shoulder = 10^(0.5 * diff(log10(c(minrk, maxrk)))), right_shoulder = 10000)
     erk_diff <- diff(log10(c(minrk + 1, erk)))
     erk <- erk[which.max(erk_diff)]
@@ -907,7 +909,7 @@ RankMSE <- function(meta_info, fill_RankMSE = FALSE, smooth_num = 3, smooth_wind
     # # erk <- min(max(minrk + which.min(df[(minrk + 1):maxrk, "RankMSE"]), crk * 20), maxrk)
     empty_count <- df[erk, "nCount"]
     Empty_rank <- max(meta_info$nCount_rank[meta_info$nCount >= empty_count])
-    # qplot(log10(1:length(df$RankMSE)), log10(df$RankMSE))+geom_vline(xintercept=log10(erk))
+    qplot(log10(1:length(df$RankMSE)), log10(df$RankMSE)) + geom_vline(xintercept = log10(erk))
 
     ## 'Uncertain' RankMSE peak
     urk <- crk + find_peaks(df[(crk + 1):erk, "RankMSE"], left_shoulder = crk, right_shoulder = erk - crk)
