@@ -212,7 +212,7 @@ dropSplit <- function(counts, do_plot = TRUE, Cell_score = 0.9, Empty_score = 0.
   primary_counts <- cbind(Cell_counts, Uncertain_counts, Empty_counts)
   final_Gini <- CellGini(primary_counts, normalize = TRUE)
   if (is.null(Gini_threshold)) {
-    message(">>> Automatic determination of Gini_threshold according to the CellGini lower bound of 'Cell' droplets")
+    message("*** Automatic determination of Gini_threshold according to the CellGini lower bound of 'Cell' droplets")
     fq <- cut(final_Gini[colnames(Cell_counts)], breaks = seq(min(final_Gini[colnames(Cell_counts)]), max(final_Gini[colnames(Cell_counts)]), length.out = 100))
     fqfq <- table(fq)
     lowerbin <- outliers(fqfq, times = 3)$UpperOutliers
